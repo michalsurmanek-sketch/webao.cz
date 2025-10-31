@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebAO.cz – Tvoříme weby, které prodávají</title>
+  <meta name="description" content="WebAO – weby, e‑shopy, SEO, správa, hosting a AI automatizace. Web do 7 dnů. AO Group."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --blue:#0033cc; /* královská modrá */
+      --yellow:#fdc700; /* AO žlutá */
+      --ink:#0b1220;
+      --ink-60:#2f3a53;
+      --ink-40:#5b6b8f;
+      --bg:#f7f9fc;
+      --white:#ffffff;
+      --radius:18px;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+      --shadow-sm:0 6px 16px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;}
+    body{font-family:Roboto,system-ui,-apple-system,Segoe UI,Arial,"Noto Sans",sans-serif;color:var(--ink);background:var(--bg);}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+    .container{width:min(1200px, 92%);margin-inline:auto}
+    .btn{display:inline-flex;align-items:center;gap:.6rem;border-radius:999px;padding:.9rem 1.3rem;font-weight:700;border:2px solid transparent;transition:.2s ease;cursor:pointer}
+    .btn--primary{background:var(--blue);color:var(--white)}
+    .btn--primary:hover{filter:brightness(1.05)}
+    .btn--ghost{background:transparent;border-color:var(--blue);color:var(--blue)}
+    .btn--ghost:hover{background:rgba(0,51,204,.06)}
+    /* Header */
+    header{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e9eef8;z-index:50}
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:.8rem 0}
+    .brand{display:flex;align-items:center;gap:.7rem}
+    .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#1a4fff);display:grid;place-items:center;color:var(--yellow);font-weight:900;box-shadow:var(--shadow-sm)}
+    .brand b{font-size:1.15rem;letter-spacing:.3px}
+    .menu{display:flex;align-items:center;gap:1.2rem}
+    .menu a{color:var(--ink-60);font-weight:500}
+    .menu a:hover{color:var(--ink)}
+    .nav-cta{display:flex;align-items:center;gap:.6rem}
+    .burger{display:none;border:none;background:transparent;font-size:0}
+    /* Mobile menu */
+    @media (max-width: 920px){
+      .menu{display:none}
+      .burger{display:block;width:40px;height:40px;border-radius:10px;background:var(--white);box-shadow:var(--shadow);}
+      .drawer{position:fixed;inset:0 0 auto auto;width:min(86%,380px);height:100vh;background:var(--white);transform:translateX(100%);transition:transform .25s ease;box-shadow:var(--shadow);padding:1.2rem}
+      .drawer.open{transform:translateX(0)}
+      .drawer a{display:block;padding:.9rem 0;border-bottom:1px solid #eef2fb;color:var(--ink-60)}
+    }
+    /* Hero */
+    .hero{position:relative;overflow:hidden;background:radial-gradient(1250px 650px at 20% 0%, rgba(0,51,204,.10) 0, transparent 40%), linear-gradient(180deg, #fff, #f9fbff)}
+    .hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:2.2rem;padding:4.2rem 0}
+    .eyebrow{display:inline-flex;align-items:center;gap:.5rem;background:rgba(253,199,0,.18);color:#6c5700;border:1px dashed rgba(253,199,0,.7);padding:.35rem .6rem;border-radius:999px;font-weight:700;font-size:.9rem}
+    h1{font-size:clamp(2rem, 4vw + .6rem, 3.4rem);line-height:1.1;margin:.8rem 0 1rem 0}
+    .lead{font-size:1.15rem;color:var(--ink-60);max-width:56ch}
+    .hero-cta{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:1.3rem}
+    .hero-media{position:relative}
+    .hero-card{background:var(--white);border-radius:var(--radius);padding:1.1rem;border:1px solid #e9eef8;box-shadow:var(--shadow);}
+    .hero-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1rem}
+    .chip{display:inline-flex;align-items:center;gap:.5rem;background:#eef3ff;color:#183072;border-radius:999px;padding:.4rem .7rem;font-size:.85rem;font-weight:700}
+    @media (max-width: 920px){
+      .hero .wrap{grid-template-columns:1fr;padding:2.4rem 0}
+    }
+    /* Trust */
+    .trust{display:grid;grid-template-columns:repeat(5,1fr);gap:1.2rem;opacity:.85}
+    .trust div{background:#fff;border:1px solid #eef2fb;border-radius:14px;padding:1rem;display:grid;place-items:center}
+    @media (max-width: 720px){.trust{grid-template-columns:repeat(2,1fr)}}
+    /* Services */
+    section{padding:3.6rem 0}
+    .section-h{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.6rem}
+    .section-h h2{margin:0;font-size:2rem}
+    .grid{display:grid;gap:1rem}
+    .grid--3{grid-template-columns:repeat(3,1fr)}
+    .grid--4{grid-template-columns:repeat(4,1fr)}
+    @media (max-width: 1000px){.grid--3{grid-template-columns:repeat(2,1fr)}.grid--4{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width: 640px){.grid--3,.grid--4{grid-template-columns:1fr}}
+    .card{background:var(--white);border:1px solid #e9eef8;border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow-sm)}
+    .card h3{margin:.2rem 0 .4rem 0}
+    .icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--yellow),#ffd94c);display:grid;place-items:center;font-weight:900;color:#4a3a00}
+    .tag{display:inline-flex;align-items:center;gap:.5rem;background:#fff3c2;border:1px solid #ffe186;color:#7a5b00;padding:.2rem .55rem;border-radius:999px;font-size:.8rem;font-weight:700}
+    /* Pricing */
+    .pricing .card{position:relative}
+    .price{font-size:2rem;font-weight:900;color:var(--blue)}
+    .badge{position:absolute;top:12px;right:12px;background:var(--blue);color:#fff;font-weight:800;font-size:.8rem;padding:.35rem .6rem;border-radius:999px}
+    ul.features{list-style:none;padding:0;margin:1rem 0 0 0}
+    ul.features li{display:flex;gap:.6rem;margin:.5rem 0;color:var(--ink-60)}
+    ul.features li::before{content:"✔";font-weight:900;color:var(--blue)}
+    /* Process */
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+    .step{background:#fff;border:1px dashed #dfe7fb;border-radius:16px;padding:1rem}
+    .step strong{display:inline-block;margin:.4rem 0}
+    @media (max-width: 900px){.steps{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width: 520px){.steps{grid-template-columns:1fr}}
+    /* Contact */
+    .contact{display:grid;grid-template-columns:1.1fr .9fr;gap:1.4rem}
+    form{background:#fff;border:1px solid #e9eef8;border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow-sm)}
+    label{display:block;font-weight:700;margin:.6rem 0 .25rem}
+    input,textarea,select{width:100%;border:1px solid #dfe7fb;border-radius:12px;padding:.8rem;background:#fbfdff;font:inherit}
+    textarea{min-height:120px;resize:vertical}
+    .aside{background:linear-gradient(135deg,#fefcf4,#fff8d8);border:1px solid #ffe186;border-radius:var(--radius);padding:1.2rem}
+    .aside p{margin:.3rem 0;color:#6c5700}
+    /* Footer */
+    footer{background:#0a1950;color:#c7d1ff;margin-top:2rem}
+    .foot{display:grid;grid-template-columns:2fr 1fr 1fr;gap:1.2rem;padding:2rem 0}
+    .foot a{color:#e7ecff}
+    .foot small{color:#9fb0ff}
+    @media (max-width: 900px){.foot{grid-template-columns:1fr}}
+    .copyright{border-top:1px solid rgba(255,255,255,.15);padding:1rem 0;text-align:center;color:#a8b6ff}
+    /* Utilities */
+    .muted{color:var(--ink-40)}
+    .pill{display:inline-flex;gap:.4rem;align-items:center;border-radius:999px;padding:.25rem .55rem;background:#eef3ff;color:#1a2f70;font-weight:700;font-size:.8rem}
+    .divider{height:1px;background:#e9eef8;margin:1.2rem 0}
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav" aria-label="Hlavní navigace">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">AO</div>
+        <b>WebAO</b>
+      </div>
+      <nav class="menu" aria-label="Menu">
+        <a href="#sluzby">Služby</a>
+        <a href="#balicky">Balíčky</a>
+        <a href="#ukazky">Ukázky</a>
+        <a href="#proces">Jak pracujeme</a>
+        <a href="#kontakt">Kontakt</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn--ghost" href="#balicky">Ceník</a>
+        <a class="btn btn--primary" href="#kontakt">Poptat web</a>
+        <button class="burger" aria-label="Otevřít menu" id="burger">☰</button>
+      </div>
+    </div>
+    <div class="drawer" id="drawer" aria-hidden="true">
+      <div class="container">
+        <a href="#sluzby">Služby</a>
+        <a href="#balicky">Balíčky</a>
+        <a href="#ukazky">Ukázky</a>
+        <a href="#proces">Jak pracujeme</a>
+        <a href="#kontakt">Kontakt</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container wrap">
+      <div>
+        <span class="eyebrow">Web do 7 dnů • SEO • E‑shop • AI automatizace</span>
+        <h1>Tvoříme weby, které <span style="background:linear-gradient(transparent 60%, rgba(253,199,0,.6) 0);">prodávají</span> a rostou s vámi</h1>
+        <p class="lead">WebAO je webové studio AO Group. Stavíme rychlé a moderní weby, e‑shopy a mikrosites. Postaráme se o obsah, SEO, správu i hosting – od A do O.</p>
+        <div class="hero-cta">
+          <a class="btn btn--primary" href="#kontakt">Chci web do 7 dnů</a>
+          <a class="btn btn--ghost" href="#balicky">Zobrazit balíčky</a>
+          <span class="pill" title="Záruka spokojenosti">★ Garance spokojenosti</span>
+        </div>
+        <div class="divider"></div>
+        <div class="trust">
+          <div>Reklamas.cz</div>
+          <div>DomenAO.cz</div>
+          <div>StartAO.cz</div>
+          <div>AutAO.cz</div>
+          <div>VirtualniAdresa.cz</div>
+        </div>
+      </div>
+      <div class="hero-media">
+        <div class="hero-card">
+          <strong>Ukázkový projekt</strong>
+          <p class="muted">Jednostránkový web pro lokální službu s poptávkovým formulářem.</p>
+          <div class="hero-grid">
+            <img alt="Náhled sekce webu" src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop" />
+            <img alt="Náhled e‑shopu" src="https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=1200&auto=format&fit=crop" />
+          </div>
+          <div style="display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap">
+            <span class="chip">⚡ Rychlost 95+ (Lighthouse)</span>
+            <span class="chip">🔎 SEO ready</span>
+            <span class="chip">📱 100% responzivní</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Služby -->
+  <section id="sluzby">
+    <div class="container">
+      <div class="section-h">
+        <h2>Služby</h2>
+        <span class="muted">Od konceptu po růst – vše pod jednou střechou AO</span>
+      </div>
+      <div class="grid grid--3">
+        <div class="card">
+          <div class="icon">{}</div>
+          <h3>Tvorba webů</h3>
+          <p class="muted">Landing page, firemní web, mikrosite. Bleskové dodání a čistý kód.</p>
+        </div>
+        <div class="card">
+          <div class="icon">#</div>
+          <h3>E‑shopy</h3>
+          <p class="muted">Shoptet / WooCommerce – produkty, platby, doprava, faktury i sklad.</p>
+        </div>
+        <div class="card">
+          <div class="icon">↑</div>
+          <h3>SEO & obsah</h3>
+          <p class="muted">Analýza klíčových slov, on‑page, rychlost, copywriting a blog.</p>
+        </div>
+        <div class="card">
+          <div class="icon">☁</div>
+          <h3>Správa & hosting</h3>
+          <p class="muted">Aktualizace, zálohy, monitoring, e‑maily a SSL v ceně správy.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🤖</div>
+          <h3>AI automatizace</h3>
+          <p class="muted">Chatboti, generování obsahu, poptávkové asistenty, CRM propojení.</p>
+        </div>
+        <div class="card">
+          <div class="icon">★</div>
+          <h3>Branding & logo</h3>
+          <p class="muted">Logo, barvy, fonty, šablony dokumentů a firemní identita.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Balíčky / Pricing -->
+  <section id="balicky" class="pricing">
+    <div class="container">
+      <div class="section-h">
+        <h2>Balíčky</h2>
+        <span class="muted">Transparentní ceny. Můžeš začít hned a škálovat, jak porosteš.</span>
+      </div>
+      <div class="grid grid--3">
+        <div class="card">
+          <div class="badge" aria-label="Nejrychlejší start">Start</div>
+          <h3>Start</h3>
+          <p class="muted">Jednostránkový web / mikrosite</p>
+          <div class="price">5 900 Kč</div>
+          <ul class="features">
+            <li>1–3 sekce + formulář</li>
+            <li>Responzivní design</li>
+            <li>Základní SEO & rychlost</li>
+            <li>Napojení na e‑mail</li>
+          </ul>
+          <div style="margin-top:1rem"><a class="btn btn--ghost" href="#kontakt">Chci Start</a></div>
+        </div>
+        <div class="card" style="border:2px solid var(--blue);box-shadow:0 14px 36px rgba(0,51,204,.12)">
+          <div class="badge" style="background:var(--yellow);color:#3a2d00">Nejprodávanější</div>
+          <h3>Business</h3>
+          <p class="muted">Firemní web 5–8 sekcí</p>
+          <div class="price">14 900 Kč</div>
+          <ul class="features">
+            <li>Design na míru</li>
+            <li>Blog / aktuality</li>
+            <li>SEO on‑page + měření</li>
+            <li>Rychlost 90+ (Lighthouse)</li>
+          </ul>
+          <div style="margin-top:1rem"><a class="btn btn--primary" href="#kontakt">Jít do Business</a></div>
+        </div>
+        <div class="card">
+          <div class="badge">Premium</div>
+          <h3>Premium</h3>
+          <p class="muted">E‑shop / pokročilý web</p>
+          <div class="price">od 29 900 Kč</div>
+          <ul class="features">
+            <li>E‑shop (Shoptet / Woo)</li>
+            <li>Integrace plateb a doprav</li>
+            <li>Automatizace / AI nástroje</li>
+            <li>Prioritní podpora</li>
+          </ul>
+          <div style="margin-top:1rem"><a class="btn btn--ghost" href="#kontakt">Mám zájem o Premium</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ukázky / Portfolio (placeholdery) -->
+  <section id="ukazky">
+    <div class="container">
+      <div class="section-h">
+        <h2>Ukázky práce</h2>
+        <span class="muted">Pár posledních projektů v rámci AO Group</span>
+      </div>
+      <div class="grid grid--4">
+        <div class="card"><img alt="Ukázka 1" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop"><h3>Reklamas.cz</h3><p class="muted">Landing + poptávky</p></div>
+        <div class="card"><img alt="Ukázka 2" src="https://images.unsplash.com/photo-1551281044-8d8e6bb2d2f9?q=80&w=1200&auto=format&fit=crop"><h3>DomenAO.cz</h3><p class="muted">Katalog domén</p></div>
+        <div class="card"><img alt="Ukázka 3" src="https://images.unsplash.com/photo-1529336953121-4dee4909f2ce?q=80&w=1200&auto=format&fit=crop"><h3>StartAO.cz</h3><p class="muted">Balíčky pro start</p></div>
+        <div class="card"><img alt="Ukázka 4" src="https://images.unsplash.com/photo-1547658719-da2b51169166?q=80&w=1200&auto=format&fit=crop"><h3>AutAO.cz</h3><p class="muted">Výpis vozidel</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Proces -->
+  <section id="proces">
+    <div class="container">
+      <div class="section-h">
+        <h2>Jak pracujeme</h2>
+        <span class="muted">Jednoduše, rychle a bez stresu</span>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="tag">1</span><strong>Poptávka</strong><p class="muted">Krátký call, vybereme balíček a cíle.</p></div>
+        <div class="step"><span class="tag">2</span><strong>Návrh & obsah</strong><p class="muted">Wireframe, texty, grafika, SEO klíčová slova.</p></div>
+        <div class="step"><span class="tag">3</span><strong>Vývoj</strong><p class="muted">Kód, integrace, testování rychlosti a měření.</p></div>
+        <div class="step"><span class="tag">4</span><strong>Start & správa</strong><p class="muted">Nasazení na doménu, monitoring, úpravy a růst.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Kontakt -->
+  <section id="kontakt">
+    <div class="container contact">
+      <form onsubmit="event.preventDefault(); alert('Děkujeme! Ozveme se co nejdříve.');">
+        <h2>Nezávazná poptávka</h2>
+        <p class="muted">Popiš nám svůj projekt – ozveme se do 24 hodin.</p>
+        <label for="jmeno">Jméno / firma</label>
+        <input id="jmeno" name="jmeno" placeholder="Jan Novák / Novák s.r.o." required>
+        <label for="email">E‑mail</label>
+        <input id="email" name="email" type="email" placeholder="jan@firma.cz" required>
+        <label for="tel">Telefon</label>
+        <input id="tel" name="tel" type="tel" placeholder="+420 777 000 000">
+        <label for="sluzba">Zájem o</label>
+        <select id="sluzba" name="sluzba">
+          <option>Tvorba webu</option>
+          <option>E‑shop</option>
+          <option>SEO & obsah</option>
+          <option>Správa & hosting</option>
+          <option>AI automatizace</option>
+        </select>
+        <label for="zprava">Stručně o projektu</label>
+        <textarea id="zprava" name="zprava" placeholder="Co prodáváte / nabízíte, cíl webu, konkurence…"></textarea>
+        <div style="display:flex;gap:.6rem;align-items:center;margin-top:1rem;flex-wrap:wrap">
+          <button class="btn btn--primary" type="submit">Odeslat poptávku</button>
+          <span class="muted">nebo napiš na <a href="mailto:studio@webao.cz">studio@webao.cz</a></span>
+        </div>
+      </form>
+      <aside class="aside">
+        <h3>Kontakt</h3>
+        <p><strong>WebAO – AO Group</strong></p>
+        <p>E‑mail: <a href="mailto:studio@webao.cz">studio@webao.cz</a></p>
+        <p>Telefon: <a href="tel:+420777000000">+420 777 000 000</a></p>
+        <p><span class="pill">🛡 SSL • Zálohy • Monitoring</span></p>
+        <div class="divider"></div>
+        <details>
+          <summary><strong>FAQ: Jak rychle umíte dodat web?</strong></summary>
+          <p class="muted">Jednoduché weby (Start) do 7 dnů, Business obvykle 10–14 dnů, u e‑shopů záleží na rozsahu.</p>
+        </details>
+        <details>
+          <summary><strong>FAQ: Mohu začít s malým balíčkem a později rozšířit?</strong></summary>
+          <p class="muted">Ano, weby stavíme modulárně – můžete plynule přejít na vyšší balíček.</p>
+        </details>
+        <details>
+          <summary><strong>FAQ: Řešíte i texty a fotografie?</strong></summary>
+          <p class="muted">Ano – copywriting i základní foto/ilustrace jsou součástí služeb.</p>
+        </details>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot">
+      <div>
+        <h3 style="color:#fff;margin-top:0">WebAO</h3>
+        <p class="muted" style="color:#c7d1ff">Weby, e‑shopy, SEO a AI automatizace. Součást AO Group.</p>
+      </div>
+      <div>
+        <h4 style="color:#fff;margin-top:0">Rychlé odkazy</h4>
+        <p><a href="#sluzby">Služby</a></p>
+        <p><a href="#balicky">Balíčky</a></p>
+        <p><a href="#kontakt">Kontakt</a></p>
+      </div>
+      <div>
+        <h4 style="color:#fff;margin-top:0">AO ekosystém</h4>
+        <p><a href="#">Reklamas.cz</a></p>
+        <p><a href="#">StartAO.cz</a></p>
+        <p><a href="#">DomenAO.cz</a></p>
+      </div>
+    </div>
+    <div class="copyright">
+      © <span id="year"></span> WebAO • Všechna práva vyhrazena
+    </div>
+  </footer>
+
+  <script>
+    // Rok v patičce
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Mobilní menu
+    const burger = document.getElementById('burger');
+    const drawer = document.getElementById('drawer');
+    burger?.addEventListener('click', ()=>{
+      const isOpen = drawer.classList.toggle('open');
+      drawer.setAttribute('aria-hidden', String(!isOpen));
+    });
+
+    // Plynulý scroll pro vnitřní odkazy
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', e=>{
+        const id = a.getAttribute('href');
+        if(id && id.length>1){
+          const el = document.querySelector(id);
+          if(el){
+            e.preventDefault();
+            window.scrollTo({top: el.getBoundingClientRect().top + window.pageYOffset - 70, behavior:'smooth'});
+          }
+        }
+      })
+    })
+  </script>
+</body>
+</html>

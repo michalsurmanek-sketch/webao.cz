@@ -505,7 +505,8 @@
     /* Ukázky práce – stejný styl jako ukázkový projekt */
     .portfolio-card{padding:0;overflow:hidden}
     .portfolio-card .portfolio-meta{padding:1.05rem 1.2rem 1.2rem 1.2rem}
-    .portfolio-preview{margin:0;border-radius:0;border:0;box-shadow:none}
+    .portfolio-preview{margin:0;border-radius:0;border:0;box-shadow:none;aspect-ratio:3/2;position:relative}
+    .portfolio-preview img{width:100%;height:100%;object-fit:cover;object-position:top}
     
     .portfolio-preview .preview-label{left:10px;top:10px;font-size:.75rem}
     .portfolio-preview .preview-cta{left:10px;bottom:10px;font-size:.85rem;padding:.6rem .85rem}
@@ -613,16 +614,18 @@
         </div>
         <div class="divider"></div>
         <div class="trust">
-          <img src="/images/herbao-logo.svg" alt="Herbao logo" style="height:38px;width:auto">
-          <img src="/images/adresao-logo.svg" alt="Adresao logo" style="height:38px;width:auto">
-          <img src="/images/reklamas-logo1.svg" alt="Reklamas logo" style="height:38px;width:auto">
+          <div>Reklamas.cz</div>
+          <div>DomenAO.cz</div>
+          <div>StartAO.cz</div>
+          <div>AutAO.cz</div>
+          <div>VirtualniAdresa.cz</div>
         </div>
       </div>
 
       <div class="hero-media">
         <div class="hero-card">
           <div style="display:flex;align-items:center;gap:.6rem">
-            <img src="/images/herbao-logo.svg" alt="Herbao logo" style="height:28px;width:auto">
+            <img src="/images/herbao-logo.png" alt="Herbao logo" style="height:28px;width:auto">
             <strong>Ukázkový projekt</strong>
           </div>
           <p class="muted">Moderní obsahový web pro značku přírodní rovnováhy.</p>
@@ -761,20 +764,7 @@
           </a>
           <div class="portfolio-meta">
             <h3>Reklamas.cz</h3>
-            <p class="muted">Reklamas — hrdina vaší reklamy</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://chatao.cz" target="_blank" rel="noopener" aria-label="Otevřít chatAO.cz">
-            <span class="preview-label">ChatAO.cz</span>
-            <img alt="ChatAO.cz náhled" src="/images/chatao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          
-          <div class="portfolio-meta">
-            <h3>DomenAO.cz</h3>
-            <p class="muted">Katalog domén</p>
+            <p class="muted">Reklamas — hrdina vaší reklamy ve městě</p>
           </div>
         </div>
 
@@ -798,7 +788,7 @@
           </a>
           <div class="portfolio-meta">
             <h3>Adresao.cz</h3>
-            <p class="muted">Virtuální adresa pro firmy</p>
+            <p class="muted">Virtuální adresa pro firmy od 99 Kč/měs.</p>
           </div>
         </div>
 

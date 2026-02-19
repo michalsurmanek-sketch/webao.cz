@@ -157,8 +157,19 @@
       }
       .drawer-close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
 
-      .drawer a{display:block;padding:.95rem 0;border-bottom:1px solid #eef2fb;color:var(--ink-60);font-weight:600}
-      .drawer a:hover{color:var(--ink)}
+      .drawer a:not(.btn){
+        display:block;
+        padding:.95rem 0;
+        border-bottom:1px solid #eef2fb;
+        color:var(--ink-60);
+        font-weight:600;
+      }
+      .drawer a:not(.btn):hover{color:var(--ink)}
+
+      /* CTA tlačítka v draweru nesmí zdědit styl menu odkazů */
+      .drawer .btn{border-bottom:none;padding:.9rem 1.3rem}
+      .drawer .btn--primary{color:#fff}
+      .drawer .btn--ghost{color:var(--blue)}
 
       .drawer-cta{display:grid;gap:.65rem;margin-top:1rem}
       .drawer-cta .btn{width:100%;justify-content:center}
@@ -173,20 +184,20 @@
         padding-top:1rem;
         border-top:1px solid #eef2fb;
         display:flex;
-        gap:12px;
+        gap:14px;
         flex-wrap:wrap;
+        justify-content:center;
       }
       .drawer-socials a{
         display:inline-flex;
         align-items:center;
         justify-content:center;
-        height:38px;
-        padding:0 12px;
-        border-radius:999px;
+        width:44px;
+        height:44px;
+        border-radius:50%;
         border:1px solid #e9eef8;
         background:#fff;
         color:var(--ink-60);
-        font-weight:700;
         transition:.2s ease;
       }
       .drawer-socials a:hover{
@@ -564,9 +575,23 @@
       </div>
 
       <div class="drawer-socials" aria-label="Sociální sítě">
-        <a href="#" target="_blank" rel="noopener" aria-label="Instagram">IG</a>
-        <a href="#" target="_blank" rel="noopener" aria-label="Facebook">FB</a>
-        <a href="#" target="_blank" rel="noopener" aria-label="YouTube">YT</a>
+        <a href="#" target="_blank" rel="noopener" aria-label="Instagram">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+            <circle cx="12" cy="12" r="4"></circle>
+            <circle cx="18" cy="6" r="1"></circle>
+          </svg>
+        </a>
+        <a href="#" target="_blank" rel="noopener" aria-label="Facebook">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.6c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .2 2 .2v2.2h-1.2c-1.2 0-1.6.7-1.6 1.5v1.8H16l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/>
+          </svg>
+        </a>
+        <a href="#" target="_blank" rel="noopener" aria-label="YouTube">
+          <svg width="22" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23 12s0-3-1-4.4c-1-1.6-2-1.6-4-1.8C15 5.5 12 5.5 12 5.5h0s-3 0-6 .3c-2 .2-3 .2-4 1.8C1 9 1 12 1 12s0 3 1 4.4c1 1.6 2.3 1.6 4.6 1.9 1.7.2 5.4.3 5.4.3s3 0 6-.3c2-.2 3-.2 4-1.8 1-1.4 1-4.4 1-4.4zM10 15.5v-7l6 3.5-6 3.5z"/>
+          </svg>
+        </a>
       </div>
     </div>
   </header>

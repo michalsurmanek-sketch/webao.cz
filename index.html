@@ -284,66 +284,7 @@
       transform:translateY(-4px);
     }
 
-    /* AO Preview panel (karta s iframe) */
-    .preview-overlay{
-      position:fixed;inset:0;
-      background:rgba(0,0,0,.35);
-      opacity:0;pointer-events:none;
-      transition:opacity .2s ease;
-      z-index:1000;
-    }
-    .preview-overlay.open{opacity:1;pointer-events:auto}
-
-    .preview-panel{
-      position:fixed;
-      left:18px;
-      bottom:18px;
-      width:420px;
-      height:520px;
-      background:#fff;
-      border:1px solid #e9eef8;
-      border-radius:20px;
-      box-shadow:0 30px 90px rgba(0,0,0,.28);
-      overflow:hidden;
-      transition:all .22s ease;
-      z-index:1001;
-    }
-    .preview-panel.stack{
-      left:auto;
-    }
-    .preview-top{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:10px 12px;
-      border-bottom:1px solid #eef2fb;
-      background:linear-gradient(180deg,#ffffff 0%, #f7f9ff 100%);
-    }
-    .preview-title{display:flex;align-items:center;gap:10px;min-width:0}
-    .dot{width:10px;height:10px;border-radius:50%;background:var(--yellow)}
-    .preview-title b{font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .preview-actions{display:flex;gap:8px;align-items:center}
-    .icon-btn{
-      width:36px;height:36px;border-radius:12px;
-      border:1px solid #e6ecfb;background:#fff;
-      display:grid;place-items:center;
-      transition:.2s ease;cursor:pointer;
-    }
-    .icon-btn:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(0,0,0,.10)}
-
-    .preview-body{height:calc(100% - 57px);background:#fff}
-    .preview-iframe{width:100%;height:100%;border:0;background:#fff}
-    .preview-fallback{
-      padding:14px;
-      font-size:.95rem;
-      color:var(--ink-60);
-      display:none;
-    }
-    .preview-fallback a{color:var(--blue);text-decoration:underline}
-
-    @media (max-width: 720px){
-      .preview-panel{
-        right:0;bottom:0;width:100vw;height:100vh;border-radius:0;
-      }
-    }
+        }
   </style>
 </head>
 <body>
@@ -664,10 +605,10 @@
       </div>
       <div>
         <h4 style="margin-top:0"><span style="color:#fdc700">AO</span><span style="color:#ffffff"> ekosystém</span></h4>
-        <p><a class="preview-link" href="https://adresao.cz" data-title="Adresao.cz">AdresAO.cz</a></p>
-        <p><a class="preview-link" href="https://domenao.cz" data-title="DomenAO.cz">DomenAO.cz</a></p>
-        <p><a class="preview-link" href="https://firmao.cz" data-title="FirmAO.cz">FirmAO.cz</a></p>
-        <p><a class="preview-link" href="https://startao.cz" data-title="StartAO.cz">StartAO.cz</a></p>
+        <p><a href="https://adresao.cz" target="_blank" rel="noopener">AdresAO.cz</a></p>
+        <p><a href="https://domenao.cz" target="_blank" rel="noopener">DomenAO.cz</a></p>
+        <p><a href="https://firmao.cz" target="_blank" rel="noopener">FirmAO.cz</a></p>
+        <p><a href="https://startao.cz" target="_blank" rel="noopener">StartAO.cz</a></p>
       </div>
     </div>
 
@@ -745,39 +686,7 @@
       window.scrollTo({top:0, behavior:'smooth'});
     });
 
-    // AO Preview panel – více karet vlevo dole
-    let previewCount = 0;
-
-    function createPreview(url, title){
-      previewCount++;
-
-      const panel = document.createElement('div');
-      panel.className = 'preview-panel';
-      panel.style.left = (18 + (previewCount - 1) * 30) + 'px';
-      panel.style.bottom = (18 + (previewCount - 1) * 30) + 'px';
-
-      panel.innerHTML = `
-        <div class="preview-top">
-          <div class="preview-title">
-            <span class="dot"></span>
-            <b>${title}</b>
-          </div>
-          <div class="preview-actions">
-            <a class="icon-btn" href="${url}" target="_blank" rel="noopener">↗</a>
-            <button class="icon-btn close-btn">✕</button>
-          </div>
-        </div>
-        <div class="preview-body">
-          <iframe class="preview-iframe" src="${url}" loading="lazy"></iframe>
-        </div>
-      `;
-
-      document.body.appendChild(panel);
-
-      panel.querySelector('.close-btn').addEventListener('click', ()=>{
-        panel.remove();
-      });
-    }
+        }
 
     document.querySelectorAll('.preview-link').forEach(link=>{
       link.addEventListener('click', (e)=>{

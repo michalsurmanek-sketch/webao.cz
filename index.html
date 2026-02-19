@@ -8,6 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- FAVICON & PWA -->
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/android-chrome-192x192.png">
+  <meta name="theme-color" content="#0033cc">
+  <link rel="manifest" href="/site.webmanifest">
   <style>
     :root{
       --blue:#0033cc; /* královská modrá */
@@ -44,7 +53,10 @@
     .nav-cta{display:flex;align-items:center;gap:.6rem}
     .burger{display:none;border:none;background:transparent;font-size:0}
     /* Mobile menu */
+    .drawer{display:none}
     @media (max-width: 920px){
+      .drawer{display:block}
+
       .menu{display:none}
       .burger{display:block;width:40px;height:40px;border-radius:10px;background:var(--white);box-shadow:var(--shadow);}
       .drawer{position:fixed;inset:0 0 auto auto;width:min(86%,380px);height:100vh;background:var(--white);transform:translateX(100%);transition:transform .25s ease;box-shadow:var(--shadow);padding:1.2rem}
@@ -105,6 +117,7 @@
     .aside p{margin:.3rem 0;color:#6c5700}
     /* Footer */
     footer{background:#0a1950;color:#c7d1ff;margin-top:2rem}
+    .footer-logo{width:140px;margin-bottom:12px;filter:invert(1) brightness(2);opacity:.95}
     .foot{display:grid;grid-template-columns:2fr 1fr 1fr;gap:1.2rem;padding:2rem 0}
     .foot a{color:#e7ecff}
     .foot small{color:#9fb0ff}
@@ -121,8 +134,27 @@
   <header>
     <div class="container nav" aria-label="Hlavní navigace">
       <div class="brand">
-        <div class="logo" aria-hidden="true">AO</div>
-        <b>WebAO</b>
+        <!-- NOVÉ SVG LOGO WebAO -->
+        <div class="logo" style="background:none;box-shadow:none;width:auto;height:auto">
+          <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="gradBlue" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#0033cc"/>
+                <stop offset="100%" stop-color="#1a4fff"/>
+              </linearGradient>
+            </defs>
+            <!-- Symbol obrazovky -->
+            <rect x="6" y="10" width="52" height="34" rx="8" fill="url(#gradBlue)"/>
+            <rect x="14" y="18" width="36" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+            <!-- Kurzor / šipka -->
+            <polygon points="28,22 38,34 32,34 30,40" fill="#fdc700"/>
+            <!-- Podstavec monitoru -->
+            <rect x="26" y="46" width="12" height="4" rx="2" fill="#0033cc"/>
+          </svg>
+        </div>
+        <b style="font-weight:900;letter-spacing:.5px">
+          <span style="color:#0033cc">Web</span><span style="color:#0b1220">AO</span>
+        </b>
       </div>
       <nav class="menu" aria-label="Menu">
         <a href="#sluzby">Služby</a>
@@ -366,6 +398,7 @@
   <footer>
     <div class="container foot">
       <div>
+        <img src="/logo-webao.png" alt="WebAO logo" class="footer-logo">
         <h3 style="color:#fff;margin-top:0">WebAO</h3>
         <p class="muted" style="color:#c7d1ff">Weby, e‑shopy, SEO a AI automatizace. Součást AO Group.</p>
       </div>
@@ -413,5 +446,42 @@
       })
     })
   </script>
+  
+  <!-- ===================================== -->
+  <!-- SAMOSTATNÝ SOUBOR: logo-webao.svg -->
+  <!-- Ulož jako: /logo-webao.svg -->
+  <!-- ===================================== -->
+  <!--
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <defs>
+      <linearGradient id="gradBlue" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#0033cc"/>
+        <stop offset="100%" stop-color="#1a4fff"/>
+      </linearGradient>
+    </defs>
+    <rect x="6" y="10" width="52" height="34" rx="8" fill="url(#gradBlue)"/>
+    <rect x="14" y="18" width="36" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+    <polygon points="28,22 38,34 32,34 30,40" fill="#fdc700"/>
+    <rect x="26" y="46" width="12" height="4" rx="2" fill="#0033cc"/>
+  </svg>
+  -->
+
+  <!-- ===================================== -->
+  <!-- MINIMAL VERZE (IKONA): logo-webao-icon.svg -->
+  <!-- Ulož jako: /logo-webao-icon.svg -->
+  <!-- ===================================== -->
+  <!--
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <defs>
+      <linearGradient id="gradMini" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#0033cc"/>
+        <stop offset="100%" stop-color="#1a4fff"/>
+      </linearGradient>
+    </defs>
+    <rect x="8" y="8" width="48" height="48" rx="14" fill="url(#gradMini)"/>
+    <polygon points="26,22 40,36 32,36 30,46" fill="#fdc700"/>
+  </svg>
+  -->
+
 </body>
 </html>

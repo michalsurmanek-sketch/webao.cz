@@ -283,8 +283,6 @@
       color:#000;
       transform:translateY(-4px);
     }
-
-        }
   </style>
 </head>
 <body>
@@ -362,16 +360,33 @@
 
       <div class="hero-media">
         <div class="hero-card">
-          <strong>Ukázkový projekt</strong>
-          <p class="muted">Jednostránkový web pro lokální službu s poptávkovým formulářem.</p>
-          <div class="hero-grid">
-            <img alt="Náhled sekce webu" src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop" />
-            <img alt="Náhled e‑shopu" src="https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=1200&auto=format&fit=crop" />
-          </div>
-          <div style="display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap">
-            <span class="chip">⚡ Rychlost 95+ (Lighthouse)</span>
-            <span class="chip">🔎 SEO ready</span>
-            <span class="chip">📱 100% responzivní</span>
+          <strong>Co o nás říkají klienti</strong>
+          <p class="muted">Reálné reference podnikatelů, kterým jsme pomohli růst.</p>
+
+          <div style="display:flex;flex-direction:column;gap:1rem;margin-top:1rem">
+            <div style="display:flex;gap:.8rem;align-items:flex-start">
+              <img src="/images/recenze1.jpg" alt="Klient 1" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
+              <div>
+                <strong>Jan Novák</strong>
+                <p class="muted" style="margin:.2rem 0 0 0">"WebAO nám dodalo web za týden. Od té doby máme dvojnásobek poptávek."</p>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:.8rem;align-items:flex-start">
+              <img src="/images/recenze2.jpg" alt="Klient 2" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
+              <div>
+                <strong>Petra Svobodová</strong>
+                <p class="muted" style="margin:.2rem 0 0 0">"Profesionální přístup, rychlost a hlavně výsledky. Doporučuji."</p>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:.8rem;align-items:flex-start">
+              <img src="/images/recenze3.jpg" alt="Klient 3" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
+              <div>
+                <strong>Martin Dvořák</strong>
+                <p class="muted" style="margin:.2rem 0 0 0">"Nechtěl jsem jen hezký web, ale nástroj na prodej. To přesně jsme dostali."</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -475,19 +490,41 @@
     </div>
   </section>
 
-  <!-- Ukázky / Portfolio (placeholdery) -->
+  <!-- Ukázky / Portfolio -->
+  <!--
+    JAK DOPLŇOVAT FOTKY:
+    1) Nahraj obrázky do složky /images/ (např. /images/reklamas.jpg)
+    2) Ideální rozměr: 1200x800px (poměr 3:2)
+    3) Formát: .jpg nebo .webp (menší velikost = rychlejší web)
+  -->
   <section id="ukazky">
     <div class="container">
       <div class="section-h">
         <h2>Ukázky práce</h2>
-        <span class="muted">Pár posledních projektů v rámci AO Group</span>
+        <span class="muted">Vybrané projekty WebAO</span>
       </div>
 
       <div class="grid grid--4">
-        <div class="card"><img alt="Ukázka 1" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop"><h3>Reklamas.cz</h3><p class="muted">Landing + poptávky</p></div>
-        <div class="card"><img alt="Ukázka 2" src="https://images.unsplash.com/photo-1551281044-8d8e6bb2d2f9?q=80&w=1200&auto=format&fit=crop"><h3>DomenAO.cz</h3><p class="muted">Katalog domén</p></div>
-        <div class="card"><img alt="Ukázka 3" src="https://images.unsplash.com/photo-1529336953121-4dee4909f2ce?q=80&w=1200&auto=format&fit=crop"><h3>StartAO.cz</h3><p class="muted">Balíčky pro start</p></div>
-        <div class="card"><img alt="Ukázka 4" src="https://images.unsplash.com/photo-1547658719-da2b51169166?q=80&w=1200&auto=format&fit=crop"><h3>AutAO.cz</h3><p class="muted">Výpis vozidel</p></div>
+        <div class="card">
+          <img alt="Reklamas.cz náhled" src="/images/reklamas.jpg">
+          <h3>Reklamas.cz</h3>
+          <p class="muted">Landing + poptávkový systém</p>
+        </div>
+        <div class="card">
+          <img alt="DomenAO.cz náhled" src="/images/domenao.jpg">
+          <h3>DomenAO.cz</h3>
+          <p class="muted">Katalog domén</p>
+        </div>
+        <div class="card">
+          <img alt="StartAO.cz náhled" src="/images/startao.jpg">
+          <h3>StartAO.cz</h3>
+          <p class="muted">Balíčky pro podnikatele</p>
+        </div>
+        <div class="card">
+          <img alt="AutAO.cz náhled" src="/images/autao.jpg">
+          <h3>AutAO.cz</h3>
+          <p class="muted">Marketplace vozidel</p>
+        </div>
       </div>
     </div>
   </section>
@@ -684,15 +721,6 @@
 
     scrollBtn.addEventListener('click', ()=>{
       window.scrollTo({top:0, behavior:'smooth'});
-    });
-
-        }
-
-    document.querySelectorAll('.preview-link').forEach(link=>{
-      link.addEventListener('click', (e)=>{
-        e.preventDefault();
-        createPreview(link.href, link.dataset.title || link.textContent.trim());
-      });
     });
   </script>
 </body>

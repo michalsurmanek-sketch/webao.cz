@@ -283,6 +283,102 @@
       color:#000;
       transform:translateY(-4px);
     }
+
+    /* Premium projekt preview (Hero karta) */
+    .project-preview{
+      position:relative;
+      display:block;
+      border-radius:16px;
+      overflow:hidden;
+      margin-top:1rem;
+      border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 18px 50px rgba(0,0,0,.14);
+      transform:translateZ(0);
+    }
+    .project-preview img{
+      width:100%;
+      height:auto;
+      transform:scale(1.01);
+      transition:transform .35s ease, filter .35s ease;
+    }
+    .project-preview::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.55) 100%);
+      opacity:.65;
+      transition:opacity .35s ease;
+      pointer-events:none;
+    }
+    .project-preview::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:radial-gradient(520px 240px at 30% 10%, rgba(0,51,204,.25) 0, transparent 55%),
+                 radial-gradient(520px 240px at 70% 10%, rgba(253,199,0,.26) 0, transparent 60%);
+      opacity:0;
+      transition:opacity .35s ease;
+      pointer-events:none;
+    }
+    .project-preview .preview-label{
+      position:absolute;
+      left:12px;
+      top:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      padding:.35rem .6rem;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;
+      font-weight:800;
+      font-size:.78rem;
+      backdrop-filter: blur(10px);
+    }
+    .project-preview .preview-cta{
+      position:absolute;
+      left:12px;
+      bottom:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:.55rem;
+      padding:.7rem .95rem;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.22);
+      color:#fff;
+      font-weight:900;
+      font-size:.88rem;
+      backdrop-filter: blur(10px);
+      transition:transform .25s ease, background .25s ease, border-color .25s ease;
+    }
+    .project-preview .preview-cta span{
+      display:inline-grid;
+      place-items:center;
+      width:26px;
+      height:26px;
+      border-radius:999px;
+      background:rgba(253,199,0,.92);
+      color:#1a1400;
+      font-weight:900;
+    }
+    .project-preview:hover img{
+      transform:scale(1.06);
+      filter:saturate(1.05) contrast(1.03);
+    }
+    .project-preview:hover::before{opacity:.45}
+    .project-preview:hover::after{opacity:1}
+    .project-preview:hover .preview-cta{
+      transform:translateY(-3px);
+      background:rgba(255,255,255,.16);
+      border-color:rgba(255,255,255,.3);
+    }
+
+    /* Mobile: trochu jemnější */
+    @media (max-width: 520px){
+      .project-preview{box-shadow:0 14px 36px rgba(0,0,0,.12)}
+    }
   </style>
 </head>
 <body>
@@ -360,33 +456,17 @@
 
       <div class="hero-media">
         <div class="hero-card">
-          <strong>Co o nás říkají klienti</strong>
-          <p class="muted">Reálné reference podnikatelů, kterým jsme pomohli růst.</p>
-
-          <div style="display:flex;flex-direction:column;gap:1rem;margin-top:1rem">
-            <div style="display:flex;gap:.8rem;align-items:flex-start">
-              <img src="/images/recenze1.jpg" alt="Klient 1" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
-              <div>
-                <strong>Jan Novák</strong>
-                <p class="muted" style="margin:.2rem 0 0 0">"WebAO nám dodalo web za týden. Od té doby máme dvojnásobek poptávek."</p>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:.8rem;align-items:flex-start">
-              <img src="/images/recenze2.jpg" alt="Klient 2" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
-              <div>
-                <strong>Petra Svobodová</strong>
-                <p class="muted" style="margin:.2rem 0 0 0">"Profesionální přístup, rychlost a hlavně výsledky. Doporučuji."</p>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:.8rem;align-items:flex-start">
-              <img src="/images/recenze3.jpg" alt="Klient 3" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">
-              <div>
-                <strong>Martin Dvořák</strong>
-                <p class="muted" style="margin:.2rem 0 0 0">"Nechtěl jsem jen hezký web, ale nástroj na prodej. To přesně jsme dostali."</p>
-              </div>
-            </div>
+          <strong>Ukázkový projekt</strong>
+          <p class="muted">Moderní obsahový web pro značku přírodní rovnováhy.</p>
+          <a href="https://www.herbao.cz" target="_blank" rel="noopener" class="project-preview" aria-label="Otevřít Herbao.cz">
+            <span class="preview-label">Herbao.cz • ukázka</span>
+            <img src="/images/herbao.png" alt="Herbao.cz – náhled projektu">
+            <span class="preview-cta">Zobrazit projekt <span>↗</span></span>
+          </a>
+          <div style="display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap">
+            <span class="chip">🌿 Obsahový web</span>
+            <span class="chip">⚡ Rychlý & přehledný</span>
+            <span class="chip">🎯 Silná značka</span>
           </div>
         </div>
       </div>

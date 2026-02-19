@@ -296,6 +296,9 @@
 
     /* Contact */
     .contact{display:grid;grid-template-columns:1.1fr .9fr;gap:1.4rem}
+    @media (max-width: 900px){
+      .contact{grid-template-columns:1fr}
+    }
     form{background:#fff;border:1px solid #e9eef8;border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow-sm)}
     label{display:block;font-weight:700;margin:.6rem 0 .25rem}
     input,textarea,select{width:100%;border:1px solid #dfe7fb;border-radius:12px;padding:.8rem;background:#fbfdff;font:inherit}

@@ -184,7 +184,9 @@
     /* Trust */
     .trust{display:grid;grid-template-columns:repeat(5,1fr);gap:1.2rem;opacity:.85}
     .trust div{background:#fff;border:1px solid #eef2fb;border-radius:14px;padding:1rem;display:grid;place-items:center}
-    @media (max-width: 720px){.trust{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width: 720px){
+      .trust{display:none}
+    }
 
     /* Sections */
     section{padding:3.6rem 0}

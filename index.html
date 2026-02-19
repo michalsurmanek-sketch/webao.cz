@@ -115,6 +115,7 @@
     .drawer{display:none}
     .drawer-overlay{display:none}
     @media (max-width: 920px){
+      .nav-cta .btn{display:none}
       .drawer{display:block}
       .menu{display:none}
       .burger{display:flex}
@@ -159,8 +160,41 @@
       .drawer a{display:block;padding:.95rem 0;border-bottom:1px solid #eef2fb;color:var(--ink-60);font-weight:600}
       .drawer a:hover{color:var(--ink)}
 
-      .drawer-cta{display:grid;gap:.6rem;margin-top:1rem}
+      .drawer-cta{display:grid;gap:.65rem;margin-top:1rem}
       .drawer-cta .btn{width:100%;justify-content:center}
+
+      /* Lepší CTA blok (premium) */
+      .drawer-cta{padding-top:.6rem}
+      .drawer-cta .btn--primary{box-shadow:0 14px 32px rgba(0,51,204,.18)}
+      .drawer-cta .btn--ghost{background:rgba(0,51,204,.06)}
+
+      .drawer-socials{
+        margin-top:1.1rem;
+        padding-top:1rem;
+        border-top:1px solid #eef2fb;
+        display:flex;
+        gap:12px;
+        flex-wrap:wrap;
+      }
+      .drawer-socials a{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        height:38px;
+        padding:0 12px;
+        border-radius:999px;
+        border:1px solid #e9eef8;
+        background:#fff;
+        color:var(--ink-60);
+        font-weight:700;
+        transition:.2s ease;
+      }
+      .drawer-socials a:hover{
+        transform:translateY(-2px);
+        color:var(--ink);
+        box-shadow:0 10px 20px rgba(0,0,0,.08);
+        border-color:rgba(0,51,204,.25);
+      }
     }
 
     /* body lock při otevřeném menu */
@@ -527,6 +561,12 @@
       <div class="drawer-cta">
         <a class="btn btn--ghost" href="#balicky">Ceník</a>
         <a class="btn btn--primary" href="#kontakt">Poptat web</a>
+      </div>
+
+      <div class="drawer-socials" aria-label="Sociální sítě">
+        <a href="#" target="_blank" rel="noopener" aria-label="Instagram">IG</a>
+        <a href="#" target="_blank" rel="noopener" aria-label="Facebook">FB</a>
+        <a href="#" target="_blank" rel="noopener" aria-label="YouTube">YT</a>
       </div>
     </div>
   </header>

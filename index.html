@@ -378,8 +378,12 @@
       content:"";
       position:absolute;
       inset:0;
-      background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.75) 100%);
-      opacity:.8;
+      background:linear-gradient(
+        180deg,
+        rgba(0,0,0,.25) 0%,
+        rgba(0,0,0,.90) 100%
+      );
+      opacity:.95;
       transition:opacity .35s ease;
       pointer-events:none;
     }
@@ -452,7 +456,7 @@
     .portfolio-card{padding:0;overflow:hidden}
     .portfolio-card .portfolio-meta{padding:1.05rem 1.2rem 1.2rem 1.2rem}
     .portfolio-preview{margin:0;border-radius:0;border:0;box-shadow:none}
-    .portfolio-preview::before{opacity:.55}
+    
     .portfolio-preview .preview-label{left:10px;top:10px;font-size:.75rem}
     .portfolio-preview .preview-cta{left:10px;bottom:10px;font-size:.85rem;padding:.6rem .85rem}
     .portfolio-preview .preview-cta span{width:24px;height:24px}

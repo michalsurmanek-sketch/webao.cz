@@ -82,16 +82,89 @@
     .nav-cta{display:flex;align-items:center;gap:.6rem}
     .burger{display:none;border:none;background:transparent;font-size:0}
 
-    /* Mobile menu */
+    /* Burger ikonka (3 čáry) */
+    .burger{
+      position:relative;
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      background:var(--white);
+      box-shadow:var(--shadow);
+      border:1px solid #e9eef8;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+    .burger span{
+      position:absolute;
+      width:18px;
+      height:2px;
+      background:var(--ink);
+      border-radius:999px;
+      transition:transform .2s ease, opacity .2s ease, top .2s ease;
+    }
+    .burger span:nth-child(1){top:15px}
+    .burger span:nth-child(2){top:21px}
+    .burger span:nth-child(3){top:27px}
+    .burger.is-open span:nth-child(1){top:21px;transform:rotate(45deg)}
+    .burger.is-open span:nth-child(2){opacity:0}
+    .burger.is-open span:nth-child(3){top:21px;transform:rotate(-45deg)}
+
+    /* Mobile menu (Reklamas.cz style: overlay + slide panel) */
     .drawer{display:none}
+    .drawer-overlay{display:none}
     @media (max-width: 920px){
       .drawer{display:block}
       .menu{display:none}
-      .burger{display:block;width:40px;height:40px;border-radius:10px;background:var(--white);box-shadow:var(--shadow)}
-      .drawer{position:fixed;inset:0 0 auto auto;width:min(86%,380px);height:100vh;background:var(--white);transform:translateX(100%);transition:transform .25s ease;box-shadow:var(--shadow);padding:1.2rem}
+      .burger{display:flex}
+
+      .drawer-overlay{
+        display:block;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.35);
+        opacity:0;
+        pointer-events:none;
+        transition:opacity .2s ease;
+        z-index:60;
+      }
+      .drawer-overlay.open{opacity:1;pointer-events:auto}
+
+      .drawer{
+        position:fixed;
+        top:0;right:0;
+        width:min(86%, 380px);
+        height:100vh;
+        background:var(--white);
+        transform:translateX(102%);
+        transition:transform .25s ease;
+        box-shadow:var(--shadow);
+        padding:1rem 1.2rem;
+        z-index:61;
+        border-left:1px solid #eef2fb;
+      }
       .drawer.open{transform:translateX(0)}
-      .drawer a{display:block;padding:.9rem 0;border-bottom:1px solid #eef2fb;color:var(--ink-60)}
+
+      .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:.4rem 0 1rem 0}
+      .drawer-head b{font-size:1.05rem}
+      .drawer-close{
+        width:40px;height:40px;border-radius:12px;
+        border:1px solid #e9eef8;background:#fff;
+        display:grid;place-items:center;
+        cursor:pointer;transition:.2s ease;
+      }
+      .drawer-close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+
+      .drawer a{display:block;padding:.95rem 0;border-bottom:1px solid #eef2fb;color:var(--ink-60);font-weight:600}
+      .drawer a:hover{color:var(--ink)}
+
+      .drawer-cta{display:grid;gap:.6rem;margin-top:1rem}
+      .drawer-cta .btn{width:100%;justify-content:center}
     }
+
+    /* body lock při otevřeném menu */
+    body.menu-open{overflow:hidden}
 
     /* Hero */
     .hero{position:relative;overflow:hidden;background:radial-gradient(1250px 650px at 20% 0%, rgba(0,51,204,.10) 0, transparent 40%), linear-gradient(180deg, #fff, #f9fbff)}
@@ -375,6 +448,15 @@
       border-color:rgba(255,255,255,.3);
     }
 
+    /* Ukázky práce – stejný styl jako ukázkový projekt */
+    .portfolio-card{padding:0;overflow:hidden}
+    .portfolio-card .portfolio-meta{padding:1.05rem 1.2rem 1.2rem 1.2rem}
+    .portfolio-preview{margin:0;border-radius:0;border:0;box-shadow:none}
+    .portfolio-preview::before{opacity:.55}
+    .portfolio-preview .preview-label{left:10px;top:10px;font-size:.75rem}
+    .portfolio-preview .preview-cta{left:10px;bottom:10px;font-size:.85rem;padding:.6rem .85rem}
+    .portfolio-preview .preview-cta span{width:24px;height:24px}
+
     /* Mobile: trochu jemnější */
     @media (max-width: 520px){
       .project-preview{box-shadow:0 14px 36px rgba(0,0,0,.12)}
@@ -417,17 +499,28 @@
       <div class="nav-cta">
         <a class="btn btn--ghost" href="#balicky">Ceník</a>
         <a class="btn btn--primary" href="#kontakt">Poptat web</a>
-        <button class="burger" aria-label="Otevřít menu" id="burger">☰</button>
+        <button class="burger" aria-label="Otevřít menu" id="burger" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
       </div>
     </div>
 
+    <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
+
     <div class="drawer" id="drawer" aria-hidden="true">
-      <div class="container">
-        <a href="#sluzby">Služby</a>
-        <a href="#balicky">Balíčky</a>
-        <a href="#ukazky">Ukázky</a>
-        <a href="#proces">Jak pracujeme</a>
-        <a href="#kontakt">Kontakt</a>
+      <div class="drawer-head">
+        <b><span style="color:var(--blue)">Web</span><span style="color:var(--ink)">AO</span></b>
+        <button class="drawer-close" id="drawerClose" type="button" aria-label="Zavřít menu">✕</button>
+      </div>
+      <a href="#sluzby">Služby</a>
+      <a href="#balicky">Balíčky</a>
+      <a href="#ukazky">Ukázky</a>
+      <a href="#proces">Jak pracujeme</a>
+      <a href="#kontakt">Kontakt</a>
+
+      <div class="drawer-cta">
+        <a class="btn btn--ghost" href="#balicky">Ceník</a>
+        <a class="btn btn--primary" href="#kontakt">Poptat web</a>
       </div>
     </div>
   </header>
@@ -585,27 +678,52 @@
       </div>
 
       <div class="grid grid--4">
-        <div class="card">
-          <img alt="Reklamas.cz náhled" src="/images/reklamas.png">
-          <h3>Reklamas.cz</h3>
-          <p class="muted">Reklamas — hrdina vaší reklamy ve městě</p>
+        <div class="card portfolio-card">
+          <a class="project-preview portfolio-preview" href="https://reklamas.cz" target="_blank" rel="noopener" aria-label="Otevřít Reklamas.cz">
+            <span class="preview-label">Reklamas.cz</span>
+            <img alt="Reklamas.cz náhled" src="/images/reklamas.png">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3>Reklamas.cz</h3>
+            <p class="muted">Reklamas — hrdina vaší reklamy ve městě</p>
+          </div>
         </div>
-        <div class="card">
-          <img alt="DomenAO.cz náhled" src="/images/domenao.png">
-          <h3>DomenAO.cz</h3>
-          <p class="muted">Katalog domén</p>
+
+        <div class="card portfolio-card">
+          <a class="project-preview portfolio-preview" href="https://domenao.cz" target="_blank" rel="noopener" aria-label="Otevřít DomenAO.cz">
+            <span class="preview-label">DomenAO.cz</span>
+            <img alt="DomenAO.cz náhled" src="/images/domenao.png">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3>DomenAO.cz</h3>
+            <p class="muted">Katalog domén</p>
+          </div>
         </div>
-        <div class="card">
-          <img alt="AdresaAO.cz náhled" src="/images/adresao.png">
-          <h3>AdresaAO.cz</h3>
-          <p class="muted">Virtuální adresa pro firmy od 99 Kč/měs.
-Oficiální sídlo, přebírání a sken pošty, přeposílání zásilek, krátkodobé kanceláře a zasedačky. Rychle, legálně, bez starostí.</p>
+
+        <div class="card portfolio-card">
+          <a class="project-preview portfolio-preview" href="https://adresao.cz" target="_blank" rel="noopener" aria-label="Otevřít Adresao.cz">
+            <span class="preview-label">Adresao.cz</span>
+            <img alt="Adresao.cz náhled" src="/images/adresao.png">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3>Adresao.cz</h3>
+            <p class="muted">Virtuální adresa pro firmy od 99 Kč/měs.</p>
+          </div>
         </div>
-        <div class="card">
-          <img alt="KartAO.cz náhled" src="/images/kartao.png">
-          <h3>KartAO.cz</h3>
-          <p class="muted">Najdi toho pravého influencera. Rychle a chytře.
-Propojujeme značky a tvůrce. Karty s portfoliem, ověřené statistiky a přímé nabídky spolupráce.</p>
+
+        <div class="card portfolio-card">
+          <a class="project-preview portfolio-preview" href="https://kartao.cz" target="_blank" rel="noopener" aria-label="Otevřít KartAO.cz">
+            <span class="preview-label">KartAO.cz</span>
+            <img alt="KartAO.cz náhled" src="/images/kartao.png">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3>KartAO.cz</h3>
+            <p class="muted">Marketplace influencerů</p>
+          </div>
         </div>
       </div>
     </div>
@@ -755,12 +873,51 @@ Propojujeme značky a tvůrce. Karty s portfoliem, ověřené statistiky a pří
       yearEl.textContent = String(new Date().getFullYear());
     }
 
-    // Mobilní menu
+    // Mobilní menu (overlay + panel)
     const burger = document.getElementById('burger');
     const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('drawerOverlay');
+    const closeBtn = document.getElementById('drawerClose');
+
+    function openMenu(){
+      drawer.classList.add('open');
+      overlay.classList.add('open');
+      document.body.classList.add('menu-open');
+      burger.classList.add('is-open');
+      burger.setAttribute('aria-expanded','true');
+      drawer.setAttribute('aria-hidden','false');
+      overlay.setAttribute('aria-hidden','false');
+    }
+    function closeMenu(){
+      drawer.classList.remove('open');
+      overlay.classList.remove('open');
+      document.body.classList.remove('menu-open');
+      burger.classList.remove('is-open');
+      burger.setAttribute('aria-expanded','false');
+      drawer.setAttribute('aria-hidden','true');
+      overlay.setAttribute('aria-hidden','true');
+    }
+
     burger?.addEventListener('click', ()=>{
-      const isOpen = drawer.classList.toggle('open');
-      drawer.setAttribute('aria-hidden', String(!isOpen));
+      const isOpen = drawer.classList.contains('open');
+      isOpen ? closeMenu() : openMenu();
+    });
+    overlay?.addEventListener('click', closeMenu);
+    closeBtn?.addEventListener('click', closeMenu);
+
+    // Zavřít po kliknutí na položku menu
+    drawer?.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', ()=>{
+        // necháme proběhnout smooth scroll (níže), ale menu zavřeme hned
+        closeMenu();
+      });
+    });
+
+    // ESC zavře menu
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape' && drawer.classList.contains('open')){
+        closeMenu();
+      }
     });
 
     // FAQ akordeon – vždy otevřený jen jeden

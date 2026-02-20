@@ -1885,9 +1885,13 @@
       return (h >>> 0) % 100 >= 55;
     }
 
-    function demoFallback(base, tlds, `⚠️ ${String(err?.message || 'Chyba API')} — demo režim`);
-      renderGlobalActions(base);
-      tlds.forEach(tld => {
+    function demoFallback(base, tlds, reason){
+      // Fallback: když proxy/WEDOS API spadne nebo vrátí limit
+      const msg = reason || '⚠️ WEDOS API nedostupné — demo režim';
+      elStatus.textContent = msg;
+      clearResults();
+
+      tlds.forEach((tld) => {
         const fqdn = base + '.' + tld;
         const available = pseudoAvailability(fqdn);
         renderResult({
@@ -1897,6 +1901,9 @@
           source: 'DEMO'
         });
       });
+
+      // Dvě hlavní CTA pod výsledky (affiliate + DomenAO)
+      renderGlobalActions(base);
     }
 
     function mapStatusToText(status, code){
@@ -1946,24 +1953,23 @@
         elStatus.textContent = '';
         clearResults();
 
-        out.results.forEach(r => {
-        renderResult({
-          fqdn: r.fqdn,
-          status: r.status,
-          message: mapStatusToText(r.status, r.code),
-          source: r.source || 'WEDOS'
+        out.results.forEach((r) => {
+          renderResult({
+            fqdn: r.fqdn,
+            status: r.status,
+            message: mapStatusToText(r.status, r.code),
+            source: r.source || 'WEDOS'
+          });
         });
-      });
 
-      renderGlobalActions(base);
-
-        });
+        // Dvě hlavní CTA pod výsledky (affiliate + DomenAO)
+        renderGlobalActions(base);
 
         if (out.demo === true) {
           elStatus.textContent = '⚠️ WEDOS API nedostupné – zobrazen demo výsledek.';
         }
 
-      }catch(err){
+      }catch(err){"multiple":false}]}
         setLoading(false);
         demoFallback(base, TLDS, '⚠️ ' + String(err && err.message ? err.message : 'Chyba API') + ' — demo režim');
       }

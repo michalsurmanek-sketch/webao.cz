@@ -1780,7 +1780,46 @@
         '<div class="dc-actions">' + cta + '</div>';
 
       elResults.appendChild(div);
-    }
+  }
+
+  function renderGlobalActions(base){
+    if(!base) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'dc-global-actions';
+    wrapper.style.marginTop = '1.2rem';
+    wrapper.style.display = 'flex';
+    wrapper.style.gap = '12px';
+    wrapper.style.flexWrap = 'wrap';
+
+    const affiliateLink = document.createElement('a');
+    affiliateLink.href = `https://wedos.cz/domeny/?ap=jzKMbf&domain=${encodeURIComponent(base)}`;
+    affiliateLink.target = '_blank';
+    affiliateLink.rel = 'noopener';
+    affiliateLink.className = 'dc-cta dc-cta--primary';
+    affiliateLink.textContent = 'Registrovat doménu u WEDOS';
+    affiliateLink.style.padding = '.65rem 1rem';
+    affiliateLink.style.borderRadius = '999px';
+    affiliateLink.style.background = 'var(--blue,#0033cc)';
+    affiliateLink.style.color = '#fff';
+    affiliateLink.style.fontWeight = '900';
+    affiliateLink.style.textDecoration = 'none';
+
+    const customLink = document.createElement('a');
+    customLink.href = 'https://domenao.cz';
+    customLink.className = 'dc-cta dc-cta--secondary';
+    customLink.textContent = 'Vymyslíme vám doménu';
+    customLink.style.padding = '.65rem 1rem';
+    customLink.style.borderRadius = '999px';
+    customLink.style.background = 'rgba(0,51,204,.08)';
+    customLink.style.color = 'var(--blue,#0033cc)';
+    customLink.style.fontWeight = '900';
+    customLink.style.textDecoration = 'none';
+
+    wrapper.appendChild(affiliateLink);
+    wrapper.appendChild(customLink);
+    elResults.appendChild(wrapper);
+  }
 
     function removeDiacritics(s){
       const n = (s || '').normalize('NFD');
@@ -1846,9 +1885,8 @@
       return (h >>> 0) % 100 >= 55;
     }
 
-    function demoFallback(base, tlds, reason){
-      elStatus.textContent = reason || 'API nedostupné – demo režim';
-      clearResults();
+    function demoFallback(base, tlds, `⚠️ ${String(err?.message || 'Chyba API')} — demo režim`);
+      renderGlobalActions(base);
       tlds.forEach(tld => {
         const fqdn = base + '.' + tld;
         const available = pseudoAvailability(fqdn);
@@ -1909,12 +1947,16 @@
         clearResults();
 
         out.results.forEach(r => {
-          renderResult({
-            fqdn: r.fqdn,
-            status: r.status,
-            message: mapStatusToText(r.status, r.code),
-            source: r.source || 'WEDOS'
-          });
+        renderResult({
+          fqdn: r.fqdn,
+          status: r.status,
+          message: mapStatusToText(r.status, r.code),
+          source: r.source || 'WEDOS'
+        });
+      });
+
+      renderGlobalActions(base);
+
         });
 
         if (out.demo === true) {

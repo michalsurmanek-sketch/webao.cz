@@ -241,7 +241,36 @@
 
     /* Sections */
     section{padding:3.6rem 0}
-    .section-h{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.6rem}
+    .section-h{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin-bottom:1.6rem}
+    .section-h__right{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:flex-end;text-align:right}
+    
+    /* Mini box – skok na kontrolu domény */
+    .jump-box{
+      display:flex;
+      align-items:center;
+      gap:1rem;
+      padding:.85rem 1rem;
+      border-radius:16px;
+      background:var(--white);
+      border:1px solid #e9eef8;
+      box-shadow:var(--shadow-sm);
+    }
+    .jump-box__text{line-height:1.25}
+    .jump-box__title{font-weight:900;color:var(--ink)}
+    .jump-box__desc{font-size:.9rem;color:var(--ink-40)}
+    .jump-box__btn{padding:.7rem 1rem;white-space:nowrap}
+
+    @media (max-width: 720px){
+      .section-h{align-items:flex-start}
+      .section-h__right{width:100%;justify-content:flex-start;text-align:left}
+      .jump-box{width:100%;justify-content:space-between}
+    }
+
+    /* Pouze mobil: „Vybrané projekty WebAO“ */
+    .only-mobile{display:none}
+    @media (max-width: 720px){
+      .only-mobile{display:inline}
+    }
     .section-h h2{margin:0;font-size:2rem}
     .grid{display:grid;gap:1rem}
     .grid--3{grid-template-columns:repeat(3,1fr)}
@@ -881,6 +910,7 @@
         <div class="hero-cta">
           <a class="btn btn--primary" href="#kontakt">Poptat web</a>
           <a class="btn btn--ghost" href="#ukazky">Ukázky práce</a>
+          <a class="btn btn--ghost" href="#domena">Zkontrolovat doménu</a>
         </div>
 
         <div class="divider"></div>
@@ -1048,7 +1078,17 @@
     <div class="container">
       <div class="section-h">
         <h2>Ukázky práce</h2>
-        <span class="muted">Vybrané projekty WebAO</span>
+        <div class="section-h__right">
+          <span class="muted only-mobile">Vybrané projekty WebAO</span>
+
+          <div class="jump-box" aria-label="Rychlá kontrola domény">
+            <div class="jump-box__text">
+              <div class="jump-box__title">Zkontrolovat doménu</div>
+              <div class="jump-box__desc">Rychle ověř název pro web</div>
+            </div>
+            <a class="btn btn--primary jump-box__btn" href="#domena">Ověřit</a>
+          </div>
+        </div>
       </div>
 
       <div class="grid grid--4">
@@ -1533,6 +1573,7 @@
     // =========================
     // SCROLL TO TOP
     // =========================
+    // =========================
     const scrollBtn = document.getElementById('scrollTop');
     const onScroll = () => {
       if (!scrollBtn) return;
@@ -1675,7 +1716,7 @@
   })();
 </script>
 
-  <!-- Domain checker – WebAO (WEDOS) – inline JS (ověřuje vždy CZ/COM/EU) --> (ověřuje vždy CZ/COM/EU) -->
+  <!-- Domain checker – WebAO (WEDOS) – inline JS (ověřuje vždy CZ/COM/EU) -->
   <script>
   (() => {
     const elName = document.getElementById('dcName');

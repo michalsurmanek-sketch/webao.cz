@@ -915,7 +915,7 @@
         <div class="domain-check__row">
           <div class="domain-check__inputwrap" role="search">
             <span class="domain-check__prefix" aria-hidden="true">www.</span>
-            <input id="dcName" class="domain-check__input" name="domain" inputmode="latin" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Zadej doménu (např. startao)" />
+            <input id="dcName" class="domain-check__input" name="domain" inputmode="latin" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="doménu (např. startao)" aria-label="Název domény bez koncovky" />
 </div>
 
           <button class="btn btn--primary domain-check__btn" type="button" id="dcBtn">Zkontrolovat</button>
@@ -1621,7 +1621,212 @@
     });
   </script>
 
-  <!-- Domain checker (WEDOS) – samostatné JS -->
-  <script src="/assets/domain-check.js" defer></script>
+  <!-- Domain checker – WebAO (WEDOS) – inline JS (ověřuje vždy CZ/COM/EU) -->
+  <script>
+  (() => {
+    const elName = document.getElementById('dcName');
+    const elBtn = document.getElementById('dcBtn');
+    const elStatus = document.getElementById('dcStatus');
+    const elResults = document.getElementById('dcResults');
+    if (!elName || !elBtn || !elStatus || !elResults) return;
+
+    const API_URL = '/api/domain-check';
+    const TLDS = ['cz','com','eu'];
+
+    function setLoading(on){
+      if(on){
+        elBtn.disabled = true;
+        elStatus.innerHTML = '<span class="dc-spinner" aria-hidden="true"></span> Ověřuji…';
+      }else{
+        elBtn.disabled = false;
+        elStatus.textContent = '';
+      }
+    }
+
+    function clearResults(){ elResults.innerHTML = ''; }
+
+    function escapeHtml(str){
+      return String(str ?? '')
+        .split('&').join('&amp;')
+        .split('<').join('&lt;')
+        .split('>').join('&gt;')
+        .split('"').join('&quot;')
+        .split("'").join('&#039;');
+    }
+
+    function renderResult({fqdn, status, message, source}){
+      const cls = status === 'free' ? 'dc-ok' : status === 'taken' ? 'dc-no' : 'dc-warn';
+      const badge = status === 'free' ? '✅' : status === 'taken' ? '❌' : '⚠️';
+      const meta = source ? ('Zdroj: ' + source) : '';
+
+      const div = document.createElement('div');
+      div.className = 'dc-result ' + cls;
+      div.innerHTML =
+        '<div class="dc-result__left">' +
+          '<span class="dc-badge" aria-hidden="true">' + badge + '</span>' +
+          '<div style="min-width:0">' +
+            '<div class="dc-domain">' + escapeHtml(fqdn) + '</div>' +
+            '<div class="dc-meta">' + escapeHtml(message || '') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="dc-note">' + escapeHtml(meta) + '</div>';
+
+      elResults.appendChild(div);
+    }
+
+    function removeDiacritics(s){
+      const n = (s || '').normalize('NFD');
+      let out = '';
+      for (let i = 0; i < n.length; i++) {
+        const code = n.charCodeAt(i);
+        if (code < 0x0300 || code > 0x036F) out += n[i];
+      }
+      return out;
+    }
+
+    function sanitizeBaseDomain(input){
+      let s = String(input || '').trim();
+
+      const low = s.toLowerCase();
+      if (low.startsWith('http://')) s = s.slice(7);
+      else if (low.startsWith('https://')) s = s.slice(8);
+
+      // pryč www.
+      if (s.toLowerCase().startsWith('www.')) s = s.slice(4);
+
+      // častá chyba: zadá jen "www"
+      if (s.toLowerCase() === 'www') s = '';
+
+      // když někdo vloží celou doménu, vezmi jen první část (před tečkou)
+      const dot = s.indexOf('.');
+      if (dot !== -1) s = s.slice(0, dot);
+
+      // pryč mezery
+      s = s.split(' ').join('');
+
+      // diakritika
+      s = removeDiacritics(s);
+
+      s = s.toLowerCase();
+
+      // povol jen a-z 0-9 a pomlčku
+      let clean = '';
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        const ok = (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch === '-';
+        if (ok) clean += ch;
+      }
+      s = clean;
+
+      // trim pomlček
+      while (s.startsWith('-')) s = s.slice(1);
+      while (s.endsWith('-')) s = s.slice(0, -1);
+
+      return s;
+    }
+
+    function isValidBaseDomain(s){
+      return !!s && s.length >= 1 && s.length <= 63;
+    }
+
+    function pseudoAvailability(seed){
+      let h = 2166136261;
+      for (let i = 0; i < seed.length; i++) {
+        h ^= seed.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0) % 100 >= 55;
+    }
+
+    function demoFallback(base, tlds, reason){
+      elStatus.textContent = reason || 'API nedostupné – demo režim';
+      clearResults();
+      tlds.forEach(tld => {
+        const fqdn = base + '.' + tld;
+        const available = pseudoAvailability(fqdn);
+        renderResult({
+          fqdn,
+          status: available ? 'free' : 'taken',
+          message: available ? 'Doména je volná (demo)' : 'Doména je obsazená (demo)',
+          source: 'DEMO'
+        });
+      });
+    }
+
+    function mapStatusToText(status, code){
+      if (status === 'free') return 'Doména je volná';
+      if (status === 'taken') return 'Doména je obsazená';
+      return code ? ('Chyba / omezení (kód ' + code + ')') : 'Chyba / omezení';
+    }
+
+    async function checkDomains(base, tlds){
+      const qs = new URLSearchParams();
+      qs.set('name', base);
+      qs.set('tlds', tlds.join(','));
+
+      const res = await fetch(API_URL + '?' + qs.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+
+      if (!res.ok) {
+        const txt = await (async () => { try { return await res.text(); } catch { return ''; } })();
+        throw new Error('Proxy chyba (' + res.status + '): ' + (txt || res.statusText));
+      }
+
+      const data = await res.json();
+      if (!data || data.ok !== true || !Array.isArray(data.results)) {
+        throw new Error('Neplatná odpověď proxy.');
+      }
+      return data;
+    }
+
+    async function run(){
+      const base = sanitizeBaseDomain(elName.value);
+      elName.value = base;
+      clearResults();
+
+      if (!isValidBaseDomain(base)) {
+        elStatus.textContent = 'Zadej platný název (bez mezer, diakritiky, www, http).';
+        return;
+      }
+
+      setLoading(true);
+
+      try{
+        const out = await checkDomains(base, TLDS);
+        setLoading(false);
+        elStatus.textContent = '';
+        clearResults();
+
+        out.results.forEach(r => {
+          renderResult({
+            fqdn: r.fqdn,
+            status: r.status,
+            message: mapStatusToText(r.status, r.code),
+            source: r.source || 'WEDOS'
+          });
+        });
+
+        if (out.demo === true) {
+          elStatus.textContent = '⚠️ WEDOS API nedostupné – zobrazen demo výsledek.';
+        }
+
+      }catch(err){
+        setLoading(false);
+        demoFallback(base, TLDS, '⚠️ ' + String(err && err.message ? err.message : 'Chyba API') + ' — demo režim');
+      }
+    }
+
+    elBtn.addEventListener('click', run);
+    elName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        run();
+      }
+    });
+  })();
+  </script>
 </body>
 </html>

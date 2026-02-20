@@ -1719,6 +1719,8 @@
   <!-- Domain checker – WebAO (WEDOS) – inline JS (ověřuje vždy CZ/COM/EU) -->
   <script>
   (() => {
+    'use strict';
+
     const elName = document.getElementById('dcName');
     const elBtn = document.getElementById('dcBtn');
     const elStatus = document.getElementById('dcStatus');
@@ -1727,6 +1729,10 @@
 
     const API_URL = '/api/domain-check';
     const TLDS = ['cz','com','eu'];
+
+    // Affiliate + DomenAO (globální CTA pod výsledky)
+    const WEDOS_AFFILIATE_BASE = 'https://wedos.cz/domeny/?ap=jzKMbf';
+    const DOMENAO_URL = 'https://domenao.cz';
 
     function setLoading(on){
       if(on){
@@ -1742,32 +1748,20 @@
 
     function escapeHtml(str){
       return String(str ?? '')
-        .split('&').join('&amp;')
-        .split('<').join('&lt;')
-        .split('>').join('&gt;')
-        .split('"').join('&quot;')
-        .split("'").join('&#039;');
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
     }
 
     function renderResult({fqdn, status, message, source}){
       const cls = status === 'free' ? 'dc-ok' : status === 'taken' ? 'dc-no' : 'dc-warn';
       const badge = status === 'free' ? '✅' : status === 'taken' ? '❌' : '⚠️';
 
-      // Zdroj už do UI netlačíme (designově ruší). Necháme ho jen v date-attr pro debug.
       const div = document.createElement('div');
       div.className = 'dc-result ' + cls;
-      if (source) div.dataset.source = source;
-
-      // CTA: když je doména volná, nabídni rovnou registraci + možnost poptat web
-      const AFFILIATE_BASE = 'https://wedos.cz/domeny/?ap=jzKMbf';
-      const regLink = AFFILIATE_BASE + '&domain=' + encodeURIComponent(fqdn);
-
-      const cta = status === 'free'
-        ? (
-            '<a class="dc-cta" href="' + regLink + '" target="_blank" rel="noopener" title="Registrovat doménu u WEDOS" aria-label="Registrovat doménu ' + escapeHtml(fqdn) + ' u WEDOS">Registrovat</a>' +
-            '<a class="dc-cta" href="#kontakt" title="Chci k této doméně web" aria-label="Chci web k doméně ' + escapeHtml(fqdn) + '">Chci web</a>'
-          )
-        : '';
+      if (source) div.dataset.source = source; // debug
 
       div.innerHTML =
         '<div class="dc-result__left">' +
@@ -1776,87 +1770,72 @@
             '<div class="dc-domain">' + escapeHtml(fqdn) + '</div>' +
             '<div class="dc-meta">' + escapeHtml(message || '') + '</div>' +
           '</div>' +
-        '</div>' +
-        '<div class="dc-actions">' + cta + '</div>';
+        '</div>';
 
       elResults.appendChild(div);
-  }
+    }
 
-  function renderGlobalActions(base){
-    if(!base) return;
+    function renderGlobalActions(base){
+      if(!base) return;
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'dc-global-actions';
-    wrapper.style.marginTop = '1.2rem';
-    wrapper.style.display = 'flex';
-    wrapper.style.gap = '12px';
-    wrapper.style.flexWrap = 'wrap';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'dc-global-actions';
+      wrapper.style.marginTop = '1.1rem';
+      wrapper.style.display = 'flex';
+      wrapper.style.gap = '12px';
+      wrapper.style.flexWrap = 'wrap';
 
-    const affiliateLink = document.createElement('a');
-    affiliateLink.href = `https://wedos.cz/domeny/?ap=jzKMbf&domain=${encodeURIComponent(base)}`;
-    affiliateLink.target = '_blank';
-    affiliateLink.rel = 'noopener';
-    affiliateLink.className = 'dc-cta dc-cta--primary';
-    affiliateLink.textContent = 'Registrovat doménu u WEDOS';
-    affiliateLink.style.padding = '.65rem 1rem';
-    affiliateLink.style.borderRadius = '999px';
-    affiliateLink.style.background = 'var(--blue,#0033cc)';
-    affiliateLink.style.color = '#fff';
-    affiliateLink.style.fontWeight = '900';
-    affiliateLink.style.textDecoration = 'none';
+      const affiliateLink = document.createElement('a');
+      affiliateLink.href = WEDOS_AFFILIATE_BASE + '&domain=' + encodeURIComponent(base);
+      affiliateLink.target = '_blank';
+      affiliateLink.rel = 'noopener';
+      affiliateLink.textContent = 'Registrovat doménu u WEDOS';
+      affiliateLink.style.padding = '.65rem 1rem';
+      affiliateLink.style.borderRadius = '999px';
+      affiliateLink.style.background = 'var(--blue,#0033cc)';
+      affiliateLink.style.color = '#fff';
+      affiliateLink.style.fontWeight = '900';
+      affiliateLink.style.textDecoration = 'none';
 
-    const customLink = document.createElement('a');
-    customLink.href = 'https://domenao.cz';
-    customLink.className = 'dc-cta dc-cta--secondary';
-    customLink.textContent = 'Vymyslíme vám doménu';
-    customLink.style.padding = '.65rem 1rem';
-    customLink.style.borderRadius = '999px';
-    customLink.style.background = 'rgba(0,51,204,.08)';
-    customLink.style.color = 'var(--blue,#0033cc)';
-    customLink.style.fontWeight = '900';
-    customLink.style.textDecoration = 'none';
+      const customLink = document.createElement('a');
+      customLink.href = DOMENAO_URL;
+      customLink.target = '_blank';
+      customLink.rel = 'noopener';
+      customLink.textContent = 'Vymyslíme vám doménu';
+      customLink.style.padding = '.65rem 1rem';
+      customLink.style.borderRadius = '999px';
+      customLink.style.background = 'rgba(0,51,204,.08)';
+      customLink.style.color = 'var(--blue,#0033cc)';
+      customLink.style.fontWeight = '900';
+      customLink.style.textDecoration = 'none';
 
-    wrapper.appendChild(affiliateLink);
-    wrapper.appendChild(customLink);
-    elResults.appendChild(wrapper);
-  }
+      wrapper.appendChild(affiliateLink);
+      wrapper.appendChild(customLink);
+      elResults.appendChild(wrapper);
+    }
 
     function removeDiacritics(s){
-      const n = (s || '').normalize('NFD');
-      let out = '';
-      for (let i = 0; i < n.length; i++) {
-        const code = n.charCodeAt(i);
-        if (code < 0x0300 || code > 0x036F) out += n[i];
-      }
-      return out;
+      // NFD rozdělí znaky na písmeno + diakritiku, diakritiku pak odfiltrujeme
+      return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
     }
 
     function sanitizeBaseDomain(input){
       let s = String(input || '').trim();
-
       const low = s.toLowerCase();
+
       if (low.startsWith('http://')) s = s.slice(7);
       else if (low.startsWith('https://')) s = s.slice(8);
 
-      // pryč www.
       if (s.toLowerCase().startsWith('www.')) s = s.slice(4);
-
-      // častá chyba: zadá jen "www"
       if (s.toLowerCase() === 'www') s = '';
 
-      // když někdo vloží celou doménu, vezmi jen první část (před tečkou)
       const dot = s.indexOf('.');
       if (dot !== -1) s = s.slice(0, dot);
 
-      // pryč mezery
       s = s.split(' ').join('');
-
-      // diakritika
       s = removeDiacritics(s);
-
       s = s.toLowerCase();
 
-      // povol jen a-z 0-9 a pomlčku
       let clean = '';
       for (let i = 0; i < s.length; i++) {
         const ch = s[i];
@@ -1865,7 +1844,6 @@
       }
       s = clean;
 
-      // trim pomlček
       while (s.startsWith('-')) s = s.slice(1);
       while (s.endsWith('-')) s = s.slice(0, -1);
 
@@ -1886,9 +1864,7 @@
     }
 
     function demoFallback(base, tlds, reason){
-      // Fallback: když proxy/WEDOS API spadne nebo vrátí limit
-      const msg = reason || '⚠️ WEDOS API nedostupné — demo režim';
-      elStatus.textContent = msg;
+      elStatus.textContent = reason || '⚠️ WEDOS API nedostupné — demo režim';
       clearResults();
 
       tlds.forEach((tld) => {
@@ -1902,7 +1878,6 @@
         });
       });
 
-      // Dvě hlavní CTA pod výsledky (affiliate + DomenAO)
       renderGlobalActions(base);
     }
 
@@ -1924,7 +1899,8 @@
       });
 
       if (!res.ok) {
-        const txt = await (async () => { try { return await res.text(); } catch { return ''; } })();
+        let txt = '';
+        try { txt = await res.text(); } catch {}
         throw new Error('Proxy chyba (' + res.status + '): ' + (txt || res.statusText));
       }
 
@@ -1962,32 +1938,27 @@
           });
         });
 
-        // Dvě hlavní CTA pod výsledky (affiliate + DomenAO)
         renderGlobalActions(base);
 
         if (out.demo === true) {
           elStatus.textContent = '⚠️ WEDOS API nedostupné – zobrazen demo výsledek.';
         }
 
-      }catch(err){"multiple":false}]}
+      }catch(err){
         setLoading(false);
-        demoFallback(base, TLDS, '⚠️ ' + String(err && err.message ? err.message : 'Chyba API') + ' — demo režim');
+        demoFallback(base, TLDS, '⚠️ ' + String((err && err.message) ? err.message : 'Chyba API') + ' — demo režim');
       }
     }
 
-    // živě čistíme vstup, aby se nikdy nezobrazilo „www.“ napsané uživatelem (prefix je vedle)
+    // Live sanitizace
     let _last = '';
     elName.addEventListener('input', () => {
       const raw = elName.value;
       const base = sanitizeBaseDomain(raw);
-      // aby to neskákalo kurzorem, přepisujeme jen když je opravdu změna
-      if (base !== raw && base !== _last) {
-        elName.value = base;
-      }
+      if (base !== raw && base !== _last) elName.value = base;
       _last = base;
     });
 
-    // Click + Enter
     elBtn.addEventListener('click', run);
     elName.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {

@@ -684,29 +684,29 @@
     .cookie-decline{background:#1f2a48;color:#fff;border:1px solid rgba(255,255,255,.15)}
     .cookie-decline:hover{background:#26345f}
 
-    /* Domain checker – v hero jako „vyhledávač“ (override nad /assets/domain-check.css) */
-    .domain-check--hero{margin-top:1.25rem}
-    .domain-check--hero .domain-check__row{display:grid;grid-template-columns:1fr auto;gap:.8rem;align-items:center}
+    /* Domain checker – čistý „vyhledávač“ (override nad /assets/domain-check.css) */
+    .domain-check--hero{
+      margin-top:0;
+      padding:0;
+      background:transparent;
+      border:0;
+      box-shadow:none;
+    }
+    .domain-check--hero .domain-check__row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:.8rem;
+      align-items:center;
+    }
     .domain-check--hero .domain-check__inputwrap{
       display:flex;
       align-items:center;
-      gap:.55rem;
-      padding:.18rem .18rem .18rem .95rem;
+      padding:.18rem;
       border-radius:999px;
       border:1px solid #dfe7fb;
       background:#ffffff;
       box-shadow:var(--shadow-sm);
-      flex-wrap:nowrap;
       height:56px;
-    }
-    .domain-check--hero .domain-check__prefix{
-      color:var(--ink-40);
-      font-weight:900;
-      letter-spacing:.2px;
-      display:flex;
-      align-items:center;
-      flex:0 0 auto;
-      margin-right:.25rem;
     }
     .domain-check--hero .domain-check__input{
       border:0 !important;
@@ -717,15 +717,14 @@
       min-width:0;
       width:auto;
       height:100%;
-      padding:0 .2rem !important;
+      padding:0 .95rem !important;
       margin:0 !important;
       line-height:normal;
       display:block;
     }
-        .domain-check--hero .domain-check__btn{white-space:nowrap;padding:.85rem 1.15rem}
+    .domain-check--hero .domain-check__btn{white-space:nowrap;padding:.85rem 1.15rem}
     .domain-check--hero .domain-check__status{margin-top:.6rem}
     .domain-check--hero .domain-check__results{margin-top:.55rem}
-    .domain-check--hero .domain-check__note{margin:.55rem 0 0 0;font-size:.82rem;color:var(--ink-40)}
     @media (max-width: 720px){
       .domain-check--hero .domain-check__row{grid-template-columns:1fr;}
       .domain-check--hero .domain-check__btn{width:100%;justify-content:center}
@@ -914,9 +913,8 @@
       <div class="domain-check domain-check--hero" id="domainCheck" aria-label="Kontrola dostupnosti domény">
         <div class="domain-check__row">
           <div class="domain-check__inputwrap" role="search">
-            <span class="domain-check__prefix" aria-hidden="true">www.</span>
-            <input id="dcName" class="domain-check__input" name="domain" inputmode="latin" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="doménu (např. chatao)" aria-label="Název domény bez koncovky" />
-</div>
+            <input id="dcName" class="domain-check__input" name="domain" inputmode="latin" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Název (např. chatao)" aria-label="Název domény bez koncovky" />
+          </div>
 
           <button class="btn btn--primary domain-check__btn" type="button" id="dcBtn">Zkontrolovat</button>
         </div>

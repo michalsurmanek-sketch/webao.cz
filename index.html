@@ -699,37 +699,52 @@
       align-items:center;
     }
     .domain-check--hero .domain-check__inputwrap{
-      display:flex;
-      align-items:center;
+      position:relative;
+      display:block;
       padding:.18rem;
       border-radius:999px;
       border:1px solid #dfe7fb;
       background:#ffffff;
       box-shadow:var(--shadow-sm);
       height:56px;
+      overflow:hidden;
     }
+
+    /* vypni případné pseudo prvky z /assets/domain-check.css (aby nebylo www 2×) */
+    .domain-check--hero .domain-check__inputwrap::before,
+    .domain-check--hero .domain-check__inputwrap::after{
+      content:none !important;
+      display:none !important;
+    }
+
     .domain-check--hero .domain-check__prefix{
+      position:absolute;
+      left:16px;
+      top:50%;
+      transform:translateY(-50%);
       display:flex;
       align-items:center;
-      height:100%;
-      padding:0 .45rem 0 .95rem;
-      font-weight:800;
+      height:34px;
+      padding:0 .55rem 0 0;
+      font-weight:900;
       color:#5b6b8f;
       white-space:nowrap;
       line-height:1;
       border-right:1px solid #eef2fb;
-      margin-right:.25rem;
+      pointer-events:none;
+      user-select:none;
     }
+
     .domain-check--hero .domain-check__input{
+      position:absolute;
+      inset:0;
       border:0 !important;
       background:transparent !important;
       outline:none;
       box-shadow:none;
-      flex:1 1 auto;
-      min-width:0;
-      width:auto;
+      width:100%;
       height:100%;
-      padding:0 .95rem !important;
+      padding:0 18px 0 78px !important; /* místo pro www. */
       margin:0 !important;
       line-height:normal;
       display:block;
@@ -1866,10 +1881,25 @@
       }
     }
 
+    // živě čistíme vstup, aby se nikdy nezobrazilo „www.“ napsané uživatelem (prefix je vedle)
+    let _last = '';
+    elName.addEventListener('input', () => {
+      const raw = elName.value;
+      const base = sanitizeBaseDomain(raw);
+      // aby to neskákalo kurzorem, přepisujeme jen když je opravdu změna
+      if (base !== raw && base !== _last) {
+        elName.value = base;
+      }
+      _last = base;
+    });
+
     elBtn.addEventListener('click', run);
     elName.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        run();
+      }
+    });
         run();
       }
     });

@@ -6,6 +6,7 @@
 */
 
 (() => {
+  let lastBase = '';
   const elName = document.getElementById('dcName');
   const elBtn = document.getElementById('dcBtn');
   const elStatus = document.getElementById('dcStatus');
@@ -14,6 +15,17 @@
   if (!elName || !elBtn || !elStatus || !elResults) return;
 
   const API_URL = '/api/domain-check'; // Cloudflare Worker route
+
+  // Affiliate (WEDOS) – doplň svoje ID z wedos.as
+  // Affiliate ID z tvého odkazu
+  const WEDOS_AFFILIATE_ID = 'jzKMbf';
+
+  function getWedosAffiliateUrl(fqdn){
+    // pokud nechceš affiliate, můžeš vrátit přímo WEDOS url bez parametru
+    // return `https://www.wedos.cz/registrace-domeny/?domain=${encodeURIComponent(fqdn)}`;
+    // Používáme tvůj reálný affiliate link (vedos.cz)
+    return `https://vedos.cz/domeny/?ap=${encodeURIComponent(WEDOS_AFFILIATE_ID)}&domain=${encodeURIComponent(fqdn)}`;
+  }
 
   // vždy kontrolujeme všechny koncovky (uživatel nechce výběr)
   const DEFAULT_TLDS = ['cz', 'com', 'eu'];
@@ -42,10 +54,56 @@
       status === 'free' ? '✅' :
       status === 'taken' ? '❌' : '⚠️';
 
-    const meta = source ? `Zdroj: ${source}` : '';
-
+    // Zdroj do UI netlačíme (ruší design) – necháme ho jen pro debug.
     const div = document.createElement('div');
     div.className = `dc-result ${cls}`;
+    if (source) div.dataset.source = String(source);
+
+    // Akce: pro volnou doménu 2 CTA (primární registrace, sekundární web)
+    // Pro obsazenou doménu nabídneme rychlé návrhy (klik → přepíše input a ověří).
+    let actions = '';
+
+    if (status === 'free') {
+      actions = `
+        <div class="dc-actions" style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <a
+            class="dc-cta dc-cta--primary"
+            href="${getWedosAffiliateUrl(fqdn)}"
+            target="_blank"
+            rel="noopener"
+            aria-label="Registrovat doménu ${escapeHtml(fqdn)}"
+            style="display:inline-flex;align-items:center;justify-content:center;padding:.55rem .95rem;border-radius:999px;background:var(--blue,#0033cc);color:#fff;font-weight:900;white-space:nowrap;box-shadow:0 10px 22px rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.04);transition:.2s ease"
+          >Registrovat doménu</a>
+          <a
+            class="dc-cta dc-cta--secondary"
+            href="#kontakt"
+            aria-label="Chci web k doméně ${escapeHtml(fqdn)}"
+            style="display:inline-flex;align-items:center;justify-content:center;padding:.55rem .95rem;border-radius:999px;background:rgba(0,51,204,.06);color:var(--blue,#0033cc);font-weight:900;white-space:nowrap;border:1px solid rgba(0,51,204,.18);transition:.2s ease"
+          >Chci web</a>
+        </div>
+      `;
+    } else if (status === 'taken') {
+      const sugg = getNameSuggestions(lastBase);
+      const chips = sugg.map(s => {
+        return `
+          <button
+            type="button"
+            class="dc-sugg"
+            data-sugg="${escapeHtml(s)}"
+            style="appearance:none;border:1px solid #e9eef8;background:#fff;border-radius:999px;padding:.38rem .7rem;font-weight:900;color:#1a2f70;cursor:pointer;transition:.2s ease"
+            aria-label="Zkusit název ${escapeHtml(s)}"
+          >${escapeHtml(s)}</button>
+        `;
+      }).join('');
+
+      actions = `
+        <div class="dc-actions" style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
+          <div style="font-size:.85rem;color:var(--ink-40,#5b6b8f);font-weight:800">Zkus jiný název:</div>
+          <div class="dc-suggs" style="display:flex;gap:.45rem;flex-wrap:wrap;justify-content:flex-end">${chips}</div>
+        </div>
+      `;
+    }
+
     div.innerHTML = `
       <div class="dc-result__left">
         <span class="dc-badge" aria-hidden="true">${badge}</span>
@@ -54,8 +112,30 @@
           <div class="dc-meta">${escapeHtml(message || '')}</div>
         </div>
       </div>
-      <div class="dc-note">${escapeHtml(meta)}</div>
+      ${actions}
     `;
+
+    // Klik na návrh přepíše input a spustí ověření
+    div.querySelectorAll('button.dc-sugg').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-sugg') || '';
+        elName.value = v;
+        run();
+      });
+      btn.addEventListener('mouseenter', () => btn.style.transform = 'translateY(-1px)');
+      btn.addEventListener('mouseleave', () => btn.style.transform = 'translateY(0)');
+    });
+
+    // Hover efekty pro CTA (bez dalšího CSS)
+    div.querySelectorAll('a.dc-cta--primary').forEach(a => {
+      a.addEventListener('mouseenter', () => a.style.transform = 'translateY(-2px)');
+      a.addEventListener('mouseleave', () => a.style.transform = 'translateY(0)');
+    });
+    div.querySelectorAll('a.dc-cta--secondary').forEach(a => {
+      a.addEventListener('mouseenter', () => a.style.transform = 'translateY(-2px)');
+      a.addEventListener('mouseleave', () => a.style.transform = 'translateY(0)');
+    });
+
     elResults.appendChild(div);
   }
 
@@ -107,6 +187,28 @@
   function getSelectedTlds() {
     // výběr jsme z UI odstranili → kontrolujeme vždy vše
     return [...DEFAULT_TLDS];
+  }
+
+  function getNameSuggestions(base) {
+    const b = String(base || '').trim();
+    if (!b) return [];
+
+    // krátké a praktické varianty
+    const list = [
+      `${b}-cz`,
+      `${b}-web`,
+      `${b}web`,
+      `${b}online`,
+      `my${b}`
+    ];
+
+    // unikátní + max 5
+    const uniq = [];
+    for (const x of list) {
+      if (!uniq.includes(x) && x.length <= 63) uniq.push(x);
+      if (uniq.length >= 5) break;
+    }
+    return uniq;
   }
 
   // --- Demo fallback (když WEDOS API nejede / limit)
@@ -175,7 +277,10 @@
   }
 
   async function run() {
+    // uložíme pro návrhy
+
     const base = sanitizeBaseDomain(elName.value);
+    lastBase = base;
     const tlds = getSelectedTlds();
 
     elName.value = base;

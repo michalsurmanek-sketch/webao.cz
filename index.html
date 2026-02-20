@@ -1,1831 +1,331 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WebAO.cz • Tvoříme weby, které prodávají</title>
-  <meta name="description" content="WebAO – weby, e‑shopy, SEO, správa, hosting a AI automatizace. Web do 7 dnů. AO Group."/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  
-  <!-- Domain checker (WEDOS) – samostatné CSS -->
-  <link rel="stylesheet" href="/assets/domain-check.css">
+/* Domain checker – WebAO (WEDOS) */
+/* - Fetch API
+   - Validace vstupu (bez mezer, diakritiky, www, http/https)
+   - Volání zabezpečené proxy /api/domain-check (Cloudflare Worker)
+   - Demo fallback pokud API spadne / limit
+*/
 
-  <!-- FAVICON & PWA -->
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="/android-chrome-192x192.png">
-  <meta name="theme-color" content="#0033cc">
-  <link rel="manifest" href="/site.webmanifest">
+(() => {
+  let lastBase = '';
+  const elName = document.getElementById('dcName');
+  const elBtn = document.getElementById('dcBtn');
+  const elStatus = document.getElementById('dcStatus');
+  const elResults = document.getElementById('dcResults');
 
-  <style>
-    :root{
-      --blue:#0033cc; /* královská modrá */
-      --yellow:#fdc700; /* AO žlutá */
-      --ink:#0b1220;
-      --ink-60:#2f3a53;
-      --ink-40:#5b6b8f;
-      --bg:#f7f9fc;
-      --white:#ffffff;
-      --radius:18px;
-      --shadow:0 10px 30px rgba(0,0,0,.08);
-      --shadow-sm:0 6px 16px rgba(0,0,0,.06);
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;height:100%}
-    body{
-      font-family:Roboto,system-ui,-apple-system,Segoe UI,Arial,"Noto Sans",sans-serif;
-      color:var(--ink);
-      background:var(--bg);
-      -webkit-tap-highlight-color: transparent;
-      caret-color: transparent; /* zabrání "blikající čárce" mimo pole */
-    }
-    /* caret (blikající čárka) povolíme jen tam, kde má být */
-    input, textarea{caret-color:auto}
+  if (!elName || !elBtn || !elStatus || !elResults) return;
 
-    /* Výchozí kurzor */
-    body, header, footer, section, .card, .hero, .trust div, .chip, .pill, .tag, .step{cursor:default}
-    a, button, .btn, summary, .scroll-top{cursor:pointer}
+  const API_URL = '/api/domain-check'; // Cloudflare Worker route
 
-    /* Zabraň náhodnému textovému kurzoru/označování v UI prvcích */
-    header, nav, .nav, .menu, .nav-cta, .brand,
-    .trust, .trust div,
-    .card, .icon, .chip, .pill, .tag,
-    .steps, .step,
-    footer, .foot, .copyright, .copyright-inner, .socials,
-    .scroll-top,
-    details > summary{
-      user-select:none;
-    }
+  // Affiliate (WEDOS) – doplň svoje ID z wedos.as
+  // Affiliate ID z tvého odkazu
+  const WEDOS_AFFILIATE_ID = 'jzKMbf';
 
-    /* Text uvnitř formuláře a popisů zůstává normálně */
-    form, form * , .lead, .hero-card p, .card p, .aside p{user-select:text}
-    a{color:inherit;text-decoration:none}
-    img{max-width:100%;display:block}
-    .container{width:min(1200px, 92%);margin-inline:auto}
+  function getWedosAffiliateUrl(fqdn){
+    // pokud nechceš affiliate, můžeš vrátit přímo WEDOS url bez parametru
+    // return `https://www.wedos.cz/registrace-domeny/?domain=${encodeURIComponent(fqdn)}`;
+    // Používáme tvůj reálný affiliate link (vedos.cz)
+    return `https://vedos.cz/domeny/?ap=${encodeURIComponent(WEDOS_AFFILIATE_ID)}&domain=${encodeURIComponent(fqdn)}`;
+  }
 
-    .btn{display:inline-flex;align-items:center;gap:.6rem;border-radius:999px;padding:.9rem 1.3rem;font-weight:700;border:2px solid transparent;transition:.2s ease;cursor:pointer}
-    .btn--primary{background:var(--blue);color:var(--white)}
-    .btn--primary:hover{filter:brightness(1.05)}
-    .btn--ghost{background:transparent;border-color:var(--blue);color:var(--blue)}
-    .btn--ghost:hover{background:rgba(0,51,204,.06)}
+  // vždy kontrolujeme všechny koncovky (uživatel nechce výběr)
+  const DEFAULT_TLDS = ['cz', 'com', 'eu'];
 
-    /* Header */
-    header{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e9eef8;z-index:50}
-    .nav{display:flex;align-items:center;justify-content:space-between;padding:.8rem 0}
-    .brand{display:flex;align-items:center;gap:.7rem}
-    .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#1a4fff);display:grid;place-items:center;color:var(--yellow);font-weight:900;box-shadow:var(--shadow-sm)}
-    .brand b{font-size:1.15rem;letter-spacing:.3px}
-    .menu{display:flex;align-items:center;gap:1.2rem}
-    .menu a{color:var(--ink-60);font-weight:500}
-    .menu a:hover{color:var(--ink)}
-    .nav-cta{display:flex;align-items:center;gap:.6rem}
-    .burger{display:none;border:none;background:transparent;font-size:0}
+  // --- UI helpers
+  function setLoading(on) {
+    if (on) {
+      elBtn.disabled = true;
+      elStatus.innerHTML = `<span class="dc-spinner" aria-hidden="true"></span> Ověřuji…`;
+    } else {
+      elBtn.disabled = false;
+      elStatus.textContent = '';
+    }
+  }
 
-    /* Burger ikonka (3 čáry) */
-    .burger{
-      position:relative;
-      width:44px;
-      height:44px;
-      border-radius:12px;
-      background:var(--white);
-      box-shadow:var(--shadow);
-      border:1px solid #e9eef8;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-    }
-    .burger span{
-      position:absolute;
-      width:18px;
-      height:2px;
-      background:var(--ink);
-      border-radius:999px;
-      transition:transform .2s ease, opacity .2s ease, top .2s ease;
-    }
-    .burger span:nth-child(1){top:15px}
-    .burger span:nth-child(2){top:21px}
-    .burger span:nth-child(3){top:27px}
-    .burger.is-open span:nth-child(1){top:21px;transform:rotate(45deg)}
-    .burger.is-open span:nth-child(2){opacity:0}
-    .burger.is-open span:nth-child(3){top:21px;transform:rotate(-45deg)}
+  function clearResults() {
+    elResults.innerHTML = '';
+  }
 
-    /* Mobile menu (Reklamas.cz style: overlay + slide panel) */
-    .drawer{display:none}
-    .drawer-overlay{display:none}
-    @media (max-width: 920px){
-      .nav-cta .btn{display:none}
-      .drawer{display:block}
-      .menu{display:none}
-      .burger{display:flex}
+  function renderResult({ fqdn, status, message, source }) {
+    const cls =
+      status === 'free' ? 'dc-ok' :
+      status === 'taken' ? 'dc-no' : 'dc-warn';
 
-      .drawer-overlay{
-        display:block;
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.35);
-        opacity:0;
-        pointer-events:none;
-        transition:opacity .2s ease;
-        z-index:60;
-      }
-      .drawer-overlay.open{opacity:1;pointer-events:auto}
+    const badge =
+      status === 'free' ? '✅' :
+      status === 'taken' ? '❌' : '⚠️';
 
-      .drawer{
-        position:fixed;
-        top:0;
-        right:0;
-        width:min(86%, 380px);
-        height:100dvh;
-        background:var(--white);
-        transform:translateX(102%);
-        transition:transform .25s ease;
-        box-shadow:var(--shadow);
-        padding:calc(env(safe-area-inset-top) + 1rem) 1.2rem 1rem 1.2rem;
-        z-index:61;
-        border-left:1px solid #eef2fb;
-        overflow:auto;
-        -webkit-overflow-scrolling:touch;
-      }
-      .drawer.open{transform:translateX(0)}
+    // Zdroj do UI netlačíme (ruší design) – necháme ho jen pro debug.
+    const div = document.createElement('div');
+    div.className = `dc-result ${cls}`;
+    if (source) div.dataset.source = String(source);
 
-      .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:.4rem 0 1rem 0}
-      .drawer-head b{font-size:1.05rem}
-      .drawer-close{
-        width:40px;height:40px;border-radius:12px;
-        border:1px solid #e9eef8;background:#fff;
-        display:grid;place-items:center;
-        cursor:pointer;transition:.2s ease;
-      }
-      .drawer-close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+    // Akce: pro volnou doménu 2 CTA (primární registrace, sekundární web)
+    // Pro obsazenou doménu nabídneme rychlé návrhy (klik → přepíše input a ověří).
+    let actions = '';
 
-      .drawer a:not(.btn){
-        display:block;
-        padding:.95rem 0;
-        border-bottom:1px solid #eef2fb;
-        color:var(--ink-60);
-        font-weight:600;
-      }
-      .drawer a:not(.btn):hover{color:var(--ink)}
-
-      /* CTA tlačítka v draweru nesmí zdědit styl menu odkazů */
-      .drawer .btn{border-bottom:none;padding:.9rem 1.3rem}
-      .drawer .btn--primary{color:#fff}
-      .drawer .btn--ghost{color:var(--blue)}
-
-      .drawer-cta{display:grid;gap:.65rem;margin-top:1rem}
-      .drawer-cta .btn{width:100%;justify-content:center}
-
-      /* Lepší CTA blok (premium) */
-      .drawer-cta{padding-top:.6rem}
-      .drawer-cta .btn--primary{box-shadow:0 14px 32px rgba(0,51,204,.18)}
-      .drawer-cta .btn--ghost{background:rgba(0,51,204,.06)}
-
-      .drawer-socials{
-        margin-top:1.1rem;
-        padding-top:1rem;
-        border-top:1px solid #eef2fb;
-        display:flex;
-        gap:14px;
-        flex-wrap:wrap;
-        justify-content:center;
-      }
-      .drawer-socials a{
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        width:44px;
-        height:44px;
-        border-radius:50%;
-        border:1px solid #e9eef8;
-        background:#fff;
-        color:var(--ink-60);
-        transition:.2s ease;
-      }
-      .drawer-socials a:hover{
-        transform:translateY(-2px);
-        color:var(--ink);
-        box-shadow:0 10px 20px rgba(0,0,0,.08);
-        border-color:rgba(0,51,204,.25);
-      }
-    }
-
-    /* body lock při otevřeném menu */
-    body.menu-open{overflow:hidden}
-    body.cookie-open{overflow:hidden}
-
-    /* Hero */
-    .hero{position:relative;overflow:hidden;background:radial-gradient(1250px 650px at 20% 0%, rgba(0,51,204,.10) 0, transparent 40%), linear-gradient(180deg, #fff, #f9fbff)}
-    .hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:2.2rem;padding:4.2rem 0}
-    .eyebrow{display:inline-flex;align-items:center;gap:.5rem;background:rgba(253,199,0,.18);color:#6c5700;border:1px dashed rgba(253,199,0,.7);padding:.35rem .6rem;border-radius:999px;font-weight:700;font-size:.9rem}
-    h1{font-size:clamp(2rem, 4vw + .6rem, 3.4rem);line-height:1.1;margin:.8rem 0 1rem 0}
-    .lead{font-size:1.15rem;color:var(--ink-60);max-width:56ch}
-    .hero-cta{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:1.3rem}
-    .hero-media{position:relative}
-    .hero-card{background:var(--white);border-radius:var(--radius);padding:1.1rem;border:1px solid #e9eef8;box-shadow:var(--shadow)}
-    .hero-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1rem}
-    .chip{display:inline-flex;align-items:center;gap:.5rem;background:#eef3ff;color:#183072;border-radius:999px;padding:.4rem .7rem;font-size:.85rem;font-weight:700}
-    @media (max-width: 920px){
-      .hero .wrap{grid-template-columns:1fr;padding:2.4rem 0}
-    }
-
-    /* Trust */
-    .trust{display:grid;grid-template-columns:repeat(5,1fr);gap:1.2rem;opacity:.85}
-    .trust div{background:#fff;border:1px solid #eef2fb;border-radius:14px;padding:1rem;display:grid;place-items:center}
-    @media (max-width: 720px){
-      .trust{display:none}
-    }
-
-    /* Sections */
-    section{padding:3.6rem 0}
-    .section-h{display:flex;align-items:end;justify-content:space-between;margin-bottom:1.6rem}
-    .section-h h2{margin:0;font-size:2rem}
-    .grid{display:grid;gap:1rem}
-    .grid--3{grid-template-columns:repeat(3,1fr)}
-    .grid--4{grid-template-columns:repeat(4,1fr)}
-    @media (max-width: 1000px){.grid--3{grid-template-columns:repeat(2,1fr)}.grid--4{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width: 640px){.grid--3,.grid--4{grid-template-columns:1fr}}
-
-    .card{background:var(--white);border:1px solid #e9eef8;border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow-sm);transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease, background .25s ease}
-
-    /* Efekt pro karty ve Službách */
-    #sluzby .card{position:relative;overflow:hidden}
-    #sluzby .card::after{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      background:radial-gradient(600px 260px at 20% 0%, rgba(0,51,204,.14) 0, transparent 55%),
-                 radial-gradient(520px 220px at 80% 10%, rgba(253,199,0,.18) 0, transparent 60%);
-      opacity:0;
-      transition:opacity .25s ease;
-      pointer-events:none;
-    }
-    #sluzby .card:hover{
-      transform:translateY(-8px);
-      box-shadow:0 18px 45px rgba(0,0,0,.12);
-      border-color:rgba(0,51,204,.25);
-      background:#fbfdff;
-    }
-    #sluzby .card:hover::after{opacity:1}
-    #sluzby .card .icon{transition:transform .25s ease, filter .25s ease}
-    #sluzby .card:hover .icon{transform:translateY(-2px) rotate(-4deg) scale(1.05);filter:drop-shadow(0 10px 20px rgba(0,0,0,.12))}
-    #sluzby .card h3{transition:transform .25s ease, color .25s ease}
-    #sluzby .card:hover h3{transform:translateY(-1px);color:var(--blue)}
-
-    /* Přístupnost: efekt i pro klávesnici */
-    #sluzby .card:focus-within{
-      transform:translateY(-8px);
-      box-shadow:0 18px 45px rgba(0,0,0,.12);
-      border-color:rgba(0,51,204,.25);
-    }
-    .card h3{margin:.2rem 0 .4rem 0}
-    .icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--yellow),#ffd94c);display:grid;place-items:center;font-weight:900;color:#4a3a00}
-    .tag{display:inline-flex;align-items:center;gap:.5rem;background:#fff3c2;border:1px solid #ffe186;color:#7a5b00;padding:.2rem .55rem;border-radius:999px;font-size:.8rem;font-weight:700}
-
-    /* Pricing */
-    .pricing .card{position:relative}
-    .price{font-size:2rem;font-weight:900;color:var(--blue)}
-    .badge{position:absolute;top:12px;right:12px;background:var(--blue);color:#fff;font-weight:800;font-size:.8rem;padding:.35rem .6rem;border-radius:999px}
-    ul.features{list-style:none;padding:0;margin:1rem 0 0 0}
-    ul.features li{display:flex;gap:.6rem;margin:.5rem 0;color:var(--ink-60)}
-    ul.features li::before{content:"✔";font-weight:900;color:var(--blue)}
-
-    /* Process */
-    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
-    .step{background:#fff;border:1px dashed #dfe7fb;border-radius:16px;padding:1rem}
-    .step strong{display:inline-block;margin:.4rem 0}
-    @media (max-width: 900px){.steps{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width: 520px){.steps{grid-template-columns:1fr}}
-
-    /* Contact */
-    .contact{display:grid;grid-template-columns:1.1fr .9fr;gap:1.4rem}
-    @media (max-width: 900px){
-      .contact{grid-template-columns:1fr}
-    }
-    form{background:#fff;border:1px solid #e9eef8;border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow-sm)}
-    label{display:block;font-weight:700;margin:.6rem 0 .25rem}
-    input,textarea,select{width:100%;border:1px solid #dfe7fb;border-radius:12px;padding:.8rem;background:#fbfdff;font:inherit}
-    textarea{min-height:120px;resize:vertical}
-    .aside{background:linear-gradient(135deg,#fefcf4,#fff8d8);border:1px solid #ffe186;border-radius:var(--radius);padding:1.2rem}
-    .aside p{margin:.3rem 0;color:#6c5700}
-    .contact-email{
-      color:#002a99;
-      font-weight:600;
-      transition:.2s ease;
-    }
-    .contact-email:hover{
-      color:#001f73;
-      text-decoration:underline;
-    }
-
-    /* Footer */
-    footer{
-      background:linear-gradient(180deg,#0a1950 0%, #08133d 100%);
-      color:#c7d1ff;
-      margin-top:4rem;
-      padding-top:3rem;
-    }
-    .foot{
-      display:grid;
-      grid-template-columns:2fr 1fr 1fr;
-      gap:2.5rem;
-      padding:1rem 0 3rem 0;
-    }
-    .foot a{
-      color:#e7ecff;
-      opacity:.85;
-      transition:all .25s ease;
-      display:inline-block;
-    }
-    .foot a:hover{
-      opacity:1;
-      transform:translateY(-4px) scale(1.05);
-      text-shadow:0 6px 18px rgba(0,0,0,.35);
-    }
-    .foot small{color:#9fb0ff}
-    @media (max-width: 900px){
-      .foot{
-        grid-template-columns:1fr 1fr;
-        gap:2rem 1.2rem;
-      }
-      .foot > div:first-child{
-        grid-column:1 / -1;
-      }
-    }
-    .copyright{
-      border-top:1px solid rgba(255,255,255,.08);
-      padding:1.4rem 0;
-      color:#7f93ff;
-      font-size:.85rem;
-      letter-spacing:.5px;
-    }
-    .copyright-inner{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:18px;
-      flex-wrap:wrap;
-    }
-    .socials{
-      display:flex;
-      gap:14px;
-    }
-    .socials a{
-      color:#c7d1ff;
-      font-weight:600;
-      transition:.2s ease;
-    }
-    .socials a:hover{
-      color:var(--yellow);
-      transform:translateY(-3px);
-    }
-
-    /* Utilities */
-    .muted{color:var(--ink-40)}
-    .pill{display:inline-flex;gap:.4rem;align-items:center;border-radius:999px;padding:.25rem .55rem;background:#eef3ff;color:#1a2f70;font-weight:700;font-size:.8rem}
-    .divider{height:1px;background:#e9eef8;margin:1.2rem 0}
-
-    /* Scroll to top arrow */
-    .scroll-top{
-      position:fixed;
-      right:24px;
-      bottom:24px;
-      width:46px;
-      height:46px;
-      border-radius:50%;
-      background:var(--blue);
-      color:#ffffff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:18px;
-      cursor:pointer;
-      box-shadow:0 10px 25px rgba(0,0,0,.25);
-      opacity:0;
-      pointer-events:none;
-      transform:translateY(10px);
-      transition:all .25s ease;
-      z-index:999;
-    }
-    .scroll-top.visible{
-      opacity:1;
-      pointer-events:auto;
-      transform:translateY(0);
-    }
-    .scroll-top:hover{
-      background:var(--yellow);
-      color:#000;
-      transform:translateY(-4px);
-    }
-
-    /* Premium projekt preview (Hero karta) */
-    .project-preview{
-      position:relative;
-      display:block;
-      border-radius:16px;
-      overflow:hidden;
-      margin-top:1rem;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:0 18px 50px rgba(0,0,0,.14);
-      transform:translateZ(0);
-    }
-    .project-preview img{
-      width:100%;
-      height:auto;
-      transform:scale(1.01);
-      transition:transform .35s ease, filter .35s ease;
-    }
-    .project-preview::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(
-        180deg,
-        rgba(0,0,0,.25) 0%,
-        rgba(0,0,0,.90) 100%
-      );
-      opacity:.95;
-      transition:opacity .35s ease;
-      pointer-events:none;
-    }
-    .project-preview::after{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      background:radial-gradient(520px 240px at 30% 10%, rgba(0,51,204,.25) 0, transparent 55%),
-                 radial-gradient(520px 240px at 70% 10%, rgba(253,199,0,.26) 0, transparent 60%);
-      opacity:0;
-      transition:opacity .35s ease;
-      pointer-events:none;
-    }
-    .project-preview .preview-label{
-      position:absolute;
-      left:12px;
-      top:12px;
-      display:inline-flex;
-      align-items:center;
-      gap:.5rem;
-      padding:.35rem .6rem;
-      border-radius:999px;
-      background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);
-      color:#fff;
-      font-weight:800;
-      font-size:.78rem;
-      backdrop-filter: blur(10px);
-    }
-    .project-preview .preview-cta{
-      position:absolute;
-      left:12px;
-      bottom:12px;
-      display:inline-flex;
-      align-items:center;
-      gap:.55rem;
-      padding:.7rem .95rem;
-      border-radius:999px;
-      background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.22);
-      color:#fff;
-      font-weight:900;
-      font-size:.88rem;
-      backdrop-filter: blur(10px);
-      transition:transform .25s ease, background .25s ease, border-color .25s ease;
-    }
-    .project-preview .preview-cta span{
-      display:inline-grid;
-      place-items:center;
-      width:26px;
-      height:26px;
-      border-radius:999px;
-      background:rgba(253,199,0,.92);
-      color:#1a1400;
-      font-weight:900;
-    }
-    .project-preview:hover img{
-      transform:scale(1.06);
-      filter:saturate(1.05) contrast(1.03);
-    }
-    .project-preview:hover::before{opacity:.45}
-    .project-preview:hover::after{opacity:1}
-    .project-preview:hover .preview-cta{
-      transform:translateY(-3px);
-      background:rgba(255,255,255,.16);
-      border-color:rgba(255,255,255,.3);
-    }
-
-    /* Ukázky práce – stejný styl jako ukázkový projekt */
-    .portfolio-card{padding:0;overflow:hidden}
-    .portfolio-card .portfolio-meta{padding:1.05rem 1.2rem 1.2rem 1.2rem}
-    .portfolio-preview{margin:0;border-radius:0;border:0;box-shadow:none;aspect-ratio:3/2;position:relative}
-    .portfolio-preview img{width:100%;height:100%;object-fit:cover;object-position:top}
-    
-    .portfolio-preview .preview-label{left:10px;top:10px;font-size:.75rem}
-    .portfolio-preview .preview-cta{left:10px;bottom:10px;font-size:.85rem;padding:.6rem .85rem}
-    .portfolio-preview .preview-cta span{width:24px;height:24px}
-
-    /* Mobile: trochu jemnější */
-    @media (max-width: 520px){
-      .project-preview{box-shadow:0 14px 36px rgba(0,0,0,.12)}
-    }
-  
-
-    /* Cookie lišta */
-    .cookie-bar{
-      position:fixed;
-      left:20px;
-      right:20px;
-      bottom:20px;
-      background:#0b1220;
-      color:#fff;
-      padding:1.2rem 1.4rem;
-      border-radius:16px;
-      box-shadow:0 20px 50px rgba(0,0,0,.35);
-      display:flex;
-      gap:1rem;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-      z-index:2000;
-      transform:translateY(120%);
-      transition:transform .35s ease;
-    }
-    .cookie-bar.show{transform:translateY(0)}
-    .cookie-bar p{margin:0;max-width:680px;font-size:.9rem;line-height:1.4;color:#c7d1ff}
-    .cookie-actions{display:flex;gap:.6rem;flex-wrap:wrap}
-    .cookie-settings{background:transparent;color:#c7d1ff;border:1px solid rgba(255,255,255,.18)}
-    .cookie-settings:hover{background:rgba(255,255,255,.06)}
-
-    /* Cookie nastavení – modal */
-    .cookie-modal-overlay{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.55);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .25s ease;
-      z-index:2100;
-    }
-    .cookie-modal-overlay.open{opacity:1;pointer-events:auto}
-
-    .cookie-modal{
-      position:fixed;
-      left:50%;
-      top:50%;
-      transform:translate(-50%,-46%) scale(.98);
-      width:min(720px, 92vw);
-      background:#ffffff;
-      border-radius:18px;
-      border:1px solid #e9eef8;
-      box-shadow:0 30px 80px rgba(0,0,0,.35);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .25s ease, transform .25s ease;
-      z-index:2101;
-      overflow:hidden;
-    }
-    .cookie-modal.open{
-      opacity:1;
-      pointer-events:auto;
-      transform:translate(-50%,-50%) scale(1);
-    }
-    .cookie-modal header{
-      position:relative;
-      top:auto;
-      background:#fff;
-      backdrop-filter:none;
-      border-bottom:1px solid #eef2fb;
-      padding:1.1rem 1.2rem;
-    }
-    .cookie-modal h3{margin:0;font-size:1.1rem}
-    .cookie-modal .close{
-      position:absolute;
-      right:12px;
-      top:12px;
-      width:42px;
-      height:42px;
-      border-radius:12px;
-      border:1px solid #e9eef8;
-      background:#fff;
-      cursor:pointer;
-      transition:.2s ease;
-    }
-    .cookie-modal .close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
-    .cookie-modal .body{padding:1.1rem 1.2rem 1.2rem 1.2rem}
-    .cookie-modal .desc{margin:.2rem 0 1rem 0;color:var(--ink-60)}
-
-    .cookie-cats{display:grid;gap:.75rem}
-    .cookie-cat{
-      border:1px solid #eef2fb;
-      border-radius:16px;
-      padding:.9rem 1rem;
-      background:#fbfdff;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:1rem;
-    }
-    .cookie-cat b{display:block;margin-bottom:.15rem}
-    .cookie-cat p{margin:0;color:var(--ink-40);font-size:.92rem;line-height:1.45}
-
-    .toggle{
-      position:relative;
-      width:52px;
-      height:30px;
-      border-radius:999px;
-      background:#dbe5ff;
-      border:1px solid rgba(0,51,204,.18);
-      cursor:pointer;
-      flex:0 0 auto;
-      transition:.2s ease;
-    }
-    .toggle::after{
-      content:"";
-      position:absolute;
-      top:3px;
-      left:3px;
-      width:24px;
-      height:24px;
-      border-radius:50%;
-      background:#fff;
-      box-shadow:0 8px 20px rgba(0,0,0,.12);
-      transition:.2s ease;
-    }
-    .toggle.on{background:rgba(0,51,204,.18)}
-    .toggle.on::after{left:25px}
-    .toggle.disabled{opacity:.55;cursor:not-allowed}
-
-    .cookie-modal .actions{
-      display:flex;
-      gap:.6rem;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-      margin-top:1rem;
-      padding-top:1rem;
-      border-top:1px solid #eef2fb;
-    }
-    .cookie-modal .actions .btn{padding:.75rem 1.05rem;font-weight:800}
-    @media (max-width: 520px){
-      .cookie-modal .actions{justify-content:stretch}
-      .cookie-modal .actions .btn{width:100%;justify-content:center}
-    }
-    .cookie-btn{
-      border:none;
-      border-radius:999px;
-      padding:.6rem 1rem;
-      font-weight:700;
-      cursor:pointer;
-      transition:.2s ease;
-    }
-    .cookie-accept{background:var(--yellow);color:#000}
-    .cookie-accept:hover{transform:translateY(-2px)}
-    .cookie-decline{background:#1f2a48;color:#fff;border:1px solid rgba(255,255,255,.15)}
-    .cookie-decline:hover{background:#26345f}
-
-    /* Domain checker – čistý „vyhledávač“ (override nad /assets/domain-check.css) */
-    .domain-check--hero{
-      margin-top:0;
-      padding:0;
-      background:transparent;
-      border:0;
-      box-shadow:none;
-    }
-    .domain-check--hero .domain-check__row{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:.8rem;
-      align-items:center;
-    }
-    .domain-check--hero .domain-check__inputwrap{
-      display:flex;
-      align-items:center;
-      padding:.18rem;
-      border-radius:999px;
-      border:1px solid #dfe7fb;
-      background:#ffffff;
-      box-shadow:var(--shadow-sm);
-      height:56px;
-    }
-    .domain-check--hero .domain-check__input{
-      border:0 !important;
-      background:transparent !important;
-      outline:none;
-      box-shadow:none;
-      flex:1 1 auto;
-      min-width:0;
-      width:auto;
-      height:100%;
-      padding:0 .95rem !important;
-      margin:0 !important;
-      line-height:normal;
-      display:block;
-    }
-    .domain-check--hero .domain-check__btn{white-space:nowrap;padding:.85rem 1.15rem}
-    .domain-check--hero .domain-check__status{margin-top:.6rem}
-    .domain-check--hero .domain-check__results{margin-top:.55rem}
-    @media (max-width: 720px){
-      .domain-check--hero .domain-check__row{grid-template-columns:1fr;}
-      .domain-check--hero .domain-check__btn{width:100%;justify-content:center}
-    }
-
-  </style>
-</head>
-<body>
-  <!-- Header -->
-  <header>
-    <div class="container nav" aria-label="Hlavní navigace">
-      <div class="brand">
-        <!-- SVG LOGO WebAO -->
-        <div class="logo" style="background:none;box-shadow:none;width:auto;height:auto">
-          <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="gradBlue" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#0033cc"/>
-                <stop offset="100%" stop-color="#1a4fff"/>
-              </linearGradient>
-            </defs>
-            <rect x="6" y="10" width="52" height="34" rx="8" fill="url(#gradBlue)"/>
-            <rect x="14" y="18" width="36" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
-            <polygon points="28,22 38,34 32,34 30,40" fill="#fdc700"/>
-            <rect x="26" y="46" width="12" height="4" rx="2" fill="#0033cc"/>
-          </svg>
+    if (status === 'free') {
+      actions = `
+        <div class="dc-actions" style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <a
+            class="dc-cta dc-cta--primary"
+            href="${getWedosAffiliateUrl(fqdn)}"
+            target="_blank"
+            rel="noopener"
+            aria-label="Registrovat doménu ${escapeHtml(fqdn)}"
+            style="display:inline-flex;align-items:center;justify-content:center;padding:.55rem .95rem;border-radius:999px;background:var(--blue,#0033cc);color:#fff;font-weight:900;white-space:nowrap;box-shadow:0 10px 22px rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.04);transition:.2s ease"
+          >Registrovat doménu</a>
+          <a
+            class="dc-cta dc-cta--secondary"
+            href="#kontakt"
+            aria-label="Chci web k doméně ${escapeHtml(fqdn)}"
+            style="display:inline-flex;align-items:center;justify-content:center;padding:.55rem .95rem;border-radius:999px;background:rgba(0,51,204,.06);color:var(--blue,#0033cc);font-weight:900;white-space:nowrap;border:1px solid rgba(0,51,204,.18);transition:.2s ease"
+          >Chci web</a>
         </div>
-        <b style="font-weight:900;letter-spacing:.5px">
-          <span style="color:#0033cc">Web</span><span style="color:#0b1220">AO</span>
-        </b>
-      </div>
+      `;
+    } else if (status === 'taken') {
+      const sugg = getNameSuggestions(lastBase);
+      const chips = sugg.map(s => {
+        return `
+          <button
+            type="button"
+            class="dc-sugg"
+            data-sugg="${escapeHtml(s)}"
+            style="appearance:none;border:1px solid #e9eef8;background:#fff;border-radius:999px;padding:.38rem .7rem;font-weight:900;color:#1a2f70;cursor:pointer;transition:.2s ease"
+            aria-label="Zkusit název ${escapeHtml(s)}"
+          >${escapeHtml(s)}</button>
+        `;
+      }).join('');
 
-      <nav class="menu" aria-label="Menu">
-        <a href="#sluzby">Služby</a>
-        <a href="#balicky">Balíčky</a>
-        <a href="#ukazky">Ukázky</a>
-        <a href="#proces">Jak pracujeme</a>
-        <a href="#kontakt">Kontakt</a>
-      </nav>
-
-      <div class="nav-cta">
-        <a class="btn btn--ghost" href="#balicky">Ceník</a>
-        <a class="btn btn--primary" href="#kontakt">Poptat web</a>
-        <button class="burger" aria-label="Otevřít menu" id="burger" aria-expanded="false">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </div>
-
-    <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
-
-    <div class="drawer" id="drawer" aria-hidden="true">
-      <div class="drawer-head">
-        <b><span style="color:var(--blue)">Web</span><span style="color:var(--ink)">AO</span></b>
-        <button class="drawer-close" id="drawerClose" type="button" aria-label="Zavřít menu">✕</button>
-      </div>
-      <a href="#sluzby">Služby</a>
-      <a href="#balicky">Balíčky</a>
-      <a href="#ukazky">Ukázky</a>
-      <a href="#proces">Jak pracujeme</a>
-      <a href="#kontakt">Kontakt</a>
-
-      <div class="drawer-cta">
-        <a class="btn btn--ghost" href="#balicky">Ceník</a>
-        <a class="btn btn--primary" href="#kontakt">Poptat web</a>
-      </div>
-
-      <div class="drawer-socials" aria-label="Sociální sítě">
-        <a href="#" target="_blank" rel="noopener" aria-label="Instagram">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="5"></rect>
-            <circle cx="12" cy="12" r="4"></circle>
-            <circle cx="18" cy="6" r="1"></circle>
-          </svg>
-        </a>
-        <a href="#" target="_blank" rel="noopener" aria-label="Facebook">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.6c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .2 2 .2v2.2h-1.2c-1.2 0-1.6.7-1.6 1.5v1.8H16l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/>
-          </svg>
-        </a>
-        <a href="#" target="_blank" rel="noopener" aria-label="YouTube">
-          <svg width="22" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23 12s0-3-1-4.4c-1-1.6-2-1.6-4-1.8C15 5.5 12 5.5 12 5.5h0s-3 0-6 .3c-2 .2-3 .2-4 1.8C1 9 1 12 1 12s0 3 1 4.4c1 1.6 2.3 1.6 4.6 1.9 1.7.2 5.4.3 5.4.3s3 0 6-.3c2-.2 3-.2 4-1.8 1-1.4 1-4.4 1-4.4zM10 15.5v-7l6 3.5-6 3.5z"/>
-          </svg>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container wrap">
-      <div>
-        <span class="eyebrow">Web do 7 dnů • SEO • E‑shop • AI automatizace</span>
-        <h1>Tvoříme weby, které <span style="background:linear-gradient(transparent 60%, rgba(253,199,0,.6) 0);">prodávají</span> a rostou s vámi</h1>
-        <p class="lead">WebAO je webové studio AO Group. Stavíme rychlé a moderní weby, e‑shopy a mikrosites. Postaráme se o obsah, SEO, správu i hosting – od A do O.</p>
-
-        <div class="hero-cta">
-          <a class="btn btn--primary" href="#kontakt">Poptat web</a>
-          <a class="btn btn--ghost" href="#ukazky">Ukázky práce</a>
+      actions = `
+        <div class="dc-actions" style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
+          <div style="font-size:.85rem;color:var(--ink-40,#5b6b8f);font-weight:800">Zkus jiný název:</div>
+          <div class="dc-suggs" style="display:flex;gap:.45rem;flex-wrap:wrap;justify-content:flex-end">${chips}</div>
         </div>
+      `;
+    }
 
-        <div class="divider"></div>
-
-        <div class="trust">
-          <div>Reklamas.cz</div>
-          <div>Herbao.cz</div>
-          <div>Gurmao.cz</div>
-          <div>Adresao.cz</div>
-          <div>Casinao.cz</div>
+    div.innerHTML = `
+      <div class="dc-result__left">
+        <span class="dc-badge" aria-hidden="true">${badge}</span>
+        <div style="min-width:0">
+          <div class="dc-domain">${escapeHtml(fqdn)}</div>
+          <div class="dc-meta">${escapeHtml(message || '')}</div>
         </div>
       </div>
-
-      <div class="hero-media">
-        <div class="hero-card">
-          <div style="display:flex;align-items:center;gap:.6rem">
-            <img src="/images/herbao-logo.svg" alt="Herbao logo" style="height:28px;width:auto">
-            <strong>Ukázkový projekt</strong>
-          </div>
-          <p class="muted">Moderní web pro značku přírodní rovnováhy.</p>
-          <a href="https://www.herbao.cz" target="_blank" rel="noopener" class="project-preview" aria-label="Otevřít Herbao.cz">
-            <span class="preview-label">Herbao.cz • ukázka</span>
-            <img src="/images/herbao.png" alt="Herbao.cz – náhled projektu">
-            <span class="preview-cta">Zobrazit projekt <span>↗</span></span>
-          </a>
-          <div style="display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap">
-            <span class="chip">⚡ Rychlý & přehledný</span>
-            <span class="chip">🎯 Silná značka</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Služby -->
-  <section id="sluzby">
-    <div class="container">
-      <div class="section-h">
-        <h2>Služby</h2>
-        <span class="muted">Vše pod jednou střechou AO Group</span>
-      </div>
-
-      <div class="grid grid--3">
-        <div class="card">
-          <div class="icon">{}</div>
-          <h3>Tvorba webů</h3>
-          <p class="muted">Landing page, firemní web, mikrosite. Bleskové dodání a čistý kód.</p>
-        </div>
-        <div class="card">
-          <div class="icon">#</div>
-          <h3>E‑shopy</h3>
-          <p class="muted">Shoptet / WooCommerce – produkty, platby, doprava, faktury i sklad.</p>
-        </div>
-        <div class="card">
-          <div class="icon">↑</div>
-          <h3>SEO & obsah</h3>
-          <p class="muted">Analýza klíčových slov, on‑page, rychlost, copywriting a blog.</p>
-        </div>
-        <div class="card">
-          <div class="icon">☁</div>
-          <h3>Správa & hosting</h3>
-          <p class="muted">Aktualizace, zálohy, monitoring, e‑maily a SSL v ceně správy.</p>
-        </div>
-        <div class="card">
-          <div class="icon">🤖</div>
-          <h3>AI automatizace</h3>
-          <p class="muted">Chatboti, generování obsahu, poptávkové asistenty, CRM propojení.</p>
-        </div>
-        <div class="card">
-          <div class="icon">★</div>
-          <h3>Branding & logo</h3>
-          <p class="muted">Logo, barvy, fonty, šablony dokumentů a firemní identita.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Kontrola domény (mezi Služby a Balíčky) -->
-  <section id="domena">
-    <div class="container">
-      <div class="section-h">
-        <h2>Zkontroluj dostupnost domény</h2>
-        <span class="muted">Ověř si název ještě před tvorbou webu</span>
-      </div>
-
-      <div class="domain-check domain-check--hero" id="domainCheck" aria-label="Kontrola dostupnosti domény">
-        <div class="domain-check__row">
-          <div class="domain-check__inputwrap" role="search">
-            <span style="padding:0 .4rem 0 .9rem;font-weight:700;color:#5b6b8f;white-space:nowrap">www.</span>
-            <input id="dcName" class="domain-check__input" name="domain" inputmode="latin" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="chatao" aria-label="Název domény bez www a koncovky" />
-          </div>
-
-          <button class="btn btn--primary domain-check__btn" type="button" id="dcBtn">Zkontrolovat</button>
-        </div>
-
-        <div class="domain-check__status" id="dcStatus" aria-live="polite" role="status"></div>
-        <div class="domain-check__results" id="dcResults" aria-live="polite"></div>
-        
-      </div>
-    </div>
-  </section>
-
-  <!-- Balíčky / Pricing -->
-  <section id="balicky" class="pricing">
-    <div class="container">
-      <div class="section-h">
-        <h2>Balíčky</h2>
-        <span class="muted">Transparentní ceny. Můžeš začít hned a škálovat, jak porosteš.</span>
-      </div>
-
-      <div class="grid grid--3">
-        <div class="card">
-          <div class="badge" aria-label="Nejrychlejší start">Start</div>
-          <h3>Start</h3>
-          <p class="muted">Jednostránkový web / mikrosite</p>
-          <div class="price">3 900 Kč</div>
-          <ul class="features">
-            <li>1–3 sekce + formulář</li>
-            <li>Responzivní design</li>
-            <li>Základní SEO & rychlost</li>
-            <li>Napojení na e‑mail</li>
-          </ul>
-          <div style="margin-top:1rem"><a class="btn btn--ghost" href="#kontakt">Chci Start</a></div>
-        </div>
-
-        <div class="card" style="border:2px solid var(--blue);box-shadow:0 14px 36px rgba(0,51,204,.12)">
-          <div class="badge" style="background:var(--yellow);color:#3a2d00">Nejprodávanější</div>
-          <h3>Business</h3>
-          <p class="muted">Firemní web 5–8 sekcí</p>
-          <div class="price">9 900 Kč</div>
-          <ul class="features">
-            <li>Design na míru</li>
-            <li>Blog / aktuality</li>
-            <li>SEO on‑page + měření</li>
-            <li>Rychlost 90+ (Lighthouse)</li>
-          </ul>
-          <div style="margin-top:1rem"><a class="btn btn--primary" href="#kontakt">Jít do Business</a></div>
-        </div>
-
-        <div class="card">
-          <div class="badge">Premium</div>
-          <h3>Premium</h3>
-          <p class="muted">E‑shop / pokročilý web</p>
-          <div class="price">od 19 900 Kč</div>
-          <ul class="features">
-            <li>E‑shop (Shoptet / Woo)</li>
-            <li>Integrace plateb a doprav</li>
-            <li>Automatizace / AI nástroje</li>
-            <li>Prioritní podpora</li>
-          </ul>
-          <div style="margin-top:1rem"><a class="btn btn--ghost" href="#kontakt">Mám zájem o Premium</a></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Ukázky / Portfolio -->
-  <!--
-    JAK DOPLŇOVAT FOTKY:
-    1) Nahraj obrázky do složky /images/ (např. /images/reklamas.jpg)
-    2) Ideální rozměr: 1200x800px (poměr 3:2)
-    3) Formát: .jpg nebo .webp (menší velikost = rychlejší web)
-  -->
-  <section id="ukazky">
-    <div class="container">
-      <div class="section-h">
-        <h2>Ukázky práce</h2>
-        <span class="muted">Vybrané projekty WebAO</span>
-      </div>
-
-      <div class="grid grid--4">
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://reklamas.cz" target="_blank" rel="noopener" aria-label="Otevřít Reklamas.cz">
-            <span class="preview-label">Reklamas.cz</span>
-            <img alt="Reklamas.cz náhled" src="/images/reklamas.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Reklamas.cz</h3>
-            <p class="muted">Reklamas — hrdina vaší reklamy</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://chatao.cz" target="_blank" rel="noopener" aria-label="Otevřít chatao.cz">
-            <span class="preview-label">Chatao.cz</span>
-            <img alt="chatao.cz náhled" src="/images/chatao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Chatao.cz</h3>
-            <p class="muted">Feedový booking chat</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://zahradao.cz" target="_blank" rel="noopener" aria-label="Otevřít Zahradao.cz">
-            <span class="preview-label">Zahradao.cz</span>
-            <img alt="Zahradao.cz náhled" src="/images/zahradao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Zahradao.cz</h3>
-            <p class="muted">Zahrada budoucnosti</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://vodao.cz" target="_blank" rel="noopener" aria-label="Otevřít vodao.cz">
-            <span class="preview-label">Vodao.cz</span>
-            <img alt="Vodao.cz náhled" src="/images/vodao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Vodao.cz</h3>
-            <p class="muted">„voda“ • služby • firmy • poptávky</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://herbao.cz" target="_blank" rel="noopener" aria-label="Otevřít herbao.cz">
-            <span class="preview-label">Herbao.cz</span>
-            <img alt="Herbao.cz náhled" src="/images/herbao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Herbao.cz</h3>
-            <p class="muted">Přírodní rovnováha pro tělo i hlavu</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://oknao.cz" target="_blank" rel="noopener" aria-label="Otevřít oknao.cz">
-            <span class="preview-label">Oknao.cz</span>
-            <img alt="Oknao.cz náhled" src="/images/oknao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Oknao.cz</h3>
-            <p class="muted">okna & dveře-poptávka · montáž</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://farmao.cz" target="_blank" rel="noopener" aria-label="Otevřít Farmao.cz">
-            <span class="preview-label">Farmao.cz</span>
-            <img alt="Farmao.cz náhled" src="/images/farmao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Farmao.cz</h3>
-            <p class="muted">Čerstvá síla z lokálních farem</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://poptejplot.cz" target="_blank" rel="noopener" aria-label="Otevřít poptejplot.cz">
-            <span class="preview-label">Poptejplot.cz</span>
-            <img alt="Poptejplot.cz náhled" src="/images/poptejplot.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Poptejplot.cz</h3>
-            <p class="muted">Poptávky na ploty a oplocení</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://casinao.cz" target="_blank" rel="noopener" aria-label="Otevřít casinao.cz">
-            <span class="preview-label">Casinao.cz</span>
-            <img alt="Casinao.cz náhled" src="/images/casinao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Casinao.cz</h3>
-            <p class="muted">Online casina v ČR, bonusy a recenze</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://fitnao.cz" target="_blank" rel="noopener" aria-label="Otevřít fitnao.cz">
-            <span class="preview-label">Fitnao.cz</span>
-            <img alt="Fitnao.cz náhled" src="/images/fitnao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Fitnao.cz</h3>
-            <p class="muted">Jídlo. Pohyb. Režim. Klid.</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://slevao.cz" target="_blank" rel="noopener" aria-label="Otevřít slevao.cz">
-            <span class="preview-label">Slevao.cz</span>
-            <img alt="Slevao.cz náhled" src="/images/slevao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Slevao.cz</h3>
-            <p class="muted">Chytré slevy.Ne letáky.</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://webao.cz" target="_blank" rel="noopener" aria-label="Otevřít webao.cz">
-            <span class="preview-label">Webao.cz</span>
-            <img alt="Webao.cz náhled" src="/images/webao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Webao.cz</h3>
-            <p class="muted">Tvoříme weby, které prodávají</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://domenao.cz" target="_blank" rel="noopener" aria-label="Otevřít Domenao.cz">
-            <span class="preview-label">Domenao.cz</span>
-            <img alt="Domenao.cz náhled" src="/images/domenao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Domenao.cz</h3>
-            <p class="muted">Domény, které mají hodnotu</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://firmao.cz" target="_blank" rel="noopener" aria-label="Otevřít firmao.cz">
-            <span class="preview-label">Firmao.cz</span>
-            <img alt="firmao.cz náhled" src="/images/firmao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Firmao.cz</h3>
-            <p class="muted">Vaše firma. Naše řešení.</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://adresao.cz" target="_blank" rel="noopener" aria-label="Otevřít Adresao.cz">
-            <span class="preview-label">Adresao.cz</span>
-            <img alt="Adresao.cz náhled" src="/images/adresao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Adresao.cz</h3>
-            <p class="muted">Virtuální adresa pro firmy</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://kartao.cz" target="_blank" rel="noopener" aria-label="Otevřít Kartao.cz">
-            <span class="preview-label">Kartao.cz</span>
-            <img alt="Kartao.cz náhled" src="/images/kartao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Kartao.cz</h3>
-            <p class="muted">Marketplace influencerů</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Proces -->
-  <section id="proces">
-    <div class="container">
-      <div class="section-h">
-        <h2>Jak pracujeme</h2>
-        <span class="muted">Jednoduše, rychle a bez stresu</span>
-      </div>
-
-      <div class="steps">
-        <div class="step"><span class="tag">1</span><strong>Poptávka</strong><p class="muted">Krátký call, vybereme balíček a cíle.</p></div>
-        <div class="step"><span class="tag">2</span><strong>Návrh & obsah</strong><p class="muted">Wireframe, texty, grafika, SEO klíčová slova.</p></div>
-        <div class="step"><span class="tag">3</span><strong>Vývoj</strong><p class="muted">Kód, integrace, testování rychlosti a měření.</p></div>
-        <div class="step"><span class="tag">4</span><strong>Start & správa</strong><p class="muted">Nasazení na doménu, monitoring, úpravy a růst.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Kontakt -->
-  <section id="kontakt">
-    <div class="container contact">
-      <form onsubmit="event.preventDefault(); alert('Děkujeme! Ozveme se co nejdříve.');">
-        <h2>Nezávazná poptávka</h2>
-        <p class="muted">Popiš nám svůj projekt – ozveme se do 24 hodin.</p>
-
-        <label for="jmeno">Jméno / firma</label>
-        <input id="jmeno" name="jmeno" placeholder="Jan Novák / Novák s.r.o." required>
-
-        <label for="email">E‑mail</label>
-        <input id="email" name="email" type="email" placeholder="jan@firma.cz" required>
-
-        <label for="tel">Telefon</label>
-        <input id="tel" name="tel" type="tel" placeholder="+420 000 000 000">
-
-        <label for="sluzba">Zájem o</label>
-        <select id="sluzba" name="sluzba">
-          <option>Tvorba webu</option>
-          <option>E‑shop</option>
-          <option>SEO & obsah</option>
-          <option>Správa & hosting</option>
-          <option>AI automatizace</option>
-        </select>
-
-        <label for="zprava">Stručně o projektu</label>
-        <textarea id="zprava" name="zprava" placeholder="Co prodáváte / nabízíte, cíl webu, konkurence…"></textarea>
-
-        <div style="display:flex;gap:.6rem;align-items:center;margin-top:1rem;flex-wrap:wrap">
-          <button class="btn btn--primary" type="submit">Odeslat poptávku</button>
-          <span class="muted">nebo napiš na <a href="mailto:studio@webao.cz" class="contact-email">studio@webao.cz</a></span>
-        </div>
-      </form>
-
-      <aside class="aside">
-        <h3>Kontakt</h3>
-        <p><strong>WebAO – AO Group</strong></p>
-        <p>E‑mail: <a href="mailto:studio@webao.cz" class="contact-email">studio@webao.cz</a></p>
-        <p>Telefon: <a href="tel:+420777000000">+420 000 000 000</a></p>
-        <p><span class="pill">🛡 SSL • Zálohy • Monitoring</span></p>
-        <div class="divider"></div>
-        <h4 style="margin:0 0 10px 0">FAQ</h4>
-        <details open>
-          <summary><strong> Jak rychle umíte dodat web?</strong></summary>
-          <p class="muted">Standardní web (Start) dodáme do 7 pracovních dnů od dodání podkladů. Business web obvykle 10–14 dnů. U e‑shopů záleží na počtu produktů a napojení – přesný termín vždy potvrdíme po úvodní konzultaci.</p>
-          <p class="muted"><strong>Expresní režim?</strong> Pokud spěcháte, umíme vyhradit kapacitu a zkrátit termín.</p>
-        </details>
-        <details>
-          <summary><strong> Mohu začít s malým balíčkem a později rozšířit?</strong></summary>
-          <p class="muted">Ano. Weby stavíme modulárně – můžete začít s balíčkem Start a kdykoliv přejít na Business nebo Premium bez nutnosti vše předělávat. Zachováme design i SEO hodnotu.</p>
-          <p class="muted">Růst řešíme postupně: nové sekce, blog, e‑shop, automatizace.</p>
-        </details>
-        <details>
-          <summary><strong> Řešíte i texty a fotografie?</strong></summary>
-          <p class="muted">Ano. Zajistíme profesionální copywriting (prodejní texty + SEO), výběr nebo tvorbu fotografií a základní grafiku. Pokud máte vlastní podklady, zapracujeme je a optimalizujeme pro výkon.</p>
-          <p class="muted"><strong>Výsledek?</strong> Konzistentní značka a obsah, který opravdu prodává.</p>
-        </details>
-        <details>
-          <summary><strong> Proč stojí web právě tolik?</strong></summary>
-          <p class="muted">Cena neodráží jen samotný design, ale také strategii, strukturu, SEO, rychlost, technickou kvalitu a budoucí škálovatelnost. Netvoříme jen "hezký web", ale nástroj, který má vydělávat.</p>
-          <p class="muted">Každý projekt naceňujeme transparentně – přesně víte, za co platíte.</p>
-        </details>
-        <details>
-          <summary><strong> Budu web skutečně vlastnit?</strong></summary>
-          <p class="muted">Ano. Doména, hosting i samotný web jsou vedeny na vás. Po dokončení projektu získáte plný přístup a kontrolu. WebAO zůstává pouze technickým partnerem, pokud si to přejete.</p>
-        </details>
-        <details>
-          <summary><strong> Co když si budu chtít web spravovat sám?</strong></summary>
-          <p class="muted">Žádný problém. Předáme vám přístup, krátké zaškolení a jednoduchý návod. Pokud budete chtít, můžeme zůstat jako podpora na telefonu – ale nejste na nás závislí.</p>
-        </details>
-      </aside>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer>
-    <div class="container foot">
-      <div>
-        <div style="margin-bottom:14px">
-          <svg width="60" height="60" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="8" y="8" width="48" height="48" rx="14" fill="#ffffff" opacity="0.12"/>
-            <polygon points="26,20 42,38 34,38 31,50" fill="#fdc700"/>
-          </svg>
-        </div>
-        <div style="font-size:.85rem;letter-spacing:2px;text-transform:uppercase;color:#9fb0ff;margin-bottom:.6rem">AO Digital Studio</div>
-        <h3 style="margin:.2rem 0 1rem 0;font-weight:700"><span style="color:#ffffff">Web</span><span style="color:#fdc700">AO</span></h3>
-        <p class="muted" style="color:#c7d1ff">Weby, e‑shopy, SEO a AI automatizace. Součást <span style="color:#fdc700">AO</span> Group.</p>
-      </div>
-      <div>
-        <h4 style="color:#fff;margin-top:0">Rychlé odkazy</h4>
-        <p><a href="#sluzby">Služby</a></p>
-        <p><a href="#balicky">Balíčky</a></p>
-        <p><a href="#kontakt">Kontakt</a></p>
-      </div>
-      <div>
-        <h4 style="margin-top:0"><span style="color:#fdc700">AO</span><span style="color:#ffffff"> ekosystém</span></h4>
-        <p><a href="https://adresao.cz" target="_blank" rel="noopener">AdresAO.cz</a></p>
-        <p><a href="https://domenao.cz" target="_blank" rel="noopener">DomenAO.cz</a></p>
-        <p><a href="https://firmao.cz" target="_blank" rel="noopener">FirmAO.cz</a></p>
-        <p><a href="https://startao.cz" target="_blank" rel="noopener">StartAO.cz</a></p>
-      </div>
-    </div>
-
-    <div class="copyright">
-      <div class="copyright-inner">
-        <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center">
-          <a href="/pravni.html" style="color:#9fb0ff">Právní podmínky</a>
-        </div>
-        <div>
-          © <span id="year">2026</span> <span style="color:#ffffff">Web</span><span style="color:#fdc700">AO</span> • Všechna práva vyhrazena
-        </div>
-        <div class="socials">
-          <a href="#" target="_blank">Instagram</a>
-          <a href="#" target="_blank">Facebook</a>
-          <a href="#" target="_blank">YouTube</a>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-    <!-- Cookie lišta -->
-  <div class="cookie-bar" id="cookieBar" role="dialog" aria-live="polite" aria-label="Informace o cookies">
-    <p>
-      Tento web používá technické a analytické cookies pro zajištění funkčnosti a zlepšení služeb.
-      Pokračováním souhlasíte s jejich použitím. Více informací najdete v
-      <a href="/pravni.html" style="color:var(--yellow);text-decoration:underline">zásadách ochrany údajů</a>.
-    </p>
-    <div class="cookie-actions">
-      <button class="cookie-btn cookie-settings" id="cookieSettings">Nastavení</button>
-      <button class="cookie-btn cookie-decline" id="cookieDecline">Pouze nezbytné</button>
-      <button class="cookie-btn cookie-accept" id="cookieAccept">Souhlasím</button>
-    </div>
-  </div>
-
-  <!-- Cookie nastavení (modal) -->
-  <div class="cookie-modal-overlay" id="cookieModalOverlay" aria-hidden="true"></div>
-  <div class="cookie-modal" id="cookieModal" role="dialog" aria-modal="true" aria-label="Nastavení cookies" aria-hidden="true">
-    <header>
-      <h3>Nastavení cookies</h3>
-      <button class="close" id="cookieModalClose" type="button" aria-label="Zavřít">✕</button>
-    </header>
-    <div class="body">
-      <p class="desc">Vyberte, které typy cookies můžeme používat. Nezbytné cookies jsou vždy zapnuté – bez nich web nefunguje správně.</p>
-
-      <div class="cookie-cats">
-        <div class="cookie-cat">
-          <div>
-            <b>Nezbytné</b>
-            <p>Funkčnost webu, zabezpečení a základní nastavení. Nelze vypnout.</p>
-          </div>
-          <div class="toggle on disabled" aria-hidden="true"></div>
-        </div>
-
-        <div class="cookie-cat">
-          <div>
-            <b>Analytické</b>
-            <p>Pomáhají nám měřit návštěvnost a zlepšovat web (např. statistiky).</p>
-          </div>
-          <button class="toggle" id="toggleAnalytics" type="button" aria-label="Povolit analytické cookies" aria-pressed="false"></button>
-        </div>
-
-        <div class="cookie-cat">
-          <div>
-            <b>Marketingové</b>
-            <p>Personalizace a remarketing (např. reklamní systémy). Používáme jen se souhlasem.</p>
-          </div>
-          <button class="toggle" id="toggleMarketing" type="button" aria-label="Povolit marketingové cookies" aria-pressed="false"></button>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn btn--ghost" id="cookieSaveNecessary" type="button">Jen nezbytné</button>
-        <button class="btn btn--ghost" id="cookieSaveSelected" type="button">Uložit výběr</button>
-        <button class="btn btn--primary" id="cookieAcceptAll" type="button">Povolit vše</button>
-      </div>
-
-      <p class="muted" style="margin:.9rem 0 0 0">Více informací najdete v <a href="/pravni/" style="color:var(--blue);font-weight:800">Právních podmínkách</a>.</p>
-    </div>
-  </div>
-
-  <!-- Scroll to top -->
-  <div class="scroll-top" id="scrollTop" aria-label="Nahoru">↑</div>
-
-  <script>
-    // Rok v patičce (bez pádu stránky, i když tam element není)
-    const yearEl = document.getElementById('year');
-    if(yearEl){
-      yearEl.textContent = String(new Date().getFullYear());
-    }
-
-    // Mobilní menu (overlay + panel)
-    const burger = document.getElementById('burger');
-    const drawer = document.getElementById('drawer');
-    const overlay = document.getElementById('drawerOverlay');
-    const closeBtn = document.getElementById('drawerClose');
-
-    function openMenu(){
-      drawer.classList.add('open');
-      overlay.classList.add('open');
-      document.body.classList.add('menu-open');
-      burger.classList.add('is-open');
-      burger.setAttribute('aria-expanded','true');
-      drawer.setAttribute('aria-hidden','false');
-      overlay.setAttribute('aria-hidden','false');
-    }
-    function closeMenu(){
-      drawer.classList.remove('open');
-      overlay.classList.remove('open');
-      document.body.classList.remove('menu-open');
-      burger.classList.remove('is-open');
-      burger.setAttribute('aria-expanded','false');
-      drawer.setAttribute('aria-hidden','true');
-      overlay.setAttribute('aria-hidden','true');
-    }
-
-    // Bezpečnost: po načtení vždy zavřít (kdyby zůstal stav z cache)
-    closeMenu();
-
-    burger?.addEventListener('click', ()=>{
-      const isOpen = drawer.classList.contains('open');
-      isOpen ? closeMenu() : openMenu();
-    });
-    overlay?.addEventListener('click', closeMenu);
-    closeBtn?.addEventListener('click', closeMenu);
-
-    // Zavřít po kliknutí na položku menu
-    drawer?.querySelectorAll('a[href^="#"]').forEach(a=>{
-      a.addEventListener('click', ()=>{
-        // necháme proběhnout smooth scroll (níže), ale menu zavřeme hned
-        closeMenu();
-      });
-    });
-
-    // ESC zavře menu
-    document.addEventListener('keydown', (e)=>{
-      if(e.key === 'Escape'){
-        // ESC zavře menu i cookie modal
-        if(drawer.classList.contains('open')) closeMenu();
-        closeCookieModal();
-      }
-    });
-
-    // Při změně šířky (otočení mobilu / přechod na desktop) menu radši zavřít
-    window.addEventListener('resize', ()=>{
-      if(window.innerWidth > 920 && drawer.classList.contains('open')){
-        closeMenu();
-      }
-    });
-
-    // FAQ akordeon – vždy otevřený jen jeden
-    const faqItems = document.querySelectorAll('.aside details');
-    faqItems.forEach(item=>{
-      item.addEventListener('toggle', ()=>{
-        if(item.open){
-          faqItems.forEach(other=>{
-            if(other !== item){
-              other.removeAttribute('open');
-            }
-          });
-        }
-      });
-    });
-
-    // Plynulý scroll pro vnitřní odkazy
-    document.querySelectorAll('a[href^="#"]').forEach(a=>{
-      a.addEventListener('click', e=>{
-        const id = a.getAttribute('href');
-        if(id && id.length>1){
-          const el = document.querySelector(id);
-          if(el){
-            e.preventDefault();
-            window.scrollTo({top: el.getBoundingClientRect().top + window.pageYOffset - 70, behavior:'smooth'});
-          }
-        }
-      })
-    });
-
-    // Scroll to top behavior
-    const scrollBtn = document.getElementById('scrollTop');
-    window.addEventListener('scroll', ()=>{
-      if(window.scrollY > 400){
-        scrollBtn.classList.add('visible');
-      } else {
-        scrollBtn.classList.remove('visible');
-      }
-    });
-
-    scrollBtn.addEventListener('click', ()=>{
-      window.scrollTo({top:0, behavior:'smooth'});
-    });
-
-    // =========================
-    // COOKIE LIŠTA + NASTAVENÍ
-    // =========================
-    const cookieBar = document.getElementById('cookieBar');
-    const acceptBtn = document.getElementById('cookieAccept');
-    const declineBtn = document.getElementById('cookieDecline');
-    const settingsBtn = document.getElementById('cookieSettings');
-
-    const modal = document.getElementById('cookieModal');
-    const modalOverlay = document.getElementById('cookieModalOverlay');
-    const modalClose = document.getElementById('cookieModalClose');
-
-    const tAnalytics = document.getElementById('toggleAnalytics');
-    const tMarketing = document.getElementById('toggleMarketing');
-
-    const saveNecessary = document.getElementById('cookieSaveNecessary');
-    const saveSelected = document.getElementById('cookieSaveSelected');
-    const acceptAll = document.getElementById('cookieAcceptAll');
-
-    const CONSENT_KEY = 'webao_cookie_consent';
-    const PREFS_KEY = 'webao_cookie_prefs';
-
-    function getPrefs(){
-      try{
-        return JSON.parse(localStorage.getItem(PREFS_KEY) || '{"analytics":false,"marketing":false}');
-      }catch{
-        return {analytics:false, marketing:false};
-      }
-    }
-    function setPrefs(p){
-      localStorage.setItem(PREFS_KEY, JSON.stringify(p));
-    }
-
-    function applyToggle(btn, on){
-      if(!btn) return;
-      btn.classList.toggle('on', !!on);
-      btn.setAttribute('aria-pressed', String(!!on));
-    }
-
-    function openCookieModal(){
-      if(!modal || !modalOverlay) return;
-      const p = getPrefs();
-      applyToggle(tAnalytics, p.analytics);
-      applyToggle(tMarketing, p.marketing);
-      modal.classList.add('open');
-      modalOverlay.classList.add('open');
-      modal.setAttribute('aria-hidden','false');
-      modalOverlay.setAttribute('aria-hidden','false');
-      document.body.classList.add('cookie-open');
-    }
-
-    function closeCookieModal(){
-      if(!modal || !modalOverlay) return;
-      modal.classList.remove('open');
-      modalOverlay.classList.remove('open');
-      modal.setAttribute('aria-hidden','true');
-      modalOverlay.setAttribute('aria-hidden','true');
-      document.body.classList.remove('cookie-open');
-    }
-
-    function hideCookieBar(){
-      cookieBar?.classList.remove('show');
-    }
-
-    function setConsent(value){
-      localStorage.setItem(CONSENT_KEY, value);
-      hideCookieBar();
-    }
-
-    if(!localStorage.getItem(CONSENT_KEY)){
-      setTimeout(()=> cookieBar?.classList.add('show'), 600);
-    }
-
-    acceptBtn?.addEventListener('click', ()=>{
-      setPrefs({analytics:true, marketing:true});
-      setConsent('accepted');
-    });
-
-    declineBtn?.addEventListener('click', ()=>{
-      setPrefs({analytics:false, marketing:false});
-      setConsent('necessary');
-    });
-
-    settingsBtn?.addEventListener('click', openCookieModal);
-
-    modalOverlay?.addEventListener('click', closeCookieModal);
-    modalClose?.addEventListener('click', closeCookieModal);
-
-    tAnalytics?.addEventListener('click', ()=>{
-      const on = !tAnalytics.classList.contains('on');
-      applyToggle(tAnalytics, on);
-    });
-
-    tMarketing?.addEventListener('click', ()=>{
-      const on = !tMarketing.classList.contains('on');
-      applyToggle(tMarketing, on);
-    });
-
-    saveNecessary?.addEventListener('click', ()=>{
-      setPrefs({analytics:false, marketing:false});
-      setConsent('necessary');
-      closeCookieModal();
-    });
-
-    saveSelected?.addEventListener('click', ()=>{
-      const p = {
-        analytics: !!tAnalytics?.classList.contains('on'),
-        marketing: !!tMarketing?.classList.contains('on'),
-      };
-      setPrefs(p);
-      setConsent(p.analytics || p.marketing ? 'custom' : 'necessary');
-      closeCookieModal();
-    });
-
-    acceptAll?.addEventListener('click', ()=>{
-      setPrefs({analytics:true, marketing:true});
-      setConsent('accepted');
-      closeCookieModal();
-    });
-  </script>
-
-  <!-- Domain checker – WebAO (WEDOS) – inline JS (ověřuje vždy CZ/COM/EU) -->
-  <script>
-  (() => {
-    const elName = document.getElementById('dcName');
-    const elBtn = document.getElementById('dcBtn');
-    const elStatus = document.getElementById('dcStatus');
-    const elResults = document.getElementById('dcResults');
-    if (!elName || !elBtn || !elStatus || !elResults) return;
-
-    const API_URL = '/api/domain-check';
-    const TLDS = ['cz','com','eu'];
-
-    function setLoading(on){
-      if(on){
-        elBtn.disabled = true;
-        elStatus.innerHTML = '<span class="dc-spinner" aria-hidden="true"></span> Ověřuji…';
-      }else{
-        elBtn.disabled = false;
-        elStatus.textContent = '';
-      }
-    }
-
-    function clearResults(){ elResults.innerHTML = ''; }
-
-    function escapeHtml(str){
-      return String(str ?? '')
-        .split('&').join('&amp;')
-        .split('<').join('&lt;')
-        .split('>').join('&gt;')
-        .split('"').join('&quot;')
-        .split("'").join('&#039;');
-    }
-
-    function renderResult({fqdn, status, message, source}){
-      const cls = status === 'free' ? 'dc-ok' : status === 'taken' ? 'dc-no' : 'dc-warn';
-      const badge = status === 'free' ? '✅' : status === 'taken' ? '❌' : '⚠️';
-      const meta = source ? ('Zdroj: ' + source) : '';
-
-      const div = document.createElement('div');
-      div.className = 'dc-result ' + cls;
-      div.innerHTML =
-        '<div class="dc-result__left">' +
-          '<span class="dc-badge" aria-hidden="true">' + badge + '</span>' +
-          '<div style="min-width:0">' +
-            '<div class="dc-domain">' + escapeHtml(fqdn) + '</div>' +
-            '<div class="dc-meta">' + escapeHtml(message || '') + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="dc-note">' + escapeHtml(meta) + '</div>';
-
-      elResults.appendChild(div);
-    }
-
-    function removeDiacritics(s){
-      const n = (s || '').normalize('NFD');
-      let out = '';
-      for (let i = 0; i < n.length; i++) {
-        const code = n.charCodeAt(i);
-        if (code < 0x0300 || code > 0x036F) out += n[i];
-      }
-      return out;
-    }
-
-    function sanitizeBaseDomain(input){
-      let s = String(input || '').trim();
-
-      const low = s.toLowerCase();
-      if (low.startsWith('http://')) s = s.slice(7);
-      else if (low.startsWith('https://')) s = s.slice(8);
-
-      // pryč www.
-      if (s.toLowerCase().startsWith('www.')) s = s.slice(4);
-
-      // častá chyba: zadá jen "www"
-      if (s.toLowerCase() === 'www') s = '';
-
-      // když někdo vloží celou doménu, vezmi jen první část (před tečkou)
-      const dot = s.indexOf('.');
-      if (dot !== -1) s = s.slice(0, dot);
-
-      // pryč mezery
-      s = s.split(' ').join('');
-
-      // diakritika
-      s = removeDiacritics(s);
-
-      s = s.toLowerCase();
-
-      // povol jen a-z 0-9 a pomlčku
-      let clean = '';
-      for (let i = 0; i < s.length; i++) {
-        const ch = s[i];
-        const ok = (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch === '-';
-        if (ok) clean += ch;
-      }
-      s = clean;
-
-      // trim pomlček
-      while (s.startsWith('-')) s = s.slice(1);
-      while (s.endsWith('-')) s = s.slice(0, -1);
-
-      return s;
-    }
-
-    function isValidBaseDomain(s){
-      return !!s && s.length >= 1 && s.length <= 63;
-    }
-
-    function pseudoAvailability(seed){
-      let h = 2166136261;
-      for (let i = 0; i < seed.length; i++) {
-        h ^= seed.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-      }
-      return (h >>> 0) % 100 >= 55;
-    }
-
-    function demoFallback(base, tlds, reason){
-      elStatus.textContent = reason || 'API nedostupné – demo režim';
-      clearResults();
-      tlds.forEach(tld => {
-        const fqdn = base + '.' + tld;
-        const available = pseudoAvailability(fqdn);
-        renderResult({
-          fqdn,
-          status: available ? 'free' : 'taken',
-          message: available ? 'Doména je volná (demo)' : 'Doména je obsazená (demo)',
-          source: 'DEMO'
-        });
-      });
-    }
-
-    function mapStatusToText(status, code){
-      if (status === 'free') return 'Doména je volná';
-      if (status === 'taken') return 'Doména je obsazená';
-      return code ? ('Chyba / omezení (kód ' + code + ')') : 'Chyba / omezení';
-    }
-
-    async function checkDomains(base, tlds){
-      const qs = new URLSearchParams();
-      qs.set('name', base);
-      qs.set('tlds', tlds.join(','));
-
-      const res = await fetch(API_URL + '?' + qs.toString(), {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        cache: 'no-store'
-      });
-
-      if (!res.ok) {
-        const txt = await (async () => { try { return await res.text(); } catch { return ''; } })();
-        throw new Error('Proxy chyba (' + res.status + '): ' + (txt || res.statusText));
-      }
-
-      const data = await res.json();
-      if (!data || data.ok !== true || !Array.isArray(data.results)) {
-        throw new Error('Neplatná odpověď proxy.');
-      }
-      return data;
-    }
-
-    async function run(){
-      const base = sanitizeBaseDomain(elName.value);
-      elName.value = base;
-      clearResults();
-
-      if (!isValidBaseDomain(base)) {
-        elStatus.textContent = 'Zadej platný název (bez mezer, diakritiky, www, http).';
-        return;
-      }
-
-      setLoading(true);
-
-      try{
-        const out = await checkDomains(base, TLDS);
-        setLoading(false);
-        elStatus.textContent = '';
-        clearResults();
-
-        out.results.forEach(r => {
-          renderResult({
-            fqdn: r.fqdn,
-            status: r.status,
-            message: mapStatusToText(r.status, r.code),
-            source: r.source || 'WEDOS'
-          });
-        });
-
-        if (out.demo === true) {
-          elStatus.textContent = '⚠️ WEDOS API nedostupné – zobrazen demo výsledek.';
-        }
-
-      }catch(err){
-        setLoading(false);
-        demoFallback(base, TLDS, '⚠️ ' + String(err && err.message ? err.message : 'Chyba API') + ' — demo režim');
-      }
-    }
-
-    elBtn.addEventListener('click', run);
-    elName.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
+      ${actions}
+    `;
+
+    // Klik na návrh přepíše input a spustí ověření
+    div.querySelectorAll('button.dc-sugg').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-sugg') || '';
+        elName.value = v;
         run();
-      }
+      });
+      btn.addEventListener('mouseenter', () => btn.style.transform = 'translateY(-1px)');
+      btn.addEventListener('mouseleave', () => btn.style.transform = 'translateY(0)');
     });
-  })();
-  </script>
-</body>
-</html>
+
+    // Hover efekty pro CTA (bez dalšího CSS)
+    div.querySelectorAll('a.dc-cta--primary').forEach(a => {
+      a.addEventListener('mouseenter', () => a.style.transform = 'translateY(-2px)');
+      a.addEventListener('mouseleave', () => a.style.transform = 'translateY(0)');
+    });
+    div.querySelectorAll('a.dc-cta--secondary').forEach(a => {
+      a.addEventListener('mouseenter', () => a.style.transform = 'translateY(-2px)');
+      a.addEventListener('mouseleave', () => a.style.transform = 'translateY(0)');
+    });
+
+    elResults.appendChild(div);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  // --- Input sanitization / validation
+  function sanitizeBaseDomain(input) {
+    let s = String(input || '').trim();
+
+    // remove protocol & www
+    s = s.replace(/^https?:\/\//i, '');
+    s = s.replace(/^www\./i, '');
+
+    // if user pasted full domain, take first label (before first dot)
+    if (s.includes('.')) s = s.split('.')[0];
+
+    // strip spaces
+    s = s.replace(/\s+/g, '');
+
+    // remove diacritics
+    s = s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+
+    // lowercase
+    s = s.toLowerCase();
+
+    // allow only a-z 0-9 hyphen
+    s = s.replace(/[^a-z0-9-]/g, '');
+
+    // trim hyphens
+    s = s.replace(/^-+/, '').replace(/-+$/, '');
+
+    return s;
+  }
+
+  function isValidBaseDomain(s) {
+    if (!s) return false;
+    if (s.length < 1 || s.length > 63) return false;
+    // '--' je technicky povolené, jen to necháváme projít
+    return true;
+  }
+
+  function getSelectedTlds() {
+    // výběr jsme z UI odstranili → kontrolujeme vždy vše
+    return [...DEFAULT_TLDS];
+  }
+
+  function getNameSuggestions(base) {
+    const b = String(base || '').trim();
+    if (!b) return [];
+
+    // krátké a praktické varianty
+    const list = [
+      `${b}-cz`,
+      `${b}-web`,
+      `${b}web`,
+      `${b}online`,
+      `my${b}`
+    ];
+
+    // unikátní + max 5
+    const uniq = [];
+    for (const x of list) {
+      if (!uniq.includes(x) && x.length <= 63) uniq.push(x);
+      if (uniq.length >= 5) break;
+    }
+    return uniq;
+  }
+
+  // --- Demo fallback (když WEDOS API nejede / limit)
+  function demoFallback(base, tlds, reason = 'API nedostupné – demo režim') {
+    elStatus.textContent = reason;
+    clearResults();
+
+    tlds.forEach(tld => {
+      const fqdn = `${base}.${tld}`;
+      const available = pseudoAvailability(`${base}.${tld}`);
+      renderResult({
+        fqdn,
+        status: available ? 'free' : 'taken',
+        message: available ? 'Doména je volná (demo)' : 'Doména je obsazená (demo)',
+        source: 'DEMO'
+      });
+    });
+  }
+
+  function pseudoAvailability(seed) {
+    // deterministické pseudo-random podle textu, ať se to nechová chaoticky
+    let h = 2166136261;
+    for (let i = 0; i < seed.length; i++) {
+      h ^= seed.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    // ~55% obsazeno (typicky realističtější)
+    return (h >>> 0) % 100 >= 55;
+  }
+
+  // --- WEDOS proxy call
+  async function checkDomains(base, tlds) {
+    const qs = new URLSearchParams();
+    qs.set('name', base);
+    qs.set('tlds', tlds.join(','));
+
+    const res = await fetch(`${API_URL}?${qs.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    // 429/5xx => fallback
+    if (!res.ok) {
+      const txt = await safeText(res);
+      throw new Error(`Proxy chyba (${res.status}): ${txt || res.statusText}`);
+    }
+
+    const data = await res.json();
+    if (!data || data.ok !== true || !Array.isArray(data.results)) {
+      throw new Error('Neplatná odpověď proxy.');
+    }
+    return data;
+  }
+
+  async function safeText(res) {
+    try { return await res.text(); } catch { return ''; }
+  }
+
+  function mapStatusToText(status, code) {
+    if (status === 'free') return 'Doména je volná';
+    if (status === 'taken') return 'Doména je obsazená';
+    return code ? `Chyba / omezení (kód ${code})` : 'Chyba / omezení';
+  }
+
+  async function run() {
+    // uložíme pro návrhy
+
+    const base = sanitizeBaseDomain(elName.value);
+    lastBase = base;
+    const tlds = getSelectedTlds();
+
+    elName.value = base;
+
+    clearResults();
+
+    if (!isValidBaseDomain(base)) {
+      elStatus.textContent = 'Zadej platný název (bez mezer, diakritiky, www, http).';
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const out = await checkDomains(base, tlds);
+      setLoading(false);
+      elStatus.textContent = '';
+
+      clearResults();
+
+      out.results.forEach(r => {
+        renderResult({
+          fqdn: r.fqdn,
+          status: r.status,
+          message: mapStatusToText(r.status, r.code),
+          source: r.source || 'WEDOS'
+        });
+      });
+
+      if (out.demo === true) {
+        elStatus.textContent = '⚠️ WEDOS API nedostupné – zobrazen demo výsledek.';
+      }
+
+    } catch (err) {
+      setLoading(false);
+      demoFallback(base, tlds, `⚠️ ${String(err?.message || 'Chyba API')} — demo režim`);
+    }
+  }
+
+  // Click + Enter
+  elBtn.addEventListener('click', run);
+  elName.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      run();
+    }
+  });
+})();

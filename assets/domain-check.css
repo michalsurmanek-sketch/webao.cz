@@ -1,0 +1,195 @@
+/* Domain checker – WebAO (WEDOS) */
+/* Používá proměnné z tvého :root (blue/yellow/ink/bg/white/radius/shadow) */
+
+.domain-check{
+  margin-top: 1.1rem;
+  background: rgba(255,255,255,.92);
+  border: 1px solid #e9eef8;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  padding: 1rem;
+  backdrop-filter: saturate(180%) blur(10px);
+}
+
+.domain-check__row{
+  display: grid;
+  grid-template-columns: 1fr 1.2fr auto auto;
+  gap: .8rem;
+  align-items: end;
+}
+
+.domain-check__label{
+  display: block;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: .35rem;
+  font-size: .95rem;
+}
+
+.domain-check__inputwrap{
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.domain-check__prefix{
+  position: absolute;
+  left: .9rem;
+  font-weight: 800;
+  color: rgba(11,18,32,.45);
+  pointer-events: none;
+}
+
+.domain-check__input{
+  width: 100%;
+  border: 1px solid #dfe7fb;
+  border-radius: 14px;
+  padding: .95rem .95rem .95rem 3.35rem;
+  background: #fbfdff;
+  font: inherit;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.domain-check__input:focus{
+  outline: none;
+  border-color: rgba(0,51,204,.45);
+  box-shadow: 0 0 0 4px rgba(0,51,204,.10);
+}
+
+.domain-check__tlds{
+  display: flex;
+  gap: .55rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.dc-tld{
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem .7rem;
+  border-radius: 999px;
+  border: 1px solid #e3ebff;
+  background: #f3f7ff;
+  color: #183072;
+  font-weight: 800;
+  font-size: .9rem;
+  user-select: none;
+}
+
+.dc-tld input{
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.domain-check__btn{
+  white-space: nowrap;
+  justify-content: center;
+  padding: .95rem 1.2rem;
+  box-shadow: 0 14px 32px rgba(0,51,204,.14);
+}
+
+.domain-check__status{
+  margin-top: .85rem;
+  min-height: 22px;
+  font-weight: 800;
+  color: var(--ink-60);
+  display: flex;
+  gap: .55rem;
+  align-items: center;
+}
+
+.dc-spinner{
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,.12);
+  border-top-color: var(--blue);
+  animation: dcspin .8s linear infinite;
+}
+
+@keyframes dcspin{
+  to{ transform: rotate(360deg); }
+}
+
+.domain-check__results{
+  margin-top: .65rem;
+  display: grid;
+  gap: .55rem;
+}
+
+.dc-result{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  border: 1px solid #eef2fb;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: .75rem .85rem;
+}
+
+.dc-result__left{
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  min-width: 0;
+}
+
+.dc-badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 .55rem;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: .9rem;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #f6f8ff;
+}
+
+.dc-domain{
+  font-weight: 900;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dc-meta{
+  font-size: .85rem;
+  color: var(--ink-40);
+  font-weight: 700;
+}
+
+.dc-note{
+  font-size: .85rem;
+  color: var(--ink-40);
+  font-weight: 700;
+}
+
+.dc-ok .dc-badge{ background: rgba(0,51,204,.08); border-color: rgba(0,51,204,.18); }
+.dc-no .dc-badge{ background: rgba(240,68,56,.08); border-color: rgba(240,68,56,.18); }
+.dc-warn .dc-badge{ background: rgba(253,199,0,.18); border-color: rgba(253,199,0,.40); }
+
+.domain-check__note{
+  margin: .7rem 0 0 0;
+  font-size: .82rem;
+  color: var(--ink-40);
+  font-weight: 700;
+}
+
+/* Responzivita */
+@media (max-width: 920px){
+  .domain-check__row{
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .domain-check__btn{
+    width: 100%;
+  }
+}

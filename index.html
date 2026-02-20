@@ -1448,111 +1448,101 @@
   <div class="scroll-top" id="scrollTop" aria-label="Nahoru">↑</div>
 
   <script>
-    // Rok v patičce (bez pádu stránky, i když tam element není)
-    const yearEl = document.getElementById('year');
-    if(yearEl){
-      yearEl.textContent = String(new Date().getFullYear());
-    }
+  (() => {
+    'use strict';
 
-    // Mobilní menu (overlay + panel)
+    // Rok v patičce
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+    // =========================
+    // MOBILNÍ MENU (drawer)
+    // =========================
     const burger = document.getElementById('burger');
     const drawer = document.getElementById('drawer');
     const overlay = document.getElementById('drawerOverlay');
     const closeBtn = document.getElementById('drawerClose');
 
-    function openMenu(){
+    const openMenu = () => {
+      if (!drawer || !overlay || !burger) return;
       drawer.classList.add('open');
       overlay.classList.add('open');
       document.body.classList.add('menu-open');
       burger.classList.add('is-open');
-      burger.setAttribute('aria-expanded','true');
-      drawer.setAttribute('aria-hidden','false');
-      overlay.setAttribute('aria-hidden','false');
-    }
-    function closeMenu(){
+      burger.setAttribute('aria-expanded', 'true');
+      drawer.setAttribute('aria-hidden', 'false');
+      overlay.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeMenu = () => {
+      if (!drawer || !overlay || !burger) return;
       drawer.classList.remove('open');
       overlay.classList.remove('open');
       document.body.classList.remove('menu-open');
       burger.classList.remove('is-open');
-      burger.setAttribute('aria-expanded','false');
-      drawer.setAttribute('aria-hidden','true');
-      overlay.setAttribute('aria-hidden','true');
-    }
+      burger.setAttribute('aria-expanded', 'false');
+      drawer.setAttribute('aria-hidden', 'true');
+      overlay.setAttribute('aria-hidden', 'true');
+    };
 
     // Bezpečnost: po načtení vždy zavřít (kdyby zůstal stav z cache)
     closeMenu();
 
-    burger?.addEventListener('click', ()=>{
-      const isOpen = drawer.classList.contains('open');
+    burger?.addEventListener('click', () => {
+      const isOpen = drawer?.classList.contains('open');
       isOpen ? closeMenu() : openMenu();
     });
     overlay?.addEventListener('click', closeMenu);
     closeBtn?.addEventListener('click', closeMenu);
 
     // Zavřít po kliknutí na položku menu
-    drawer?.querySelectorAll('a[href^="#"]').forEach(a=>{
-      a.addEventListener('click', ()=>{
-        // necháme proběhnout smooth scroll (níže), ale menu zavřeme hned
-        closeMenu();
-      });
+    drawer?.querySelectorAll('a[href^="#"]').forEach((a) => {
+      a.addEventListener('click', () => closeMenu());
     });
 
-    // ESC zavře menu
-    document.addEventListener('keydown', (e)=>{
-      if(e.key === 'Escape'){
-        // ESC zavře menu i cookie modal
-        if(drawer.classList.contains('open')) closeMenu();
-        closeCookieModal();
-      }
-    });
-
-    // Při změně šířky (otočení mobilu / přechod na desktop) menu radši zavřít
-    window.addEventListener('resize', ()=>{
-      if(window.innerWidth > 920 && drawer.classList.contains('open')){
-        closeMenu();
-      }
-    });
-
+    // =========================
     // FAQ akordeon – vždy otevřený jen jeden
+    // =========================
     const faqItems = document.querySelectorAll('.aside details');
-    faqItems.forEach(item=>{
-      item.addEventListener('toggle', ()=>{
-        if(item.open){
-          faqItems.forEach(other=>{
-            if(other !== item){
-              other.removeAttribute('open');
-            }
-          });
-        }
+    faqItems.forEach((item) => {
+      item.addEventListener('toggle', () => {
+        if (!item.open) return;
+        faqItems.forEach((other) => {
+          if (other !== item) other.removeAttribute('open');
+        });
       });
     });
 
-    // Plynulý scroll pro vnitřní odkazy
-    document.querySelectorAll('a[href^="#"]').forEach(a=>{
-      a.addEventListener('click', e=>{
+    // =========================
+    // PLYNULÝ SCROLL
+    // =========================
+    document.querySelectorAll('a[href^="#"]').forEach((a) => {
+      a.addEventListener('click', (e) => {
         const id = a.getAttribute('href');
-        if(id && id.length>1){
-          const el = document.querySelector(id);
-          if(el){
-            e.preventDefault();
-            window.scrollTo({top: el.getBoundingClientRect().top + window.pageYOffset - 70, behavior:'smooth'});
-          }
-        }
-      })
+        if (!id || id.length <= 1) return;
+        const el = document.querySelector(id);
+        if (!el) return;
+        e.preventDefault();
+        window.scrollTo({
+          top: el.getBoundingClientRect().top + window.pageYOffset - 70,
+          behavior: 'smooth',
+        });
+      });
     });
 
-    // Scroll to top behavior
+    // =========================
+    // SCROLL TO TOP
+    // =========================
     const scrollBtn = document.getElementById('scrollTop');
-    window.addEventListener('scroll', ()=>{
-      if(window.scrollY > 400){
-        scrollBtn.classList.add('visible');
-      } else {
-        scrollBtn.classList.remove('visible');
-      }
-    });
+    const onScroll = () => {
+      if (!scrollBtn) return;
+      scrollBtn.classList.toggle('visible', window.scrollY > 400);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 
-    scrollBtn.addEventListener('click', ()=>{
-      window.scrollTo({top:0, behavior:'smooth'});
+    scrollBtn?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     // =========================
@@ -1577,89 +1567,85 @@
     const CONSENT_KEY = 'webao_cookie_consent';
     const PREFS_KEY = 'webao_cookie_prefs';
 
-    function getPrefs(){
-      try{
+    const getPrefs = () => {
+      try {
         return JSON.parse(localStorage.getItem(PREFS_KEY) || '{"analytics":false,"marketing":false}');
-      }catch{
-        return {analytics:false, marketing:false};
+      } catch {
+        return { analytics: false, marketing: false };
       }
-    }
-    function setPrefs(p){
-      localStorage.setItem(PREFS_KEY, JSON.stringify(p));
-    }
+    };
 
-    function applyToggle(btn, on){
-      if(!btn) return;
+    const setPrefs = (p) => {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+    };
+
+    const applyToggle = (btn, on) => {
+      if (!btn) return;
       btn.classList.toggle('on', !!on);
       btn.setAttribute('aria-pressed', String(!!on));
-    }
+    };
 
-    function openCookieModal(){
-      if(!modal || !modalOverlay) return;
+    const openCookieModal = () => {
+      if (!modal || !modalOverlay) return;
       const p = getPrefs();
       applyToggle(tAnalytics, p.analytics);
       applyToggle(tMarketing, p.marketing);
       modal.classList.add('open');
       modalOverlay.classList.add('open');
-      modal.setAttribute('aria-hidden','false');
-      modalOverlay.setAttribute('aria-hidden','false');
+      modal.setAttribute('aria-hidden', 'false');
+      modalOverlay.setAttribute('aria-hidden', 'false');
       document.body.classList.add('cookie-open');
-    }
+    };
 
-    function closeCookieModal(){
-      if(!modal || !modalOverlay) return;
+    const closeCookieModal = () => {
+      if (!modal || !modalOverlay) return;
       modal.classList.remove('open');
       modalOverlay.classList.remove('open');
-      modal.setAttribute('aria-hidden','true');
-      modalOverlay.setAttribute('aria-hidden','true');
+      modal.setAttribute('aria-hidden', 'true');
+      modalOverlay.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('cookie-open');
-    }
+    };
 
-    function hideCookieBar(){
-      cookieBar?.classList.remove('show');
-    }
+    const hideCookieBar = () => cookieBar?.classList.remove('show');
 
-    function setConsent(value){
+    const setConsent = (value) => {
       localStorage.setItem(CONSENT_KEY, value);
       hideCookieBar();
+    };
+
+    if (!localStorage.getItem(CONSENT_KEY)) {
+      setTimeout(() => cookieBar?.classList.add('show'), 600);
     }
 
-    if(!localStorage.getItem(CONSENT_KEY)){
-      setTimeout(()=> cookieBar?.classList.add('show'), 600);
-    }
-
-    acceptBtn?.addEventListener('click', ()=>{
-      setPrefs({analytics:true, marketing:true});
+    acceptBtn?.addEventListener('click', () => {
+      setPrefs({ analytics: true, marketing: true });
       setConsent('accepted');
     });
 
-    declineBtn?.addEventListener('click', ()=>{
-      setPrefs({analytics:false, marketing:false});
+    declineBtn?.addEventListener('click', () => {
+      setPrefs({ analytics: false, marketing: false });
       setConsent('necessary');
     });
 
     settingsBtn?.addEventListener('click', openCookieModal);
-
     modalOverlay?.addEventListener('click', closeCookieModal);
     modalClose?.addEventListener('click', closeCookieModal);
 
-    tAnalytics?.addEventListener('click', ()=>{
-      const on = !tAnalytics.classList.contains('on');
-      applyToggle(tAnalytics, on);
+    tAnalytics?.addEventListener('click', () => {
+      applyToggle(tAnalytics, !tAnalytics.classList.contains('on'));
     });
 
-    tMarketing?.addEventListener('click', ()=>{
-      const on = !tMarketing.classList.contains('on');
-      applyToggle(tMarketing, on);
+    tMarketing?.addEventListener('click', () => {
+      applyToggle(tMarketing, !tMarketing.classList.contains('on'));
     });
 
-    saveNecessary?.addEventListener('click', ()=>{
-      setPrefs({analytics:false, marketing:false});
+    saveNecessary?.addEventListener('click', () => {
+      setPrefs({ analytics: false, marketing: false });
       setConsent('necessary');
       closeCookieModal();
     });
 
-    saveSelected?.addEventListener('click', ()=>{
+    saveSelected?.addEventListener('click', () => {
       const p = {
         analytics: !!tAnalytics?.classList.contains('on'),
         marketing: !!tMarketing?.classList.contains('on'),
@@ -1669,14 +1655,27 @@
       closeCookieModal();
     });
 
-    acceptAll?.addEventListener('click', ()=>{
-      setPrefs({analytics:true, marketing:true});
+    acceptAll?.addEventListener('click', () => {
+      setPrefs({ analytics: true, marketing: true });
       setConsent('accepted');
       closeCookieModal();
     });
-  </script>
 
-  <!-- Domain checker – WebAO (WEDOS) – inline JS (ověřuje vždy CZ/COM/EU) -->
+    // ESC zavře menu i cookie modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (drawer?.classList.contains('open')) closeMenu();
+      closeCookieModal();
+    });
+
+    // Při přechodu na desktop menu radši zavřít
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 920 && drawer?.classList.contains('open')) closeMenu();
+    });
+  })();
+</script>
+
+  <!-- Domain checker – WebAO (WEDOS) – inline JS (ověřuje vždy CZ/COM/EU) --> (ověřuje vždy CZ/COM/EU) -->
   <script>
   (() => {
     const elName = document.getElementById('dcName');
@@ -1718,9 +1717,15 @@
       div.className = 'dc-result ' + cls;
       if (source) div.dataset.source = source;
 
-      // CTA: jen když je doména volná
+      // CTA: když je doména volná, nabídni rovnou registraci + možnost poptat web
+      const AFFILIATE_BASE = 'https://wedos.cz/domeny/?ap=jzKMbf';
+      const regLink = AFFILIATE_BASE + '&domain=' + encodeURIComponent(fqdn);
+
       const cta = status === 'free'
-        ? '<a class="dc-cta" href="#kontakt" title="Chci k této doméně web" aria-label="Chci web k doméně ' + escapeHtml(fqdn) + '">Chci web</a>'
+        ? (
+            '<a class="dc-cta" href="' + regLink + '" target="_blank" rel="noopener" title="Registrovat doménu u WEDOS" aria-label="Registrovat doménu ' + escapeHtml(fqdn) + ' u WEDOS">Registrovat</a>' +
+            '<a class="dc-cta" href="#kontakt" title="Chci k této doméně web" aria-label="Chci web k doméně ' + escapeHtml(fqdn) + '">Chci web</a>'
+          )
         : '';
 
       div.innerHTML =
@@ -1893,13 +1898,11 @@
       _last = base;
     });
 
+    // Click + Enter
     elBtn.addEventListener('click', run);
     elName.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        run();
-      }
-    });
         run();
       }
     });

@@ -706,32 +706,13 @@
       box-shadow:none;
       min-width:140px;
     }
-    .domain-check--hero .domain-check__tlds{display:flex;gap:.35rem;align-items:center;margin-left:auto}
-    .domain-check--hero .dc-tld{
-      display:inline-flex;
-      align-items:center;
-      gap:.35rem;
-      padding:.35rem .6rem;
-      border-radius:999px;
-      border:1px solid #e9eef8;
-      background:#fbfdff;
-      color:var(--ink-60);
-      font-weight:800;
-      font-size:.85rem;
-      user-select:none;
-      cursor:pointer;
-      transition:.18s ease;
-    }
-    .domain-check--hero .dc-tld input{accent-color:var(--blue);cursor:pointer}
-    .domain-check--hero .dc-tld:hover{border-color:rgba(0,51,204,.25);transform:translateY(-1px)}
-    .domain-check--hero .domain-check__btn{white-space:nowrap;padding:.85rem 1.15rem}
+        .domain-check--hero .domain-check__btn{white-space:nowrap;padding:.85rem 1.15rem}
     .domain-check--hero .domain-check__status{margin-top:.6rem}
     .domain-check--hero .domain-check__results{margin-top:.55rem}
     .domain-check--hero .domain-check__note{margin:.55rem 0 0 0;font-size:.82rem;color:var(--ink-40)}
     @media (max-width: 720px){
       .domain-check--hero .domain-check__row{grid-template-columns:1fr;}
       .domain-check--hero .domain-check__btn{width:100%;justify-content:center}
-      .domain-check--hero .domain-check__tlds{margin-left:0;flex-wrap:wrap;justify-content:flex-start}
     }
 
   </style>
@@ -919,13 +900,7 @@
           <div class="domain-check__inputwrap" role="search">
             <span class="domain-check__prefix" aria-hidden="true">www.</span>
             <input id="dcName" class="domain-check__input" name="domain" inputmode="latin" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Zadej doménu (např. startao)" />
-
-            <div class="domain-check__tlds" role="group" aria-label="Koncovky">
-              <label class="dc-tld"><input type="checkbox" value="cz" checked> .cz</label>
-              <label class="dc-tld"><input type="checkbox" value="com" checked> .com</label>
-              <label class="dc-tld"><input type="checkbox" value="eu" checked> .eu</label>
-            </div>
-          </div>
+</div>
 
           <button class="btn btn--primary domain-check__btn" type="button" id="dcBtn">Zkontrolovat</button>
         </div>

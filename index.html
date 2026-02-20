@@ -696,15 +696,31 @@
       border:1px solid #dfe7fb;
       background:#ffffff;
       box-shadow:var(--shadow-sm);
+      flex-wrap:nowrap;
+      height:56px;
     }
-    .domain-check--hero .domain-check__prefix{color:var(--ink-40);font-weight:900;letter-spacing:.2px}
+    .domain-check--hero .domain-check__prefix{
+      color:var(--ink-40);
+      font-weight:900;
+      letter-spacing:.2px;
+      display:flex;
+      align-items:center;
+      height:52px;
+      line-height:1;
+      flex:0 0 auto;
+    }
     .domain-check--hero .domain-check__input{
       border:0 !important;
       background:transparent !important;
-      padding:.78rem .2rem !important;
       outline:none;
       box-shadow:none;
-      min-width:140px;
+      flex:1 1 auto;
+      min-width:0;
+      width:auto;
+      height:52px;
+      line-height:52px;
+      padding:0 .2rem !important;
+      margin:0 !important;
     }
         .domain-check--hero .domain-check__btn{white-space:nowrap;padding:.85rem 1.15rem}
     .domain-check--hero .domain-check__status{margin-top:.6rem}

@@ -23,7 +23,9 @@
   <style>
     :root{
       --blue:#0033cc; /* královská modrá */
-      --yellow:#fdc700; /* AO žlutá */
+      --yellow:#fdc700; /* akcent */
+      --green:#16a34a; /* dostupná doména */
+      --red:#ef4444; /* obsazená */
       --ink:#0b1220;
       --ink-60:#2f3a53;
       --ink-40:#5b6b8f;
@@ -69,8 +71,8 @@
     .btn{display:inline-flex;align-items:center;gap:.6rem;border-radius:999px;padding:.9rem 1.3rem;font-weight:700;border:2px solid transparent;transition:.2s ease;cursor:pointer}
     .btn--primary{background:var(--blue);color:var(--white)}
     .btn--primary:hover{filter:brightness(1.05)}
-    .btn--ghost{background:transparent;border-color:var(--blue);color:var(--blue)}
-    .btn--ghost:hover{background:rgba(0,51,204,.06)}
+    .btn--success{background:var(--green);color:#fff}
+    .btn--success:hover{filter:brightness(1.05)}
 
     /* Header */
     header{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e9eef8;z-index:50}
@@ -782,37 +784,94 @@
     .domain-check--hero .domain-check__status{margin-top:.6rem}
     .domain-check--hero .domain-check__results{margin-top:.55rem}
 
-    /* Výsledky: čisté, bez „Zdroj: …“, s CTA */
+    /* Výsledky: premium seznam + CTA */
     .domain-check--hero .dc-result{
+      border:1px solid #eef2fb;
+      border-radius:16px;
+      background:linear-gradient(180deg,#ffffff,#fbfdff);
+      padding:.8rem .95rem;
+      box-shadow:0 8px 20px rgba(0,0,0,.05);
+      transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+
+      /* layout: levá část + akce vpravo na jednom řádku */
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:12px;
+      gap:1rem;
     }
-    .domain-check--hero .dc-actions{display:flex;align-items:center;gap:.5rem}
-    .domain-check--hero .dc-cta{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:.55rem .9rem;
-      border-radius:999px;
-      border:1px solid rgba(0,51,204,.18);
-      background:rgba(0,51,204,.06);
-      color:var(--blue);
-      font-weight:900;
-      white-space:nowrap;
-      transition:.2s ease;
-    }
-    .domain-check--hero .dc-cta:hover{
+    .domain-check--hero .dc-result + .dc-result{margin-top:.65rem}
+    .domain-check--hero .dc-result:hover{
       transform:translateY(-2px);
-      box-shadow:0 10px 22px rgba(0,0,0,.10);
-      border-color:rgba(0,51,204,.28);
-      background:rgba(0,51,204,.10);
+      box-shadow:0 14px 30px rgba(0,0,0,.08);
+      border-color:rgba(0,51,204,.18);
+    }
+
+    .domain-check--hero .dc-result__left{display:flex;align-items:flex-start;gap:.75rem;min-width:0}
+    .domain-check--hero .dc-badge{
+      width:34px;height:34px;border-radius:12px;
+      display:grid;place-items:center;
+      background:#eef3ff;color:var(--blue);
+      flex:0 0 auto;
+      box-shadow:0 8px 20px rgba(0,0,0,.06);
+      border:1px solid rgba(0,51,204,.12);
+    }
+    .domain-check--hero .dc-domain{font-weight:700;letter-spacing:.1px}
+    .domain-check--hero .dc-meta{color:var(--ink-40);font-weight:500;font-size:.92rem;margin-top:.12rem}
+
+    .domain-check--hero .dc-ok .dc-badge{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.20);color:var(--green)}
+    .domain-check--hero .dc-no .dc-badge{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.18);color:var(--red)}
+    .domain-check--hero .dc-warn .dc-badge{background:rgba(253,199,0,.16);border-color:rgba(253,199,0,.30);color:#6c5700}
+
+    .domain-check--hero .dc-actions{display:flex;align-items:center;gap:.5rem;flex:0 0 auto;justify-content:flex-end}
+    .domain-check--hero .dc-row-btn{
+      padding:.55rem .95rem;
+      border-radius:999px;
+      font-weight:700;
+      box-shadow:0 10px 22px rgba(22,163,74,.14);
+    }
+
+    /* Status řádek (chyby / info) */
+    .domain-check--hero .domain-check__status{
+      margin-top:.75rem;
+      color:var(--ink-40);
+      font-weight:700;
+      background:rgba(0,51,204,.05);
+      border:1px solid rgba(0,51,204,.12);
+      padding:.55rem .75rem;
+      border-radius:14px;
+    }
+
+    /* Spodní CTA pod výsledky */
+    .domain-check--hero .dc-bottom-actions{
+      margin-top:1rem;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:1rem;
+      border:1px solid #eef2fb;
+      border-radius:18px;
+      background:linear-gradient(180deg,#ffffff,#fbfdff);
+      box-shadow:0 12px 28px rgba(0,0,0,.06);
+    }
+    .domain-check--hero .dc-bottom-actions .btn{padding:.85rem 1.15rem}
+    .domain-check--hero .dc-bottom-actions .btn--primary{box-shadow:0 16px 36px rgba(0,51,204,.16)}
+    .domain-check--hero .dc-bottom-actions .btn--ghost{background:rgba(0,51,204,.05)}
+    .domain-check--hero .dc-bottom-actions .btn--ghost:hover{background:rgba(0,51,204,.08)}
+
+    @media (max-width: 720px){
+      .domain-check--hero .dc-bottom-actions .btn{width:100%;justify-content:center}
     }
 
     @media (max-width: 720px){
       .domain-check--hero .domain-check__row{grid-template-columns:1fr;}
       .domain-check--hero .domain-check__btn{width:100%;justify-content:center}
+    }
+
+    /* Výsledky na mobilu: akce jde pod text (čistě a bez mačkání) */
+    @media (max-width: 520px){
+      .domain-check--hero .dc-result{flex-direction:column;align-items:flex-start;}
+      .domain-check--hero .dc-actions{width:100%;justify-content:flex-end;}
+      .domain-check--hero .dc-row-btn{width:100%;justify-content:center;}
     }
 
   </style>
@@ -1755,6 +1814,11 @@
         .replaceAll("'", '&#039;');
     }
 
+    function wedosRegisterUrl(fqdn){
+      // WEDOS affiliate: předáme konkrétní doménu (s koncovkou)
+      return WEDOS_AFFILIATE_BASE + '&domain=' + encodeURIComponent(fqdn);
+    }
+
     function renderResult({fqdn, status, message, source}){
       const cls = status === 'free' ? 'dc-ok' : status === 'taken' ? 'dc-no' : 'dc-warn';
       const badge = status === 'free' ? '✅' : status === 'taken' ? '❌' : '⚠️';
@@ -1763,7 +1827,7 @@
       div.className = 'dc-result ' + cls;
       if (source) div.dataset.source = source; // debug
 
-      div.innerHTML =
+      const left =
         '<div class="dc-result__left">' +
           '<span class="dc-badge" aria-hidden="true">' + badge + '</span>' +
           '<div style="min-width:0">' +
@@ -1772,50 +1836,61 @@
           '</div>' +
         '</div>';
 
+      let right = '<div class="dc-actions"></div>';
+
+      // 1) ŘÁDKOVÉ tlačítko: jen když je dostupná (zelené)
+      if (status === 'free') {
+        right =
+          '<div class="dc-actions">' +
+            '<a class="btn btn--success dc-row-btn" target="_blank" rel="noopener" href="' + wedosRegisterUrl(fqdn) + '">Registrovat</a>' +
+          '</div>';
+      }
+
+      div.innerHTML = left + right;
       elResults.appendChild(div);
     }
 
-    function renderGlobalActions(base){
+    function renderBottomActions(base){
       if(!base) return;
 
+      // Odstraň staré CTA (kdyby už existovalo)
+      const old = elResults.querySelector('.dc-bottom-actions');
+      if (old) old.remove();
+
       const wrapper = document.createElement('div');
-      wrapper.className = 'dc-global-actions';
-      wrapper.style.marginTop = '1.1rem';
-      wrapper.style.display = 'flex';
-      wrapper.style.gap = '12px';
-      wrapper.style.flexWrap = 'wrap';
+      wrapper.className = 'dc-bottom-actions';
 
-      const affiliateLink = document.createElement('a');
-      affiliateLink.href = WEDOS_AFFILIATE_BASE + '&domain=' + encodeURIComponent(base);
-      affiliateLink.target = '_blank';
-      affiliateLink.rel = 'noopener';
-      affiliateLink.textContent = 'Registrovat doménu u WEDOS';
-      affiliateLink.style.padding = '.65rem 1rem';
-      affiliateLink.style.borderRadius = '999px';
-      affiliateLink.style.background = 'var(--blue,#0033cc)';
-      affiliateLink.style.color = '#fff';
-      affiliateLink.style.fontWeight = '900';
-      affiliateLink.style.textDecoration = 'none';
+      // Spodní CTA: jen 3 tlačítka (bez registrace)
+      // 1) Vytvořit web (scroll na poptávku)
+      const buildWeb = document.createElement('a');
+      buildWeb.className = 'btn btn--primary';
+      buildWeb.href = '#kontakt';
+      buildWeb.textContent = 'Vytvořit web';
 
-      const customLink = document.createElement('a');
-      customLink.href = DOMENAO_URL;
-      customLink.target = '_blank';
-      customLink.rel = 'noopener';
-      customLink.textContent = 'Vymyslíme vám doménu';
-      customLink.style.padding = '.65rem 1rem';
-      customLink.style.borderRadius = '999px';
-      customLink.style.background = 'rgba(0,51,204,.08)';
-      customLink.style.color = 'var(--blue,#0033cc)';
-      customLink.style.fontWeight = '900';
-      customLink.style.textDecoration = 'none';
+      // 2) Vymyslíme vám doménu (DomenAO)
+      const brainstorm = document.createElement('a');
+      brainstorm.className = 'btn btn--ghost';
+      brainstorm.href = DOMENAO_URL + '?q=' + encodeURIComponent(base);
+      brainstorm.target = '_blank';
+      brainstorm.rel = 'noopener';
+      brainstorm.textContent = 'Vymyslíme vám doménu';
 
-      wrapper.appendChild(affiliateLink);
-      wrapper.appendChild(customLink);
+      // 3) Více koncovek (DomenAO)
+      const moreTlds = document.createElement('a');
+      moreTlds.className = 'btn btn--ghost';
+      moreTlds.href = DOMENAO_URL + '?tlds=1&q=' + encodeURIComponent(base);
+      moreTlds.target = '_blank';
+      moreTlds.rel = 'noopener';
+      moreTlds.textContent = 'Více koncovek';
+
+      wrapper.appendChild(buildWeb);
+      wrapper.appendChild(brainstorm);
+      wrapper.appendChild(moreTlds);
       elResults.appendChild(wrapper);
     }
 
     function removeDiacritics(s){
-      // NFD rozdělí znaky na písmeno + diakritiku, diakritiku pak odfiltrujeme
+      // Standardní odstranění diakritiky (kombinující znaky)
       return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
     }
 
@@ -1878,7 +1953,7 @@
         });
       });
 
-      renderGlobalActions(base);
+      renderBottomActions(base);
     }
 
     function mapStatusToText(status, code){
@@ -1938,7 +2013,7 @@
           });
         });
 
-        renderGlobalActions(base);
+        renderBottomActions(base);
 
         if (out.demo === true) {
           elStatus.textContent = '⚠️ WEDOS API nedostupné – zobrazen demo výsledek.';

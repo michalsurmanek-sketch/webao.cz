@@ -13,7 +13,10 @@
 
   if (!elName || !elBtn || !elStatus || !elResults) return;
 
-  const API_URL = '/api/domain-check'; // Cloudflare Worker route (viz níže)
+  const API_URL = '/api/domain-check'; // Cloudflare Worker route
+
+  // vždy kontrolujeme všechny koncovky (uživatel nechce výběr)
+  const DEFAULT_TLDS = ['cz', 'com', 'eu'];
 
   // --- UI helpers
   function setLoading(on) {
@@ -74,7 +77,6 @@
     s = s.replace(/^www\./i, '');
 
     // if user pasted full domain, take first label (before first dot)
-    // (uživatel chce bez TLD, ale tohle odpustí chyby)
     if (s.includes('.')) s = s.split('.')[0];
 
     // strip spaces
@@ -96,23 +98,15 @@
   }
 
   function isValidBaseDomain(s) {
-    // 1–63 chars, no consecutive dots (none here), no leading/trailing hyphen (already trimmed)
     if (!s) return false;
     if (s.length < 1 || s.length > 63) return false;
-    if (s.includes('--')) {
-      // allowed technically, but often unwanted; necháme projít, jen varujeme
-      return true;
-    }
+    // '--' je technicky povolené, jen to necháváme projít
     return true;
   }
 
   function getSelectedTlds() {
-    const inputs = document.querySelectorAll('.domain-check__tlds input[type="checkbox"]');
-    const tlds = [];
-    inputs.forEach(i => {
-      if (i.checked) tlds.push(i.value);
-    });
-    return tlds;
+    // výběr jsme z UI odstranili → kontrolujeme vždy vše
+    return [...DEFAULT_TLDS];
   }
 
   // --- Demo fallback (když WEDOS API nejede / limit)
@@ -190,11 +184,6 @@
 
     if (!isValidBaseDomain(base)) {
       elStatus.textContent = 'Zadej platný název (bez mezer, diakritiky, www, http).';
-      return;
-    }
-
-    if (tlds.length === 0) {
-      elStatus.textContent = 'Vyber aspoň jednu koncovku (.cz / .com / .eu).';
       return;
     }
 

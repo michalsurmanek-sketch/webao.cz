@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Právní podmínky | WebAO.cz</title>
+  <meta name="description" content="Právní podmínky, obchodní podmínky a zásady ochrany osobních údajů WebAO.cz – tvorba webů, e‑shopů a digitálních služeb." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --blue:#0033cc;
+      --yellow:#fdc700;
+      --ink:#0b1220;
+      --ink-70:#1f2a44;
+      --ink-60:#2f3a53;
+      --ink-40:#5b6b8f;
+      --bg:#f7f9fc;
+      --white:#fff;
+      --radius:18px;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+      --shadow-sm:0 6px 16px rgba(0,0,0,.06);
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%}
+    body{
+      font-family:Roboto,system-ui,-apple-system,Segoe UI,Arial,"Noto Sans",sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      line-height:1.75;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    a{color:inherit;text-decoration:none}
+    a:hover{text-decoration:none}
+
+    .container{width:min(1100px, 92%);margin-inline:auto}
+
+    /* Header */
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      background:rgba(255,255,255,.84);
+      backdrop-filter:saturate(180%) blur(10px);
+      border-bottom:1px solid #e9eef8;
+    }
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:.85rem 0;
+      gap:1rem;
+    }
+    .brand{display:flex;align-items:center;gap:.75rem}
+    .logo{
+      width:44px;height:44px;border-radius:12px;
+      background:linear-gradient(135deg,var(--blue),#1a4fff);
+      display:grid;place-items:center;
+      color:var(--yellow);
+      font-weight:900;
+      box-shadow:var(--shadow-sm);
+      flex:0 0 auto;
+    }
+    .brand b{font-size:1.1rem;letter-spacing:.3px}
+
+    .btn{
+      display:inline-flex;align-items:center;gap:.6rem;
+      border-radius:999px;
+      padding:.8rem 1.1rem;
+      font-weight:800;
+      border:2px solid transparent;
+      transition:.2s ease;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn--ghost{background:transparent;border-color:rgba(0,51,204,.22);color:var(--blue)}
+    .btn--ghost:hover{background:rgba(0,51,204,.06);border-color:rgba(0,51,204,.35)}
+
+    /* Hero */
+    .hero{
+      position:relative;
+      overflow:hidden;
+      padding:3.4rem 0 1.6rem 0;
+      background:
+        radial-gradient(1200px 620px at 20% 0%, rgba(0,51,204,.12) 0, transparent 40%),
+        linear-gradient(180deg, #fff, #f9fbff);
+      border-bottom:1px solid #e9eef8;
+    }
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:.55rem;
+      background:rgba(253,199,0,.18);
+      color:#6c5700;
+      border:1px dashed rgba(253,199,0,.7);
+      padding:.35rem .65rem;
+      border-radius:999px;
+      font-weight:800;
+      font-size:.92rem;
+    }
+    h1{
+      margin:.9rem 0 .6rem 0;
+      font-size:clamp(2rem, 3.2vw + .7rem, 3rem);
+      line-height:1.15;
+    }
+    .lead{max-width:70ch;color:var(--ink-60);font-size:1.05rem;margin:0}
+
+    /* Layout */
+    main{padding:2.4rem 0 4rem 0}
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr min(320px, 30%);
+      gap:1.4rem;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    .card{
+      background:var(--white);
+      border:1px solid #e9eef8;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow-sm);
+      padding:1.6rem;
+    }
+
+    .toc{position:sticky;top:86px}
+    .toc h3{margin:.2rem 0 .8rem 0}
+    .toc a{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;
+      padding:.65rem .8rem;
+      border-radius:12px;
+      border:1px solid #eef2fb;
+      background:#fbfdff;
+      color:var(--ink-60);
+      font-weight:700;
+      transition:.2s ease;
+    }
+    .toc a:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);color:var(--ink)}
+    .toc a span{color:var(--yellow);font-weight:900}
+    .toc small{display:block;color:var(--ink-40);margin-top:.75rem}
+
+    h2{margin:0 0 .6rem 0;font-size:1.6rem}
+    h3{margin:1.4rem 0 .35rem 0;font-size:1.1rem}
+
+    .muted{color:var(--ink-40)}
+    .note{
+      background:linear-gradient(135deg,#fefcf4,#fff8d8);
+      border:1px solid #ffe186;
+      border-radius:16px;
+      padding:1rem 1.1rem;
+      color:#6c5700;
+      margin:1.1rem 0;
+    }
+
+    .pill{
+      display:inline-flex;gap:.45rem;align-items:center;
+      border-radius:999px;
+      padding:.25rem .6rem;
+      background:#eef3ff;
+      color:#1a2f70;
+      font-weight:800;
+      font-size:.85rem;
+    }
+
+    .list{margin:.7rem 0 0 0;padding-left:1.05rem}
+    .list li{margin:.35rem 0;color:var(--ink-60)}
+
+    .hr{height:1px;background:#e9eef8;margin:1.4rem 0}
+
+    .contact{
+      display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;
+      margin-top:1.2rem;
+    }
+    .contact a{
+      color:var(--blue);
+      font-weight:800;
+    }
+    .contact a:hover{text-decoration:underline}
+
+    footer{
+      border-top:1px solid #e9eef8;
+      padding:2.2rem 0;
+      color:var(--ink-40);
+      font-size:.95rem;
+    }
+
+    /* Print */
+    @media print{
+      header, .toc, .btn{display:none !important}
+      body{background:#fff}
+      .card{box-shadow:none}
+      a{color:#000;text-decoration:none}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <div class="brand" aria-label="WebAO">
+        <div class="logo" aria-hidden="true">AO</div>
+        <b><span style="color:var(--blue)">Web</span><span style="color:var(--ink)">AO</span></b>
+      </div>
+      <a class="btn btn--ghost" href="/" aria-label="Zpět na WebAO.cz">← Zpět na WebAO</a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <span class="eyebrow">Právní podmínky • Obchodní podmínky • GDPR</span>
+      <h1>Právní podmínky WebAO</h1>
+      <p class="lead">Tahle stránka popisuje pravidla spolupráce, průběh zakázky, platební podmínky, autorská práva a zásady zpracování osobních údajů. Připravené tak, aby dávaly smysl klientovi a zároveň byly „na jistotu“.</p>
+      <div class="contact">
+        <span class="pill"><span style="color:var(--yellow);font-weight:900">★</span> Přehledně a lidsky</span>
+        <span class="pill">Aktualizace: <span id="updated"></span></span>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <div class="container grid">
+      <article class="card" aria-label="Právní podmínky">
+        <div class="note">
+          <strong>Důležité:</strong> Nejsem advokát a tohle není právní služba. Je to pečlivě sepsaný <em>standard</em> pro webové studio.
+          Pokud chceš úplně neprůstřelnou verzi (např. pro větší B2C objem / spory), nech to jednou projet právníkem – text už bude připravený a levnější na kontrolu.
+        </div>
+
+        <section id="identifikace">
+          <h2>0. Identifikace poskytovatele</h2>
+          <p class="muted">Doplň si údaje – je to nejčastější věc, kterou někdo kontroluje.</p>
+          <ul class="list">
+            <li><strong>Poskytovatel:</strong> WebAO (webové studio AO Group)</li>
+            <li><strong>Provozovatel / OSVČ / s.r.o.:</strong> <em>DOPlň název / jméno</em></li>
+            <li><strong>IČO:</strong> <em>DOPlň</em> • <strong>DIČ:</strong> <em>DOPlň (pokud plátce DPH)</em></li>
+            <li><strong>Sídlo:</strong> <em>DOPlň</em></li>
+            <li><strong>Kontakt:</strong> <a href="mailto:studio@webao.cz">studio@webao.cz</a></li>
+          </ul>
+        </section>
+
+        <div class="hr"></div>
+
+        <section id="objednavka">
+          <h2>1. Objednávka a uzavření smlouvy</h2>
+          <p class="muted">Smlouva vzniká nejčastěji e‑mailem – rychle a prokazatelně.</p>
+          <ul class="list">
+            <li>Zakázka je potvrzena: (a) potvrzením nabídky e‑mailem, (b) podpisem smlouvy, nebo (c) uhrazením zálohy.</li>
+            <li>Rozsah a cena jsou vždy uvedeny v nabídce (balíček / individuální položky).</li>
+            <li>Klient se zavazuje dodat podklady v dohodnutém termínu (texty, fotky, loga, přístupy apod.).</li>
+          </ul>
+        </section>
+
+        <section id="prubeh">
+          <h2>2. Průběh zakázky a schvalování</h2>
+          <ul class="list">
+            <li>Projekt běží v krocích: návrh struktury → design → realizace → testy → předání.</li>
+            <li>Klient schvaluje průběžně (typicky po designu a před spuštěním).</li>
+            <li>Předání probíhá zveřejněním na doméně a předáním přístupů dle dohody.</li>
+          </ul>
+          <h3>Revize</h3>
+          <ul class="list">
+            <li>V ceně balíčku jsou obvykle <strong>2 revizní kola</strong> (pokud nabídka neříká jinak).</li>
+            <li>Další úpravy jsou účtovány dle domluvené sazby / ceníku.</li>
+          </ul>
+        </section>
+
+        <section id="terminy">
+          <h2>3. Termíny dodání</h2>
+          <ul class="list">
+            <li>Termín se počítá od dodání všech podkladů a zaplacení zálohy (pokud je vyžadována).</li>
+            <li>Pokud Klient podklady nedodá, termín se posouvá o dobu prodlení.</li>
+            <li>Expresní režim je možný, pokud má WebAO kapacitu (může být příplatek).</li>
+          </ul>
+        </section>
+
+        <section id="cena">
+          <h2>4. Cena a platební podmínky</h2>
+          <ul class="list">
+            <li>Cena je dle balíčku nebo individuální nabídky.</li>
+            <li>Standard: <strong>záloha 50 %</strong> před zahájením, doplatek po dokončení (pokud není sjednáno jinak).</li>
+            <li>Splatnost faktur je obvykle <strong>7 dní</strong> (dle faktury).</li>
+            <li>V případě prodlení může být pozastavena práce / správa webu do úhrady.</li>
+          </ul>
+        </section>
+
+        <section id="hosting">
+          <h2>5. Hosting, správa a služby třetích stran</h2>
+          <ul class="list">
+            <li>Pokud WebAO zajišťuje hosting/správu, rozsah a SLA jsou uvedeny v nabídce nebo správním balíčku.</li>
+            <li>WebAO může využívat služby třetích stran (např. hosting, e‑mail, analytika, šablony, pluginy). Klient bere na vědomí jejich podmínky a výpadky mimo kontrolu WebAO.</li>
+            <li>Licence (šablony, fonty, fotografie, pluginy) jsou buď dodány klientem, nebo naceněny zvlášť.</li>
+          </ul>
+        </section>
+
+        <section id="odpovednost">
+          <h2>6. Odpovědnost a omezení odpovědnosti</h2>
+          <ul class="list">
+            <li>WebAO neodpovídá za obsah dodaný klientem ani za škody způsobené jeho nesprávným použitím webu.</li>
+            <li>WebAO neodpovídá za ušlý zisk; celková odpovědnost je omezena částkou uhrazenou za danou službu (pokud právo nevyžaduje jinak).</li>
+            <li>Bezpečnost webu závisí i na správě přístupů klientem (hesla, sdílení, administrace).</li>
+          </ul>
+        </section>
+
+        <section id="autorska">
+          <h2>7. Autorská práva a předání díla</h2>
+          <ul class="list">
+            <li>Po úplném uhrazení ceny získává Klient právo užívat dílo pro své podnikání / účel uvedený v nabídce.</li>
+            <li>Zdrojové kódy jsou předávány dle dohody (např. repozitář / export / přístup k hostingu).</li>
+            <li>WebAO si může ponechat interní know‑how a znovupoužitelné komponenty (UI prvky, framework), pokud nebylo výslovně sjednáno jinak.</li>
+          </ul>
+        </section>
+
+        <section id="odstoupeni">
+          <h2>8. Odstoupení od smlouvy a storno</h2>
+          <p class="muted">Záleží, zda jde o spotřebitele (B2C), nebo podnikatele (B2B).</p>
+          <h3>Spotřebitel (B2C)</h3>
+          <ul class="list">
+            <li>U digitálních služeb na míru může právo na odstoupení zaniknout zahájením plnění, pokud s tím spotřebitel výslovně souhlasil (typicky potvrzením nabídky se souhlasem zahájit práce).</li>
+          </ul>
+          <h3>Podnikatel (B2B)</h3>
+          <ul class="list">
+            <li>Storno po zahájení prací: účtuje se poměrná část práce + náklady třetích stran (licence, šablony apod.).</li>
+            <li>Záloha může být použita na již provedené práce.</li>
+          </ul>
+        </section>
+
+        <section id="reklamace">
+          <h2>9. Reklamace</h2>
+          <ul class="list">
+            <li>Technické vady hlaste na <a href="mailto:studio@webao.cz">studio@webao.cz</a> s popisem a ideálně screenshotem.</li>
+            <li>WebAO se snaží reagovat bez zbytečného odkladu, nejpozději dle dohodnuté podpory / správy.</li>
+            <li>Za vady nevzniklé vinou WebAO (zásahy klienta, pluginy třetích stran, hosting mimo WebAO) WebAO neodpovídá.</li>
+          </ul>
+        </section>
+
+        <section id="gdpr">
+          <h2>10. Ochrana osobních údajů (GDPR)</h2>
+          <p class="muted">Zpracováváme jen to, co je potřeba pro poptávku a realizaci.</p>
+          <ul class="list">
+            <li><strong>Správce:</strong> WebAO (kontaktní e‑mail: <a href="mailto:studio@webao.cz">studio@webao.cz</a>)</li>
+            <li><strong>Účel:</strong> vyřízení poptávky, komunikace, plnění smlouvy, případně účetní povinnosti.</li>
+            <li><strong>Rozsah:</strong> jméno/firma, e‑mail, telefon, obsah zprávy, technické údaje (např. IP v logu serveru).</li>
+            <li><strong>Doba:</strong> po dobu nutnou pro komunikaci a plnění smlouvy, následně dle zákonných povinností (např. účetnictví).</li>
+            <li><strong>Příjemci:</strong> jen nezbytné subjekty (hosting, e‑mail, účetnictví), vždy v minimálním rozsahu.</li>
+            <li><strong>Práva:</strong> přístup, oprava, výmaz, omezení, námitka, přenositelnost, stížnost u ÚOOÚ.</li>
+          </ul>
+        </section>
+
+        <section id="zaverecna">
+          <h2>11. Závěrečná ustanovení</h2>
+          <ul class="list">
+            <li>Tyto podmínky jsou účinné od data uvedeného nahoře („Aktualizace“).</li>
+            <li>Právní vztahy se řídí právem České republiky.</li>
+            <li>Spory se strany snaží řešit nejprve dohodou.</li>
+          </ul>
+
+          <div class="hr"></div>
+          <p><strong>Kontakt:</strong> <a href="mailto:studio@webao.cz">studio@webao.cz</a></p>
+        </section>
+      </article>
+
+      <aside class="card toc" aria-label="Obsah">
+        <h3>Obsah</h3>
+        <div style="display:grid;gap:.55rem">
+          <a href="#identifikace">Identifikace <span>0</span></a>
+          <a href="#objednavka">Objednávka <span>1</span></a>
+          <a href="#prubeh">Průběh & revize <span>2</span></a>
+          <a href="#terminy">Termíny <span>3</span></a>
+          <a href="#cena">Cena & platby <span>4</span></a>
+          <a href="#hosting">Hosting & třetí strany <span>5</span></a>
+          <a href="#odpovednost">Odpovědnost <span>6</span></a>
+          <a href="#autorska">Autorská práva <span>7</span></a>
+          <a href="#odstoupeni">Odstoupení <span>8</span></a>
+          <a href="#reklamace">Reklamace <span>9</span></a>
+          <a href="#gdpr">GDPR <span>10</span></a>
+          <a href="#zaverecna">Závěr <span>11</span></a>
+        </div>
+        <small>Tip: pro tisk dej Ctrl+P. Stránka má print režim.</small>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      © <span id="year"></span> <span style="color:var(--ink)">Web</span><span style="color:var(--blue)">AO</span> • Všechna práva vyhrazena
+      <div class="muted" style="margin-top:.45rem">Verze podmínek: <span id="version"></span></div>
+    </div>
+  </footer>
+
+  <script>
+    const now = new Date();
+    const year = document.getElementById('year');
+    const upd = document.getElementById('updated');
+    const ver = document.getElementById('version');
+
+    if(year) year.textContent = String(now.getFullYear());
+
+    // "Aktualizace" ve formátu DD.MM.YYYY
+    const dd = String(now.getDate()).padStart(2,'0');
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const yyyy = now.getFullYear();
+    const dateStr = `${dd}.${mm}.${yyyy}`;
+    if(upd) upd.textContent = dateStr;
+
+    // Verze = YYYYMMDD
+    const verStr = `${yyyy}${mm}${dd}`;
+    if(ver) ver.textContent = verStr;
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', (e)=>{
+        const id = a.getAttribute('href');
+        if(!id || id.length<2) return;
+        const el = document.querySelector(id);
+        if(!el) return;
+        e.preventDefault();
+        window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - 78, behavior:'smooth' });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -211,11 +211,22 @@
 <body>
   <header>
     <div class="container nav">
-      <div class="brand" aria-label="WebAO">
-        <div class="logo" aria-hidden="true">AO</div>
-        <b><span style="color:var(--blue)">Web</span><span style="color:var(--ink)">AO</span></b>
-      </div>
-      <a class="btn btn--ghost" href="/" aria-label="Zpět na WebAO.cz">← Zpět na WebAO</a>
+      <div class="brand">
+        
+        <!-- SVG LOGO WebAO -->
+        <div class="logo" style="background:none;box-shadow:none;width:auto;height:auto">
+          <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="gradBlue" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#0033cc"/>
+                <stop offset="100%" stop-color="#1a4fff"/>
+              </linearGradient>
+            </defs>
+            <rect x="6" y="10" width="52" height="34" rx="8" fill="url(#gradBlue)"/>
+            <rect x="14" y="18" width="36" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+            <polygon points="28,22 38,34 32,34 30,40" fill="#fdc700"/>
+            <rect x="26" y="46" width="12" height="4" rx="2" fill="#0033cc"/>
+          </svg>
     </div>
   </header>
 

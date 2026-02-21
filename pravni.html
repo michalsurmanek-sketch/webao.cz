@@ -232,6 +232,16 @@
           <span style="color:#0033cc">Web</span><span style="color:#0b1220">AO</span>
         </b>
       </div>
+      <a href="https://webao.cz/" class="back-arrow" aria-label="Zpět na WebAO">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+         xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 18L9 12L15 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+    </svg>
+  </a>
   </header>
 
   <section class="hero">
@@ -413,6 +423,24 @@
   </footer>
 
   <script>
+    .header {
+  position: relative;
+  padding: 16px;
+}
+
+.back-arrow {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink, #000);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.back-arrow:hover {
+  color: var(--blue, #007BFF);
+  transform: translateY(-50%) translateX(-4px);
+}
     const now = new Date();
     const year = document.getElementById('year');
     const upd = document.getElementById('updated');

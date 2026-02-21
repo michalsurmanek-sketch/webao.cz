@@ -878,85 +878,92 @@
 </head>
 <body>
   <!-- Header -->
-  <header>
-    <div class="container nav" aria-label="Hlavní navigace">
-      <div class="brand">
-        <!-- SVG LOGO WebAO -->
-        <div class="logo" style="background:none;box-shadow:none;width:auto;height:auto">
-          <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="gradBlue" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#0033cc"/>
-                <stop offset="100%" stop-color="#1a4fff"/>
-              </linearGradient>
-            </defs>
-            <rect x="6" y="10" width="52" height="34" rx="8" fill="url(#gradBlue)"/>
-            <rect x="14" y="18" width="36" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
-            <polygon points="28,22 38,34 32,34 30,40" fill="#fdc700"/>
-            <rect x="26" y="46" width="12" height="4" rx="2" fill="#0033cc"/>
-          </svg>
-        </div>
-        <b style="font-weight:900;letter-spacing:.5px">
-          <span style="color:#0033cc">Web</span><span style="color:#0b1220">AO</span>
-        </b>
+<header>
+  <nav class="container nav" aria-label="Hlavní navigace">
+    
+    <div class="brand">
+      <!-- SVG LOGO WebAO -->
+      <div class="logo" style="background:none;box-shadow:none;width:auto;height:auto">
+        <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="gradBlue" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#0033cc"/>
+              <stop offset="100%" stop-color="#1a4fff"/>
+            </linearGradient>
+          </defs>
+          <rect x="6" y="10" width="52" height="34" rx="8" fill="url(#gradBlue)"/>
+          <rect x="14" y="18" width="36" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+          <polygon points="28,22 38,34 32,34 30,40" fill="#fdc700"/>
+          <rect x="26" y="46" width="12" height="4" rx="2" fill="#0033cc"/>
+        </svg>
       </div>
-
-      <nav class="menu" aria-label="Menu">
-        <a href="#sluzby">Služby</a>
-        <a href="#balicky">Balíčky</a>
-        <a href="#ukazky">Ukázky</a>
-        <a href="#proces">Jak pracujeme</a>
-        <a href="#kontakt">Kontakt</a>
-      </nav>
-
-      <div class="nav-cta">
-        <a class="btn btn--ghost" href="#balicky">Ceník</a>
-        <a class="btn btn--primary" href="#kontakt">Poptat web</a>
-        <button class="burger" aria-label="Otevřít menu" id="burger" aria-expanded="false">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
+      <b style="font-weight:900;letter-spacing:.5px">
+        <span style="color:#0033cc">Web</span><span style="color:#0b1220">AO</span>
+      </b>
     </div>
 
-    <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
-
-    <div class="drawer" id="drawer" aria-hidden="true">
-      <div class="drawer-head">
-        <b><span style="color:var(--blue)">Web</span><span style="color:var(--ink)">AO</span></b>
-        <button class="drawer-close" id="drawerClose" type="button" aria-label="Zavřít menu">✕</button>
-      </div>
+    <div class="menu" aria-label="Menu">
       <a href="#sluzby">Služby</a>
       <a href="#balicky">Balíčky</a>
       <a href="#ukazky">Ukázky</a>
       <a href="#proces">Jak pracujeme</a>
       <a href="#kontakt">Kontakt</a>
-
-      <div class="drawer-cta">
-        <a class="btn btn--ghost" href="#balicky">Ceník</a>
-        <a class="btn btn--primary" href="#kontakt">Poptat web</a>
-      </div>
-
-      <div class="drawer-socials" aria-label="Sociální sítě">
-        <a href="#" target="_blank" rel="noopener" aria-label="Instagram">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="5"></rect>
-            <circle cx="12" cy="12" r="4"></circle>
-            <circle cx="18" cy="6" r="1"></circle>
-          </svg>
-        </a>
-        <a href="#" target="_blank" rel="noopener" aria-label="Facebook">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.6c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .2 2 .2v2.2h-1.2c-1.2 0-1.6.7-1.6 1.5v1.8H16l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/>
-          </svg>
-        </a>
-        <a href="#" target="_blank" rel="noopener" aria-label="YouTube">
-          <svg width="22" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23 12s0-3-1-4.4c-1-1.6-2-1.6-4-1.8C15 5.5 12 5.5 12 5.5h0s-3 0-6 .3c-2 .2-3 .2-4 1.8C1 9 1 12 1 12s0 3 1 4.4c1 1.6 2.3 1.6 4.6 1.9 1.7.2 5.4.3 5.4.3s3 0 6-.3c2-.2 3-.2 4-1.8 1-1.4 1-4.4 1-4.4zM10 15.5v-7l6 3.5-6 3.5z"/>
-          </svg>
-        </a>
-      </div>
     </div>
-  </header>
+
+    <div class="nav-cta">
+      <a class="btn btn--ghost" href="#balicky">Ceník</a>
+      <a class="btn btn--primary" href="#kontakt">Poptat web</a>
+      <button class="burger" aria-label="Otevřít menu" id="burger" aria-expanded="false" type="button">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+  </nav>
+
+  <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
+
+  <div class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <b>
+        <span style="color:var(--blue)">Web</span><span style="color:var(--ink)">AO</span>
+      </b>
+      <button class="drawer-close" id="drawerClose" type="button" aria-label="Zavřít menu">✕</button>
+    </div>
+
+    <a href="#sluzby">Služby</a>
+    <a href="#balicky">Balíčky</a>
+    <a href="#ukazky">Ukázky</a>
+    <a href="#proces">Jak pracujeme</a>
+    <a href="#kontakt">Kontakt</a>
+
+    <div class="drawer-cta">
+      <a class="btn btn--ghost" href="#balicky">Ceník</a>
+      <a class="btn btn--primary" href="#kontakt">Poptat web</a>
+    </div>
+
+    <div class="drawer-socials" aria-label="Sociální sítě">
+      <a href="javascript:void(0)" aria-disabled="true" aria-label="Instagram">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+          <circle cx="12" cy="12" r="4"></circle>
+          <circle cx="18" cy="6" r="1"></circle>
+        </svg>
+      </a>
+
+      <a href="javascript:void(0)" aria-disabled="true" aria-label="Facebook">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.6c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .2 2 .2v2.2h-1.2c-1.2 0-1.6.7-1.6 1.5v1.8H16l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/>
+        </svg>
+      </a>
+
+      <a href="javascript:void(0)" aria-disabled="true" aria-label="YouTube">
+        <svg width="22" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M23 12s0-3-1-4.4c-1-1.6-2-1.6-4-1.8C15 5.5 12 5.5 12 5.5h0s-3 0-6 .3c-2 .2-3 .2-4 1.8C1 9 1 12 1 12s0 3 1 4.4c1 1.6 2.3 1.6 4.6 1.9 1.7.2 5.4.3 5.4.3s3 0 6-.3c2-.2 3-.2 4-1.8 1-1.4 1-4.4 1-4.4zM10 15.5v-7l6 3.5-6 3.5z"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</header>
 
   <!-- Hero -->
   <section class="hero">

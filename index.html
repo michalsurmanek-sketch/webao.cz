@@ -68,6 +68,7 @@
     }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow-x:hidden}
+    html{scroll-behavior:smooth}
     body{
       font-family:Roboto,system-ui,-apple-system,Segoe UI,Arial,"Noto Sans",sans-serif;
       color:var(--ink);
@@ -112,8 +113,40 @@
     .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#1a4fff);display:grid;place-items:center;color:var(--yellow);font-weight:900;box-shadow:var(--shadow-sm)}
     .brand b{font-size:1.15rem;letter-spacing:.3px}
     .menu{display:flex;align-items:center;gap:1.2rem}
-    .menu a{color:var(--ink-60);font-weight:600}
+    .menu a{color:var(--ink-60);font-weight:600;position:relative;display:inline-flex;align-items:center}
     .menu a:hover{color:var(--ink)}
+
+    /* Hover underline (Header menu + CTA tlačítka) */
+    .menu a::after{
+      content:"";
+      position:absolute;
+      left:0;
+      bottom:-6px;
+      width:0;
+      height:2px;
+      background:currentColor;
+      transition:width .22s ease;
+      opacity:.95;
+    }
+    .menu a:hover::after{width:100%}
+
+    /* i na CTA tlačítka vpravo (Kontakt/Konzultace/Ověřit doménu) */
+    .nav-cta a.btn{position:relative}
+    .nav-cta a.btn::after{
+      content:"";
+      position:absolute;
+      left:18px;
+      right:18px;
+      bottom:10px;
+      height:2px;
+      border-radius:999px;
+      background:rgba(255,255,255,.92);
+      transform:scaleX(0);
+      transform-origin:left;
+      transition:transform .22s ease;
+    }
+    .nav-cta a.btn:hover::after{transform:scaleX(1)}
+    .nav-cta a.btn--ghost::after,.nav-cta a.btn--yellow::after{background:rgba(11,18,32,.75)}
     .nav-cta{display:flex;align-items:center;gap:.6rem}
     .burger{display:none;border:none;background:transparent;font-size:0}
 
@@ -287,7 +320,7 @@
     }
 
     /* Sections */
-    section{padding:3.6rem 0}
+    section{padding:3.6rem 0;scroll-margin-top:90px}
     .section-h{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin-bottom:1.6rem}
     .section-h__right{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:flex-end;text-align:right}
 
@@ -611,7 +644,7 @@
     <a href="#balicky">Balíčky</a>
     <a href="#ukazky">Ukázky</a>
     <a href="#proces">Jak pracujeme</a>
-    <a href="#kontakt">Kontakt</a>
+    <a href="#kontakt" class="btn btn--primary">Kontakt</a>
 
     <div class="drawer-cta">
       <a class="btn btn--ghost" href="#domena">Ověřit doménu</a>
@@ -780,9 +813,10 @@
         <p>Každá stránka má úkol: přivést návštěvu → vybudovat důvěru → vyvolat poptávku.</p>
         <p><strong>Výsledek:</strong> méně okecávání, více objednávek.</p>
         <div class="divider" style="position:relative"></div>
-        <p class="muted" style="margin:0;position:relative">
-          ✅ Rychlost a SEO od startu • ✅ měření konverzí • ✅ škálovatelný design • ✅ bez závislosti na agentuře
-        </p>
+        <p class="muted" style="margin:0;position:relative">• ✅ Rychlost a SEO od startu</p>
+        <p class="muted" style="margin:0;position:relative">• ✅ měření konverzí</p>
+        <p class="muted" style="margin:0;position:relative">• ✅ škálovatelný design</p>
+        <p class="muted" style="margin:0;position:relative">• ✅ bez závislosti na agentuře</p>
       </div>
 
       <div class="list">
@@ -1118,7 +1152,7 @@
       <p><a href="#sluzby">Služby</a></p>
       <p><a href="#proc">Proč WebAO</a></p>
       <p><a href="#balicky">Balíčky</a></p>
-      <p><a href="#kontakt">Kontakt</a></p>
+      <p><a href="#kontakt" class="btn btn--primary">Kontakt</a></p>
       <p><a href="#domena">Ověřit doménu</a></p>
     </div>
     <div>
@@ -1139,9 +1173,9 @@
         © <span id="year">2026</span> <span style="color:#ffffff">Web</span><span style="color:#fdc700">AO</span> • Všechna práva vyhrazena
       </div>
       <div class="socials">
-        <a href="#" target="_blank" rel="noopener">Instagram</a>
-        <a href="#" target="_blank" rel="noopener">Facebook</a>
-        <a href="#" target="_blank" rel="noopener">YouTube</a>
+        <a href="#domena" target="_blank" rel="noopener">Instagram</a>
+        <a href="#domena" target="_blank" rel="noopener">Facebook</a>
+        <a href="#domena" target="_blank" rel="noopener">YouTube</a>
       </div>
     </div>
   </div>
@@ -1259,20 +1293,7 @@
     a.addEventListener('click', () => closeMenu());
   });
 
-  // Smooth scroll
-  document.querySelectorAll('a[href^="#"]').forEach((a) => {
-    a.addEventListener('click', (e) => {
-      const id = a.getAttribute('href');
-      if (!id || id.length <= 1) return;
-      const el = document.querySelector(id);
-      if (!el) return;
-      e.preventDefault();
-      window.scrollTo({
-        top: el.getBoundingClientRect().top + window.pageYOffset - 70,
-        behavior: 'smooth',
-      });
-    });
-  });
+  // Smooth scroll řeší CSS (scroll-behavior + scroll-margin-top)
 
   // Scroll to top
   const scrollBtn = document.getElementById('scrollTop');

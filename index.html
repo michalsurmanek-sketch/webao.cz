@@ -622,7 +622,19 @@
   }
   .mobile-cta .btn:hover{background: rgba(11,18,32,.05)}
 }
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
 
+.card-head h3{
+  margin:0;
+}
+
+.card .icon{
+  line-height:1;
+}
 </style>
 </head>
 <body>
@@ -804,35 +816,55 @@
     </div>
 
     <div class="grid grid--3">
+
       <div class="card">
-        <div class="icon">{}</div>
-        <h3>Tvorba webů</h3>
+        <div class="card-head">
+          <h3>Tvorba webů</h3>
+          <div class="icon">{}</div>
+        </div>
         <p class="muted">Landing page, firemní web, mikrosite. Čistý kód, rychlost a jasná struktura.</p>
       </div>
+
       <div class="card">
-        <div class="icon">#</div>
-        <h3>E‑shopy</h3>
+        <div class="card-head">
+          <h3>E-shopy</h3>
+          <div class="icon">#</div>
+        </div>
         <p class="muted">Shoptet / WooCommerce – produkty, platby, doprava, faktury i sklad.</p>
       </div>
+
       <div class="card">
-        <div class="icon">↑</div>
-        <h3>SEO & obsah</h3>
-        <p class="muted">Klíčová slova, on‑page, rychlost, prodejní texty, blog a měření.</p>
+        <div class="card-head">
+          <h3>SEO & obsah</h3>
+          <div class="icon">↑</div>
+        </div>
+        <p class="muted">Klíčová slova, on-page, rychlost, prodejní texty, blog a měření.</p>
       </div>
+
       <div class="card">
-        <div class="icon">☁</div>
-        <h3>Správa & hosting</h3>
-        <p class="muted">Aktualizace, zálohy, monitoring, e‑maily a SSL v ceně správy.</p>
+        <div class="card-head">
+          <h3>Správa & hosting</h3>
+          <div class="icon">☁</div>
+        </div>
+        <p class="muted">Aktualizace, zálohy, monitoring, e-maily a SSL v ceně správy.</p>
       </div>
+
       <div class="card">
-        <div class="icon">🤖</div>
-        <h3>AI automatizace</h3>
+        <div class="card-head">
+          <h3>AI automatizace</h3>
+          <div class="icon">🤖</div>
+        </div>
         <p class="muted">Chatboti, generování obsahu, poptávkoví asistenti, CRM propojení.</p>
       </div>
+
       <div class="card">
-        <div class="icon">★</div><h3>Branding & logo</h3>
+        <div class="card-head">
+          <h3>Branding & logo</h3>
+          <div class="icon">★</div>
+        </div>
         <p class="muted">Logo, barvy, fonty, šablony dokumentů a konzistentní identita.</p>
       </div>
+
     </div>
   </div>
 </section>

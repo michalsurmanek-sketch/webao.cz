@@ -291,9 +291,27 @@
     .lead{font-size:1.12rem;color:var(--ink-60);max-width:58ch}
     .hero-cta{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:1.2rem}
 
-    .hero-badges{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:1rem}
-    .pill{display:inline-flex;gap:.45rem;align-items:center;border-radius:999px;padding:.28rem .6rem;background:#eef3ff;color:#1a2f70;font-weight:900;font-size:.82rem;border:1px solid rgba(0,51,204,.12)}
-    .pill.yellow{background:rgba(253,199,0,.20);border-color:rgba(253,199,0,.35);color:#6c5700}
+    .hero-badges {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-size: .85rem;
+  padding: .45rem .75rem;
+  border-radius: 999px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid rgba(0,0,0,.05);
+}
+
+.pill.yellow { background:#FFF7D6; color:#7A5B00; }
+.pill.blue   { background:#EEF3FF; color:#1E3A8A; }
+.pill.green  { background:#ECFDF5; color:#065F46; }
+.pill.purple { background:#F5F3FF; color:#5B21B6; }
 
     .hero-media{position:relative}
     .hero-card{background:var(--white);border-radius:var(--radius);padding:1.1rem;border:1px solid #e9eef8;box-shadow:var(--shadow)}
@@ -715,12 +733,10 @@
         Postaráme se o obsah, SEO, správu i techniku – od A do O.
       </p>
 
-      <div class="hero-badges">
-        <span class="pill yellow">⚡Rychlý & přehledný</span>
-        <span class="pill">🎯 Silná značka</span>
-        <span class="pill">📈 Měření & SEO</span>
-        <span class="pill">🤝 Konzultace zdarma</span>
-      </div>
+      <span class="pill yellow">⚡ Rychlý & přehledný</span>
+      <span class="pill blue">🎯 Silná značka</span>
+      <span class="pill green">📈 Měření & SEO</span>
+      <span class="pill purple">🤝 Konzultace zdarma</span>
 
       <div class="hero-cta">
         <a class="btn btn--primary" href="#kontakt">Chci konzultaci zdarma</a>

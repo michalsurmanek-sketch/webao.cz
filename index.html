@@ -573,25 +573,39 @@
       .domain-check--hero .dc-row-btn{width:100%;justify-content:center;}
     }
 
-    /* Malý “sticky” CTA pruh (jen mobil) */
-    .mobile-cta{display:none}
-    @media (max-width: 720px){
-      .mobile-cta{
-        display:flex;
-        position:fixed;
-        left:12px;right:12px;bottom:12px;
-        gap:.6rem;
-        z-index:1200;
-        pointer-events:none;
-      }
-      .mobile-cta a{
-        pointer-events:auto;
-        flex:1;
-        justify-content:center;
-        box-shadow:0 14px 36px rgba(0,0,0,.14);
-      }
-    }
-  </style>
+    /* Mobile CTA – zobrazí se až od sekce Ukázky (#ukazky) */
+.mobile-cta{display:none}
+@media (max-width: 720px){
+  .mobile-cta{
+    display:flex;
+    position:fixed;
+    left:12px;right:12px;bottom:12px;
+    gap:.6rem;
+    padding:12px;
+    border-radius:16px;
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.85);
+    border:1px solid rgba(11,18,32,.10);
+    box-shadow:0 -10px 30px rgba(0,0,0,.08);
+    transform: translateY(120%);
+    transition: transform .28s ease;
+    z-index:1200;
+  }
+  .mobile-cta.show{transform: translateY(0)}
+
+  .mobile-cta .btn{
+    flex:1;
+    justify-content:center;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid rgba(11,18,32,.22);
+    font-weight: 800;
+    padding: .85rem 1.05rem;
+  }
+  .mobile-cta .btn:hover{background: rgba(11,18,32,.05)}
+}
+
+</style>
 </head>
 <body>
 
@@ -654,16 +668,10 @@
     <a href="#kontakt" class="btn btn--primary">Kontakt</a>
 
     <div class="drawer-cta">
-  <a class="btn btn--ghost" href="https://wedos.cz/domeny/?ap=jzKMbf" target="_blank" rel="noopener sponsored">
-    Ověřit doménu
-  </a>
-  <a class="btn btn--primary" href="#kontakt">
-    Konzultace zdarma
-  </a>
-  <a class="btn btn--yellow" href="#balicky">
-    Zobrazit ceny
-  </a>
-</div>
+      <a class="btn btn--ghost" href="#domena">Ověřit doménu</a>
+      <a class="btn btn--primary" href="#kontakt">Konzultace zdarma</a>
+      <a class="btn btn--yellow" href="#balicky">Zobrazit ceny</a>
+    </div>
 
     <div class="drawer-socials" aria-label="Sociální sítě">
       <a href="javascript:void(0)" aria-disabled="true" aria-label="Instagram">

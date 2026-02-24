@@ -37,6 +37,7 @@
     }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow-x:hidden}
+    html{scroll-behavior:smooth} /* plynulé skrolování i bez JS */
     body{
       font-family:Roboto,system-ui,-apple-system,Segoe UI,Arial,"Noto Sans",sans-serif;
       color:var(--ink);
@@ -73,6 +74,10 @@
     .btn--primary:hover{filter:brightness(1.05)}
     .btn--success{background:var(--green);color:#fff}
     .btn--success:hover{filter:brightness(1.05)}
+
+    /* DOPLNĚNO: Ghost tlačítko (používáš ho na více místech) */
+    .btn--ghost{background:rgba(0,51,204,.06);border-color:rgba(0,51,204,.18);color:var(--blue)}
+    .btn--ghost:hover{background:rgba(0,51,204,.10);transform:translateY(-1px)}
 
     /* Header */
     header{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e9eef8;z-index:50}
@@ -242,31 +247,9 @@
     }
 
     /* Sections */
-    section{padding:3.6rem 0}
+    section{padding:3.6rem 0;scroll-margin-top:90px} /* aby kotvy neskončily pod sticky headrem */
     .section-h{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin-bottom:1.6rem}
     .section-h__right{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:flex-end;text-align:right}
-    
-    /* Mini box – skok na kontrolu domény */
-    .jump-box{
-      display:flex;
-      align-items:center;
-      gap:1rem;
-      padding:.85rem 1rem;
-      border-radius:16px;
-      background:var(--white);
-      border:1px solid #e9eef8;
-      box-shadow:var(--shadow-sm);
-    }
-    .jump-box__text{line-height:1.25}
-    .jump-box__title{font-weight:900;color:var(--ink)}
-    .jump-box__desc{font-size:.9rem;color:var(--ink-40)}
-    .jump-box__btn{padding:.7rem 1rem;white-space:nowrap}
-
-    @media (max-width: 720px){
-      .section-h{align-items:flex-start}
-      .section-h__right{width:100%;justify-content:flex-start;text-align:left}
-      .jump-box{width:100%;justify-content:space-between}
-    }
 
     /* Pouze mobil: „Vybrané projekty WebAO“ */
     .only-mobile{display:none}
@@ -342,77 +325,24 @@
     textarea{min-height:120px;resize:vertical}
     .aside{background:linear-gradient(135deg,#fefcf4,#fff8d8);border:1px solid #ffe186;border-radius:var(--radius);padding:1.2rem}
     .aside p{margin:.3rem 0;color:#6c5700}
-    .contact-email{
-      color:#002a99;
-      font-weight:600;
-      transition:.2s ease;
-    }
-    .contact-email:hover{
-      color:#001f73;
-      text-decoration:underline;
-    }
+    .contact-email{color:#002a99;font-weight:600;transition:.2s ease}
+    .contact-email:hover{color:#001f73;text-decoration:underline}
 
     /* Footer */
-    footer{
-      background:linear-gradient(180deg,#0a1950 0%, #08133d 100%);
-      color:#c7d1ff;
-      margin-top:4rem;
-      padding-top:3rem;
-    }
-    .foot{
-      display:grid;
-      grid-template-columns:2fr 1fr 1fr;
-      gap:2.5rem;
-      padding:1rem 0 3rem 0;
-    }
-    .foot a{
-      color:#e7ecff;
-      opacity:.85;
-      transition:all .25s ease;
-      display:inline-block;
-    }
-    .foot a:hover{
-      opacity:1;
-      transform:translateY(-4px) scale(1.05);
-      text-shadow:0 6px 18px rgba(0,0,0,.35);
-    }
+    footer{background:linear-gradient(180deg,#0a1950 0%, #08133d 100%);color:#c7d1ff;margin-top:4rem;padding-top:3rem}
+    .foot{display:grid;grid-template-columns:2fr 1fr 1fr;gap:2.5rem;padding:1rem 0 3rem 0}
+    .foot a{color:#e7ecff;opacity:.85;transition:all .25s ease;display:inline-block}
+    .foot a:hover{opacity:1;transform:translateY(-4px) scale(1.05);text-shadow:0 6px 18px rgba(0,0,0,.35)}
     .foot small{color:#9fb0ff}
     @media (max-width: 900px){
-      .foot{
-        grid-template-columns:1fr 1fr;
-        gap:2rem 1.2rem;
-      }
-      .foot > div:first-child{
-        grid-column:1 / -1;
-      }
+      .foot{grid-template-columns:1fr 1fr;gap:2rem 1.2rem}
+      .foot > div:first-child{grid-column:1 / -1}
     }
-    .copyright{
-      border-top:1px solid rgba(255,255,255,.08);
-      padding:1.4rem 0;
-      color:#7f93ff;
-      font-size:.85rem;
-      letter-spacing:.5px;
-    }
-    .copyright-inner{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:18px;
-      flex-wrap:wrap;
-    }
-    .socials{
-      display:flex;
-      gap:14px;
-    }
-    .socials a{
-      color:#c7d1ff;
-      font-weight:600;
-      transition:.2s ease;
-    }
-    .socials a:hover{
-      color:var(--yellow);
-      transform:translateY(-3px);
-    }
+    .copyright{border-top:1px solid rgba(255,255,255,.08);padding:1.4rem 0;color:#7f93ff;font-size:.85rem;letter-spacing:.5px}
+    .copyright-inner{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap}
+    .socials{display:flex;gap:14px}
+    .socials a{color:#c7d1ff;font-weight:600;transition:.2s ease}
+    .socials a:hover{color:var(--yellow);transform:translateY(-3px)}
 
     /* Utilities */
     .muted{color:var(--ink-40)}
@@ -420,169 +350,36 @@
     .divider{height:1px;background:#e9eef8;margin:1.2rem 0}
 
     /* Scroll to top arrow */
-    .scroll-top{
-      position:fixed;
-      right:24px;
-      bottom:24px;
-      width:46px;
-      height:46px;
-      border-radius:50%;
-      background:var(--blue);
-      color:#ffffff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:18px;
-      cursor:pointer;
-      box-shadow:0 10px 25px rgba(0,0,0,.25);
-      opacity:0;
-      pointer-events:none;
-      transform:translateY(10px);
-      transition:all .25s ease;
-      z-index:999;
-    }
-    .scroll-top.visible{
-      opacity:1;
-      pointer-events:auto;
-      transform:translateY(0);
-    }
-    .scroll-top:hover{
-      background:var(--yellow);
-      color:#000;
-      transform:translateY(-4px);
-    }
+    .scroll-top{position:fixed;right:24px;bottom:24px;width:46px;height:46px;border-radius:50%;background:var(--blue);color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:0 10px 25px rgba(0,0,0,.25);opacity:0;pointer-events:none;transform:translateY(10px);transition:all .25s ease;z-index:999}
+    .scroll-top.visible{opacity:1;pointer-events:auto;transform:translateY(0)}
+    .scroll-top:hover{background:var(--yellow);color:#000;transform:translateY(-4px)}
 
     /* Premium projekt preview (Hero karta) */
-    .project-preview{
-      position:relative;
-      display:block;
-      border-radius:16px;
-      overflow:hidden;
-      margin-top:1rem;
-      border:1px solid rgba(0,0,0,.06);
-      box-shadow:0 18px 50px rgba(0,0,0,.14);
-      transform:translateZ(0);
-    }
-    .project-preview img{
-      width:100%;
-      height:auto;
-      transform:scale(1.01);
-      transition:transform .35s ease, filter .35s ease;
-    }
-    .project-preview::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(
-        180deg,
-        rgba(0,0,0,.25) 0%,
-        rgba(0,0,0,.90) 100%
-      );
-      opacity:.95;
-      transition:opacity .35s ease;
-      pointer-events:none;
-    }
-    .project-preview::after{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      background:radial-gradient(520px 240px at 30% 10%, rgba(0,51,204,.25) 0, transparent 55%),
-                 radial-gradient(520px 240px at 70% 10%, rgba(253,199,0,.26) 0, transparent 60%);
-      opacity:0;
-      transition:opacity .35s ease;
-      pointer-events:none;
-    }
-    .project-preview .preview-label{
-      position:absolute;
-      left:12px;
-      top:12px;
-      display:inline-flex;
-      align-items:center;
-      gap:.5rem;
-      padding:.35rem .6rem;
-      border-radius:999px;
-      background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);
-      color:#fff;
-      font-weight:800;
-      font-size:.78rem;
-      backdrop-filter: blur(10px);
-    }
-    .project-preview .preview-cta{
-      position:absolute;
-      left:12px;
-      bottom:12px;
-      display:inline-flex;
-      align-items:center;
-      gap:.55rem;
-      padding:.7rem .95rem;
-      border-radius:999px;
-      background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.22);
-      color:#fff;
-      font-weight:900;
-      font-size:.88rem;
-      backdrop-filter: blur(10px);
-      transition:transform .25s ease, background .25s ease, border-color .25s ease;
-    }
-    .project-preview .preview-cta span{
-      display:inline-grid;
-      place-items:center;
-      width:26px;
-      height:26px;
-      border-radius:999px;
-      background:rgba(253,199,0,.92);
-      color:#1a1400;
-      font-weight:900;
-    }
-    .project-preview:hover img{
-      transform:scale(1.06);
-      filter:saturate(1.05) contrast(1.03);
-    }
+    .project-preview{position:relative;display:block;border-radius:16px;overflow:hidden;margin-top:1rem;border:1px solid rgba(0,0,0,.06);box-shadow:0 18px 50px rgba(0,0,0,.14);transform:translateZ(0)}
+    .project-preview img{width:100%;height:auto;transform:scale(1.01);transition:transform .35s ease, filter .35s ease}
+    .project-preview::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25) 0%,rgba(0,0,0,.90) 100%);opacity:.95;transition:opacity .35s ease;pointer-events:none}
+    .project-preview::after{content:"";position:absolute;inset:-2px;background:radial-gradient(520px 240px at 30% 10%, rgba(0,51,204,.25) 0, transparent 55%),radial-gradient(520px 240px at 70% 10%, rgba(253,199,0,.26) 0, transparent 60%);opacity:0;transition:opacity .35s ease;pointer-events:none}
+    .project-preview .preview-label{position:absolute;left:12px;top:12px;display:inline-flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;font-weight:800;font-size:.78rem;backdrop-filter: blur(10px)}
+    .project-preview .preview-cta{position:absolute;left:12px;bottom:12px;display:inline-flex;align-items:center;gap:.55rem;padding:.7rem .95rem;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;font-weight:900;font-size:.88rem;backdrop-filter: blur(10px);transition:transform .25s ease, background .25s ease, border-color .25s ease}
+    .project-preview .preview-cta span{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:999px;background:rgba(253,199,0,.92);color:#1a1400;font-weight:900}
+    .project-preview:hover img{transform:scale(1.06);filter:saturate(1.05) contrast(1.03)}
     .project-preview:hover::before{opacity:.45}
     .project-preview:hover::after{opacity:1}
-    .project-preview:hover .preview-cta{
-      transform:translateY(-3px);
-      background:rgba(255,255,255,.16);
-      border-color:rgba(255,255,255,.3);
-    }
+    .project-preview:hover .preview-cta{transform:translateY(-3px);background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3)}
 
     /* Ukázky práce – stejný styl jako ukázkový projekt */
     .portfolio-card{padding:0;overflow:hidden}
     .portfolio-card .portfolio-meta{padding:1.05rem 1.2rem 1.2rem 1.2rem}
     .portfolio-preview{margin:0;border-radius:0;border:0;box-shadow:none;aspect-ratio:3/2;position:relative}
     .portfolio-preview img{width:100%;height:100%;object-fit:cover;object-position:top}
-    
     .portfolio-preview .preview-label{left:10px;top:10px;font-size:.75rem}
     .portfolio-preview .preview-cta{left:10px;bottom:10px;font-size:.85rem;padding:.6rem .85rem}
     .portfolio-preview .preview-cta span{width:24px;height:24px}
 
-    /* Mobile: trochu jemnější */
-    @media (max-width: 520px){
-      .project-preview{box-shadow:0 14px 36px rgba(0,0,0,.12)}
-    }
-  
+    @media (max-width: 520px){.project-preview{box-shadow:0 14px 36px rgba(0,0,0,.12)}}
 
     /* Cookie lišta */
-    .cookie-bar{
-      position:fixed;
-      left:20px;
-      right:20px;
-      bottom:20px;
-      background:#0b1220;
-      color:#fff;
-      padding:1.2rem 1.4rem;
-      border-radius:16px;
-      box-shadow:0 20px 50px rgba(0,0,0,.35);
-      display:flex;
-      gap:1rem;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-      z-index:2000;
-      transform:translateY(120%);
-      transition:transform .35s ease;
-    }
+    .cookie-bar{position:fixed;left:20px;right:20px;bottom:20px;background:#0b1220;color:#fff;padding:1.2rem 1.4rem;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap;z-index:2000;transform:translateY(120%);transition:transform .35s ease}
     .cookie-bar.show{transform:translateY(0)}
     .cookie-bar p{margin:0;max-width:680px;font-size:.9rem;line-height:1.4;color:#c7d1ff}
     .cookie-actions{display:flex;gap:.6rem;flex-wrap:wrap}
@@ -590,231 +387,58 @@
     .cookie-settings:hover{background:rgba(255,255,255,.06)}
 
     /* Cookie nastavení – modal */
-    .cookie-modal-overlay{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.55);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .25s ease;
-      z-index:2100;
-    }
+    .cookie-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:2100}
     .cookie-modal-overlay.open{opacity:1;pointer-events:auto}
 
-    .cookie-modal{
-      position:fixed;
-      left:50%;
-      top:50%;
-      transform:translate(-50%,-46%) scale(.98);
-      width:min(720px, 92vw);
-      background:#ffffff;
-      border-radius:18px;
-      border:1px solid #e9eef8;
-      box-shadow:0 30px 80px rgba(0,0,0,.35);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .25s ease, transform .25s ease;
-      z-index:2101;
-      overflow:hidden;
-    }
-    .cookie-modal.open{
-      opacity:1;
-      pointer-events:auto;
-      transform:translate(-50%,-50%) scale(1);
-    }
-    .cookie-modal header{
-      position:relative;
-      top:auto;
-      background:#fff;
-      backdrop-filter:none;
-      border-bottom:1px solid #eef2fb;
-      padding:1.1rem 1.2rem;
-    }
+    .cookie-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-46%) scale(.98);width:min(720px, 92vw);background:#ffffff;border-radius:18px;border:1px solid #e9eef8;box-shadow:0 30px 80px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;z-index:2101;overflow:hidden}
+    .cookie-modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+    .cookie-modal header{position:relative;top:auto;background:#fff;backdrop-filter:none;border-bottom:1px solid #eef2fb;padding:1.1rem 1.2rem}
     .cookie-modal h3{margin:0;font-size:1.1rem}
-    .cookie-modal .close{
-      position:absolute;
-      right:12px;
-      top:12px;
-      width:42px;
-      height:42px;
-      border-radius:12px;
-      border:1px solid #e9eef8;
-      background:#fff;
-      cursor:pointer;
-      transition:.2s ease;
-    }
+    .cookie-modal .close{position:absolute;right:12px;top:12px;width:42px;height:42px;border-radius:12px;border:1px solid #e9eef8;background:#fff;cursor:pointer;transition:.2s ease}
     .cookie-modal .close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
     .cookie-modal .body{padding:1.1rem 1.2rem 1.2rem 1.2rem}
     .cookie-modal .desc{margin:.2rem 0 1rem 0;color:var(--ink-60)}
 
     .cookie-cats{display:grid;gap:.75rem}
-    .cookie-cat{
-      border:1px solid #eef2fb;
-      border-radius:16px;
-      padding:.9rem 1rem;
-      background:#fbfdff;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:1rem;
-    }
+    .cookie-cat{border:1px solid #eef2fb;border-radius:16px;padding:.9rem 1rem;background:#fbfdff;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
     .cookie-cat b{display:block;margin-bottom:.15rem}
     .cookie-cat p{margin:0;color:var(--ink-40);font-size:.92rem;line-height:1.45}
 
-    .toggle{
-      position:relative;
-      width:52px;
-      height:30px;
-      border-radius:999px;
-      background:#dbe5ff;
-      border:1px solid rgba(0,51,204,.18);
-      cursor:pointer;
-      flex:0 0 auto;
-      transition:.2s ease;
-    }
-    .toggle::after{
-      content:"";
-      position:absolute;
-      top:3px;
-      left:3px;
-      width:24px;
-      height:24px;
-      border-radius:50%;
-      background:#fff;
-      box-shadow:0 8px 20px rgba(0,0,0,.12);
-      transition:.2s ease;
-    }
+    .toggle{position:relative;width:52px;height:30px;border-radius:999px;background:#dbe5ff;border:1px solid rgba(0,51,204,.18);cursor:pointer;flex:0 0 auto;transition:.2s ease}
+    .toggle::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 8px 20px rgba(0,0,0,.12);transition:.2s ease}
     .toggle.on{background:rgba(0,51,204,.18)}
     .toggle.on::after{left:25px}
     .toggle.disabled{opacity:.55;cursor:not-allowed}
 
-    .cookie-modal .actions{
-      display:flex;
-      gap:.6rem;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-      margin-top:1rem;
-      padding-top:1rem;
-      border-top:1px solid #eef2fb;
-    }
+    .cookie-modal .actions{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid #eef2fb}
     .cookie-modal .actions .btn{padding:.75rem 1.05rem;font-weight:800}
     @media (max-width: 520px){
       .cookie-modal .actions{justify-content:stretch}
       .cookie-modal .actions .btn{width:100%;justify-content:center}
     }
-    .cookie-btn{
-      border:none;
-      border-radius:999px;
-      padding:.6rem 1rem;
-      font-weight:700;
-      cursor:pointer;
-      transition:.2s ease;
-    }
+    .cookie-btn{border:none;border-radius:999px;padding:.6rem 1rem;font-weight:700;cursor:pointer;transition:.2s ease}
     .cookie-accept{background:var(--yellow);color:#000}
     .cookie-accept:hover{transform:translateY(-2px)}
     .cookie-decline{background:#1f2a48;color:#fff;border:1px solid rgba(255,255,255,.15)}
     .cookie-decline:hover{background:#26345f}
 
     /* Domain checker – čistý „vyhledávač“ (override nad /assets/domain-check.css) */
-    .domain-check--hero{
-      margin-top:0;
-      padding:0;
-      background:transparent;
-      border:0;
-      box-shadow:none;
-    }
-    .domain-check--hero .domain-check__row{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:.8rem;
-      align-items:center;
-    }
-    .domain-check--hero .domain-check__inputwrap{
-      position:relative;
-      display:block;
-      padding:.18rem;
-      border-radius:999px;
-      border:1px solid #dfe7fb;
-      background:#ffffff;
-      box-shadow:var(--shadow-sm);
-      height:56px;
-      overflow:hidden;
-    }
-
-    /* vypni případné pseudo prvky z /assets/domain-check.css (aby nebylo www 2×) */
-    .domain-check--hero .domain-check__inputwrap::before,
-    .domain-check--hero .domain-check__inputwrap::after{
-      content:none !important;
-      display:none !important;
-    }
-
-    .domain-check--hero .domain-check__prefix{
-      position:absolute;
-      left:16px;
-      top:50%;
-      transform:translateY(-50%);
-      display:flex;
-      align-items:center;
-      height:34px;
-      padding:0 .55rem 0 0;
-      font-weight:900;
-      color:#5b6b8f;
-      white-space:nowrap;
-      line-height:1;
-      border-right:1px solid #eef2fb;
-      pointer-events:none;
-      user-select:none;
-    }
-
-    .domain-check--hero .domain-check__input{
-      position:absolute;
-      inset:0;
-      border:0 !important;
-      background:transparent !important;
-      outline:none;
-      box-shadow:none;
-      width:100%;
-      height:100%;
-      padding:0 18px 0 78px !important; /* místo pro www. */
-      margin:0 !important;
-      line-height:normal;
-      display:block;
-    }
+    .domain-check--hero{margin-top:0;padding:0;background:transparent;border:0;box-shadow:none}
+    .domain-check--hero .domain-check__row{display:grid;grid-template-columns:1fr auto;gap:.8rem;align-items:center}
+    .domain-check--hero .domain-check__inputwrap{position:relative;display:block;padding:.18rem;border-radius:999px;border:1px solid #dfe7fb;background:#ffffff;box-shadow:var(--shadow-sm);height:56px;overflow:hidden}
+    .domain-check--hero .domain-check__inputwrap::before,.domain-check--hero .domain-check__inputwrap::after{content:none !important;display:none !important}
+    .domain-check--hero .domain-check__prefix{position:absolute;left:16px;top:50%;transform:translateY(-50%);display:flex;align-items:center;height:34px;padding:0 .55rem 0 0;font-weight:900;color:#5b6b8f;white-space:nowrap;line-height:1;border-right:1px solid #eef2fb;pointer-events:none;user-select:none}
+    .domain-check--hero .domain-check__input{position:absolute;inset:0;border:0 !important;background:transparent !important;outline:none;box-shadow:none;width:100%;height:100%;padding:0 18px 0 78px !important;margin:0 !important;line-height:normal;display:block}
     .domain-check--hero .domain-check__btn{white-space:nowrap;padding:.85rem 1.15rem}
     .domain-check--hero .domain-check__status{margin-top:.6rem}
     .domain-check--hero .domain-check__results{margin-top:.55rem}
 
-    /* Výsledky: premium seznam + CTA */
-    .domain-check--hero .dc-result{
-      border:1px solid #eef2fb;
-      border-radius:16px;
-      background:linear-gradient(180deg,#ffffff,#fbfdff);
-      padding:.8rem .95rem;
-      box-shadow:0 8px 20px rgba(0,0,0,.05);
-      transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-
-      /* layout: levá část + akce vpravo na jednom řádku */
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:1rem;
-    }
+    .domain-check--hero .dc-result{border:1px solid #eef2fb;border-radius:16px;background:linear-gradient(180deg,#ffffff,#fbfdff);padding:.8rem .95rem;box-shadow:0 8px 20px rgba(0,0,0,.05);transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;display:flex;align-items:center;justify-content:space-between;gap:1rem}
     .domain-check--hero .dc-result + .dc-result{margin-top:.65rem}
-    .domain-check--hero .dc-result:hover{
-      transform:translateY(-2px);
-      box-shadow:0 14px 30px rgba(0,0,0,.08);
-      border-color:rgba(0,51,204,.18);
-    }
+    .domain-check--hero .dc-result:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.08);border-color:rgba(0,51,204,.18)}
 
     .domain-check--hero .dc-result__left{display:flex;align-items:flex-start;gap:.75rem;min-width:0}
-    .domain-check--hero .dc-badge{
-      width:34px;height:34px;border-radius:12px;
-      display:grid;place-items:center;
-      background:#eef3ff;color:var(--blue);
-      flex:0 0 auto;
-      box-shadow:0 8px 20px rgba(0,0,0,.06);
-      border:1px solid rgba(0,51,204,.12);
-    }
+    .domain-check--hero .dc-badge{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:#eef3ff;color:var(--blue);flex:0 0 auto;box-shadow:0 8px 20px rgba(0,0,0,.06);border:1px solid rgba(0,51,204,.12)}
     .domain-check--hero .dc-domain{font-weight:700;letter-spacing:.1px}
     .domain-check--hero .dc-meta{color:var(--ink-40);font-weight:500;font-size:.92rem;margin-top:.12rem}
 
@@ -823,36 +447,11 @@
     .domain-check--hero .dc-warn .dc-badge{background:rgba(253,199,0,.16);border-color:rgba(253,199,0,.30);color:#6c5700}
 
     .domain-check--hero .dc-actions{display:flex;align-items:center;gap:.5rem;flex:0 0 auto;justify-content:flex-end}
-    .domain-check--hero .dc-row-btn{
-      padding:.55rem .95rem;
-      border-radius:999px;
-      font-weight:700;
-      box-shadow:0 10px 22px rgba(22,163,74,.14);
-    }
+    .domain-check--hero .dc-row-btn{padding:.55rem .95rem;border-radius:999px;font-weight:700;box-shadow:0 10px 22px rgba(22,163,74,.14)}
 
-    /* Status řádek (chyby / info) */
-    .domain-check--hero .domain-check__status{
-      margin-top:.75rem;
-      color:var(--ink-40);
-      font-weight:700;
-      background:rgba(0,51,204,.05);
-      border:1px solid rgba(0,51,204,.12);
-      padding:.55rem .75rem;
-      border-radius:14px;
-    }
+    .domain-check--hero .domain-check__status{margin-top:.75rem;color:var(--ink-40);font-weight:700;background:rgba(0,51,204,.05);border:1px solid rgba(0,51,204,.12);padding:.55rem .75rem;border-radius:14px}
 
-    /* Spodní CTA pod výsledky */
-    .domain-check--hero .dc-bottom-actions{
-      margin-top:1rem;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      padding:1rem;
-      border:1px solid #eef2fb;
-      border-radius:18px;
-      background:linear-gradient(180deg,#ffffff,#fbfdff);
-      box-shadow:0 12px 28px rgba(0,0,0,.06);
-    }
+    .domain-check--hero .dc-bottom-actions{margin-top:1rem;display:flex;gap:10px;flex-wrap:wrap;padding:1rem;border:1px solid #eef2fb;border-radius:18px;background:linear-gradient(180deg,#ffffff,#fbfdff);box-shadow:0 12px 28px rgba(0,0,0,.06)}
     .domain-check--hero .dc-bottom-actions .btn{padding:.85rem 1.15rem}
     .domain-check--hero .dc-bottom-actions .btn--primary{box-shadow:0 16px 36px rgba(0,51,204,.16)}
     .domain-check--hero .dc-bottom-actions .btn--ghost{background:rgba(0,51,204,.05)}
@@ -860,20 +459,15 @@
 
     @media (max-width: 720px){
       .domain-check--hero .dc-bottom-actions .btn{width:100%;justify-content:center}
-    }
-
-    @media (max-width: 720px){
-      .domain-check--hero .domain-check__row{grid-template-columns:1fr;}
+      .domain-check--hero .domain-check__row{grid-template-columns:1fr}
       .domain-check--hero .domain-check__btn{width:100%;justify-content:center}
     }
 
-    /* Výsledky na mobilu: akce jde pod text (čistě a bez mačkání) */
     @media (max-width: 520px){
-      .domain-check--hero .dc-result{flex-direction:column;align-items:flex-start;}
-      .domain-check--hero .dc-actions{width:100%;justify-content:flex-end;}
-      .domain-check--hero .dc-row-btn{width:100%;justify-content:center;}
+      .domain-check--hero .dc-result{flex-direction:column;align-items:flex-start}
+      .domain-check--hero .dc-actions{width:100%;justify-content:flex-end}
+      .domain-check--hero .dc-row-btn{width:100%;justify-content:center}
     }
-
   </style>
 </head>
 <body>
@@ -903,6 +497,7 @@
     </div>
 
     <div class="menu" aria-label="Menu">
+      <a href="#domena">Doména</a>
       <a href="#sluzby">Služby</a>
       <a href="#balicky">Balíčky</a>
       <a href="#ukazky">Ukázky</a>
@@ -930,6 +525,7 @@
       <button class="drawer-close" id="drawerClose" type="button" aria-label="Zavřít menu">✕</button>
     </div>
 
+    <a href="#domena">Doména</a>
     <a href="#sluzby">Služby</a>
     <a href="#balicky">Balíčky</a>
     <a href="#ukazky">Ukázky</a>
@@ -1075,7 +671,6 @@
 
         <div class="domain-check__status" id="dcStatus" aria-live="polite" role="status"></div>
         <div class="domain-check__results" id="dcResults" aria-live="polite"></div>
-        
       </div>
     </div>
   </section>
@@ -1135,12 +730,6 @@
   </section>
 
   <!-- Ukázky / Portfolio -->
-  <!--
-    JAK DOPLŇOVAT FOTKY:
-    1) Nahraj obrázky do složky /images/ (např. /images/reklamas.jpg)
-    2) Ideální rozměr: 1200x800px (poměr 3:2)
-    3) Formát: .jpg nebo .webp (menší velikost = rychlejší web)
-  -->
   <section id="ukazky">
     <div class="container">
       <div class="section-h">
@@ -1151,6 +740,7 @@
       </div>
 
       <div class="grid grid--4">
+        <!-- (zůstává beze změny – tvoje portfolio karty) -->
         <div class="card portfolio-card">
           <a class="project-preview portfolio-preview" href="https://reklamas.cz" target="_blank" rel="noopener" aria-label="Otevřít Reklamas.cz">
             <span class="preview-label">Reklamas.cz</span>
@@ -1475,15 +1065,15 @@
           © <span id="year">2026</span> <span style="color:#ffffff">Web</span><span style="color:#fdc700">AO</span> • Všechna práva vyhrazena
         </div>
         <div class="socials">
-          <a href="#" target="_blank">Instagram</a>
-          <a href="#" target="_blank">Facebook</a>
-          <a href="#" target="_blank">YouTube</a>
+          <a href="#" target="_blank" rel="noopener">Instagram</a>
+          <a href="#" target="_blank" rel="noopener">Facebook</a>
+          <a href="#" target="_blank" rel="noopener">YouTube</a>
         </div>
       </div>
     </div>
   </footer>
 
-    <!-- Cookie lišta -->
+  <!-- Cookie lišta -->
   <div class="cookie-bar" id="cookieBar" role="dialog" aria-live="polite" aria-label="Informace o cookies">
     <p>
       Tento web používá technické a analytické cookies pro zajištění funkčnosti a zlepšení služeb.
@@ -1539,7 +1129,8 @@
         <button class="btn btn--primary" id="cookieAcceptAll" type="button">Povolit vše</button>
       </div>
 
-      <p class="muted" style="margin:.9rem 0 0 0">Více informací najdete v <a href="/pravni/" style="color:var(--blue);font-weight:800">Právních podmínkách</a>.</p>
+      <!-- OPRAVA: odkaz vedl na /pravni/ – ty chceš /pravni.html -->
+      <p class="muted" style="margin:.9rem 0 0 0">Více informací najdete v <a href="/pravni.html" style="color:var(--blue);font-weight:800">Právních podmínkách</a>.</p>
     </div>
   </div>
 
@@ -1611,27 +1202,8 @@
         });
       });
     });
-
-    // =========================
-    // PLYNULÝ SCROLL
-    // =========================
-    document.querySelectorAll('a[href^="#"]').forEach((a) => {
-      a.addEventListener('click', (e) => {
-        const id = a.getAttribute('href');
-        if (!id || id.length <= 1) return;
-        const el = document.querySelector(id);
-        if (!el) return;
-        e.preventDefault();
-        window.scrollTo({
-          top: el.getBoundingClientRect().top + window.pageYOffset - 70,
-          behavior: 'smooth',
-        });
-      });
-    });
-
     // =========================
     // SCROLL TO TOP
-    // =========================
     // =========================
     const scrollBtn = document.getElementById('scrollTop');
     const onScroll = () => {
@@ -1861,13 +1433,11 @@
       wrapper.className = 'dc-bottom-actions';
 
       // Spodní CTA: jen 3 tlačítka (bez registrace)
-      // 1) Vytvořit web (scroll na poptávku)
       const buildWeb = document.createElement('a');
       buildWeb.className = 'btn btn--primary';
       buildWeb.href = '#kontakt';
       buildWeb.textContent = 'Vytvořit web';
 
-      // 2) Vymyslíme vám doménu (DomenAO)
       const brainstorm = document.createElement('a');
       brainstorm.className = 'btn btn--ghost';
       brainstorm.href = DOMENAO_URL + '?q=' + encodeURIComponent(base);
@@ -1875,7 +1445,6 @@
       brainstorm.rel = 'noopener';
       brainstorm.textContent = 'Vymyslíme vám doménu';
 
-      // 3) Více koncovek (DomenAO)
       const moreTlds = document.createElement('a');
       moreTlds.className = 'btn btn--ghost';
       moreTlds.href = DOMENAO_URL + '?tlds=1&q=' + encodeURIComponent(base);
@@ -1890,7 +1459,6 @@
     }
 
     function removeDiacritics(s){
-      // Standardní odstranění diakritiky (kombinující znaky)
       return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
     }
 
@@ -2043,5 +1611,58 @@
     });
   })();
   </script>
+
+
+<!-- Scroll to top button -->
+<button id="scrollTopBtn" aria-label="Nahoru" title="Nahoru">↑</button>
+
+<style>
+#scrollTopBtn{
+  position:fixed;
+  right:24px;
+  bottom:24px;
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  border:none;
+  background:var(--blue);
+  color:#fff;
+  font-size:20px;
+  cursor:pointer;
+  box-shadow:0 10px 25px rgba(0,0,0,.15);
+  opacity:0;
+  pointer-events:none;
+  transition:all .25s ease;
+  z-index:999;
+}
+#scrollTopBtn:hover{
+  transform:translateY(-3px);
+  box-shadow:0 14px 35px rgba(0,0,0,.2);
+}
+#scrollTopBtn.show{
+  opacity:1;
+  pointer-events:auto;
+}
+</style>
+
+<script>
+const scrollBtn = document.getElementById('scrollTopBtn');
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 400) {
+    scrollBtn.classList.add('show');
+  } else {
+    scrollBtn.classList.remove('show');
+  }
+});
+
+scrollBtn.addEventListener('click', () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+});
+</script>
+
 </body>
 </html>

@@ -405,13 +405,7 @@
     .step strong{display:inline-block;margin:.4rem 0}
     @media (max-width: 900px){.steps{grid-template-columns:repeat(2,1fr)}}
     @media (max-width: 520px){.steps{grid-template-columns:1fr}}
-    
-    /*affiliate-wedos*/
-    .affiliate-wedos {
-  margin-top: 30px;
-  display: flex;
-  justify-content: center;
-}
+
     /* Contact */
     .contact{display:grid;grid-template-columns:1.1fr .9fr;gap:1.4rem}
     @media (max-width: 900px){.contact{grid-template-columns:1fr}}
@@ -420,53 +414,19 @@
     input,textarea,select{width:100%;border:1px solid #dfe7fb;border-radius:12px;padding:.8rem;background:#fbfdff;font:inherit}
     textarea{min-height:120px;resize:vertical}
     .aside{background:linear-gradient(135deg,#fefcf4,#fff8d8);border:1px solid #ffe186;border-radius:var(--radius);padding:1.2rem}
+
+    /* Mapa v kontakt boxu */
+    .map-card{margin-top:1rem;border:1px solid rgba(0,0,0,.08);border-radius:16px;overflow:hidden;background:#fff;box-shadow:var(--shadow-sm)}
+    .map-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:.8rem .95rem;border-bottom:1px solid #eef2fb;background:linear-gradient(180deg,#ffffff,#fbfdff)}
+    .map-embed{aspect-ratio:16/10;background:#eef2fb}
+    .map-embed iframe{width:100%;height:100%;border:0;display:block}
+    @media (max-width: 520px){.map-embed{aspect-ratio:16/12}}
     .aside p{margin:.3rem 0;color:#6c5700}
     .contact-email{color:#002a99;font-weight:800;transition:.2s ease}
     .contact-email:hover{color:#001f73;text-decoration:underline}
 
     .leadbox{margin-top:1rem;border-radius:16px;border:1px solid rgba(0,51,204,.12);background:rgba(0,51,204,.04);padding:1rem;color:var(--ink-60);font-weight:700}
 
-    .map-card {
-  margin-top: 40px;
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: 16px;
-  overflow: hidden;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(0,0,0,.05);
-}
-
-.map-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 18px;
-  border-bottom: 1px solid #eef2fb;
-  background: linear-gradient(180deg,#ffffff,#f8fbff);
-}
-
-.map-link {
-  font-size: 14px;
-  text-decoration: none;
-  color: #0033cc;
-  font-weight: 600;
-}
-
-.map-embed {
-  aspect-ratio: 16/9;
-}
-
-.map-embed iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-}
-
-@media(max-width:768px){
-  .map-embed{
-    aspect-ratio: 16/12;
-  }
-} 
     /* Footer */
     footer{
       background:linear-gradient(180deg,#0a1950 0%, #08133d 100%);
@@ -855,29 +815,25 @@
     </div>
 
     <div class="proof">
-  <div class="big">
-    <h3>Stavíme weby, které mají jasný cíl</h3>
-    <p>Každá stránka má úkol: přivést návštěvu → vybudovat důvěru → vyvolat poptávku.</p>
-    <p><strong>Výsledek:</strong> méně okecávání, více objednávek.</p>
+      <div class="big">
+        <h3>Stavíme weby, které mají jasný cíl</h3>
+        <p>Každá stránka má úkol: přivést návštěvu → vybudovat důvěru → vyvolat poptávku.</p>
+        <p><strong>Výsledek:</strong> méně okecávání, více objednávek.</p>
+        <div class="divider" style="position:relative"></div>
+        <p class="muted" style="margin:0;position:relative">• ✅ Rychlost a SEO od startu</p>
+        <p class="muted" style="margin:0;position:relative">• ✅ měření konverzí</p>
+        <p class="muted" style="margin:0;position:relative">• ✅ škálovatelný design</p>
+        <p class="muted" style="margin:0;position:relative">• ✅ bez závislosti na agentuře
 
-    <div class="divider"></div>
-
-    <p class="muted">• ✅ Rychlost a SEO od startu</p>
-    <p class="muted">• ✅ měření konverzí</p>
-    <p class="muted">• ✅ škálovatelný design</p>
-    <p class="muted">• ✅ bez závislosti na agentuře</p>
-
-    <!-- Affiliate plocha -->
-    <div class="affiliate-wedos">
-      <script>
-        _adsys_id = 40822;
-        _adsys_size = 21;
-      </script>
-      <script src="https://d.wedosas.net/d.js"></script>
-    </div>
-
-  </div>
-</div>
+      <!-- WEDOS Affiliate plocha -->
+      <div class="affiliate-wedos" style="margin-top:20px;display:flex;justify-content:center;">
+        <script>
+          _adsys_id = 40822;
+          _adsys_size = 21;
+        </script>
+        <script src="https://d.wedosas.net/d.js"></script>
+      </div></p>
+      </div>
 
       <div class="list">
         <div class="mini">
@@ -1153,15 +1109,14 @@
       <textarea id="zprava" name="zprava" placeholder="Co prodáváte / nabízíte, cíl webu, konkurence…"></textarea>
 
       <div class="leadbox">
-        ✅ Odpovíme do 24 h • ✅ Dáme nejlepší řešení • ✅ Konzultace zdarma
+        ✅ Odpovíme do 24 h • ✅ Doporučíme nejlepší řešení • ✅ Konzultace je zdarma
       </div>
 
-      <div style="display:flex;justify-content:center;gap:.6rem;align-items:center;margin-top:1rem;flex-wrap:wrap">
-  <button class="btn btn--primary" type="submit">Odeslat poptávku</button>
-  <a class="btn btn--ghost" href="mailto:studio@webao.cz?subject=Poptávka%20WebAO&body=Ahoj,%20mám%20zájem%20o%20web.%20Zde%20jsou%20podklady:%0A%0A">
-    Napsat e-mail
-  </a>
-</div>
+      <div style="display:flex;gap:.6rem;align-items:center;margin-top:1rem;flex-wrap:wrap">
+        <button class="btn btn--primary" type="submit">Odeslat poptávku</button>
+        <a class="btn btn--ghost" href="mailto:studio@webao.cz?subject=Poptávka%20WebAO&body=Ahoj,%20mám%20zájem%20o%20web.%20Zde%20jsou%20podklady:%0A%0A">Napsat e‑mail</a>
+      </div>
+      <p class="muted" style="margin:.75rem 0 0 0">nebo napiš na <a href="mailto:studio@webao.cz" class="contact-email">studio@webao.cz</a></p>
     </form>
 
     <aside class="aside">
@@ -1171,30 +1126,21 @@
       <p>Telefon: <a href="tel:+420777000000" class="contact-email" style="color:#002a99">+420 000 000 000</a></p>
       <p><span class="pill">🛡 SSL • Zálohy • Monitoring</span></p>
 
-      <!-- Mapa: Uherské Hradiště -->
-<div class="map-card" aria-label="Mapa Uherské Hradiště">
-  
-  <div class="map-head">
-    <strong>Uherské Hradiště</strong>
-    <a 
-      class="map-link" 
-      target="_blank" 
-      rel="noopener"
-      href="https://www.google.com/maps?q=Uherské+Hradiště">
-      Otevřít v mapách ↗
-    </a>
-  </div>
-
-  <div class="map-embed">
-    <iframe
-      title="Mapa Uherské Hradiště"
-      loading="lazy"
-      referrerpolicy="no-referrer-when-downgrade"
-      src="https://www.google.com/maps?&q=Uhersk%C3%A9%20Hradi%C5%A1t%C4%9B&output=embed">
-    </iframe>
-  </div>
-
-</div>
+      <!-- Mapa: Uherské Hradiště (mezi Kontakt a FAQ) -->
+      <div class="map-card" aria-label="Mapa Uherské Hradiště">
+        <div class="map-head">
+          <strong>Uherské Hradiště</strong>
+          <a class="contact-email" style="font-size:.92rem" target="_blank" rel="noopener" href="https://www.google.com/maps?q=Uherské+Hradi%C5%A1t%C4%9B">Otevřít v mapách ↗</a>
+        </div>
+        <div class="map-embed" role="region" aria-label="Google mapa Uherské Hradiště">
+          <iframe
+            title="Mapa Uherské Hradiště"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?&q=Uhersk%C3%A9%20Hradi%C5%A1t%C4%9B&output=embed">
+          </iframe>
+        </div>
+      </div>
 
       <div class="divider"></div>
       <h4 style="margin:0 0 10px 0">FAQ</h4>

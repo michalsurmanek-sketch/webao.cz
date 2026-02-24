@@ -91,6 +91,51 @@
     .nav-cta{display:flex;align-items:center;gap:.6rem}
     .burger{display:none;border:none;background:transparent;font-size:0}
 
+    .menu a{
+  color:var(--ink-60);
+  font-weight:600;
+  position:relative;
+  padding:.35rem .05rem;
+  outline:none;
+}
+
+/* podtržení při najetí (animované) */
+.menu a::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-6px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(
+    90deg,
+    rgba(0,51,204,.0),
+    rgba(0,51,204,.95),
+    rgba(253,199,0,.95)
+  );
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .22s ease;
+  opacity:.95;
+}
+
+.menu a:hover{
+  color:var(--ink);
+}
+
+.menu a:hover::after{
+  transform:scaleX(1);
+}
+
+.menu a:focus-visible{
+  color:var(--ink);
+}
+
+.menu a:focus-visible::after{
+  transform:scaleX(1);
+}
+
     /* Burger ikonka (3 čáry) */
     .burger{
       position:relative;

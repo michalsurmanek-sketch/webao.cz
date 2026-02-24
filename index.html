@@ -297,7 +297,7 @@
     }
     .card h3{margin:.2rem 0 .4rem 0}
     .icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--yellow),#ffd94c);display:grid;place-items:center;font-weight:900;color:#4a3a00}
-    .tag{display:inline-flex;align-items:center;gap:.5rem;background:#fff3c2;border:1px solid #ffe186;color:#7a5b00;padding:.2rem .55rem;border-radius:999px;font-size:.8rem;font-weight:700}
+    .tag{display:inline-flex;align-items:center;gap:.5rem;background:#fff3c2;border:1px solid #ffe186;color:#7a5b00;padding:.2rem .55rem;border-radius:999px;font-size:.8rem;font-weight:700;margin-right:14px;}
 
     /* Pricing */
     .pricing .card{position:relative}
@@ -1646,20 +1646,23 @@
 </style>
 
 <script>
-const scrollBtn = document.getElementById('scrollTopBtn');
+document.addEventListener('DOMContentLoaded', function(){
+  const scrollBtn = document.getElementById('scrollTopBtn');
+  if(!scrollBtn) return;
 
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 400) {
-    scrollBtn.classList.add('show');
-  } else {
-    scrollBtn.classList.remove('show');
-  }
-});
+  window.addEventListener('scroll', function(){
+    if (window.scrollY > 400) {
+      scrollBtn.classList.add('show');
+    } else {
+      scrollBtn.classList.remove('show');
+    }
+  });
 
-scrollBtn.addEventListener('click', () => {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
+  scrollBtn.addEventListener('click', function(){
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   });
 });
 </script>

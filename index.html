@@ -420,6 +420,47 @@
 
     .leadbox{margin-top:1rem;border-radius:16px;border:1px solid rgba(0,51,204,.12);background:rgba(0,51,204,.04);padding:1rem;color:var(--ink-60);font-weight:700}
 
+    .map-card {
+  margin-top: 40px;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,.05);
+}
+
+.map-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eef2fb;
+  background: linear-gradient(180deg,#ffffff,#f8fbff);
+}
+
+.map-link {
+  font-size: 14px;
+  text-decoration: none;
+  color: #0033cc;
+  font-weight: 600;
+}
+
+.map-embed {
+  aspect-ratio: 16/9;
+}
+
+.map-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+@media(max-width:768px){
+  .map-embed{
+    aspect-ratio: 16/12;
+  }
+} 
     /* Footer */
     footer{
       background:linear-gradient(180deg,#0a1950 0%, #08133d 100%);
@@ -1110,6 +1151,31 @@
       <p>E‑mail: <a href="mailto:studio@webao.cz" class="contact-email">studio@webao.cz</a></p>
       <p>Telefon: <a href="tel:+420777000000" class="contact-email" style="color:#002a99">+420 000 000 000</a></p>
       <p><span class="pill">🛡 SSL • Zálohy • Monitoring</span></p>
+
+      <!-- Mapa: Uherské Hradiště -->
+<div class="map-card" aria-label="Mapa Uherské Hradiště">
+  
+  <div class="map-head">
+    <strong>Uherské Hradiště</strong>
+    <a 
+      class="map-link" 
+      target="_blank" 
+      rel="noopener"
+      href="https://www.google.com/maps?q=Uherské+Hradiště">
+      Otevřít v mapách ↗
+    </a>
+  </div>
+
+  <div class="map-embed">
+    <iframe
+      title="Mapa Uherské Hradiště"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+      src="https://www.google.com/maps?&q=Uhersk%C3%A9%20Hradi%C5%A1t%C4%9B&output=embed">
+    </iframe>
+  </div>
+
+</div>
 
       <div class="divider"></div>
       <h4 style="margin:0 0 10px 0">FAQ</h4>

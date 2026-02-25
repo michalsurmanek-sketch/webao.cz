@@ -149,7 +149,11 @@
       align-items:center;
       justify-content:center;
       gap:6px;
+      outline:none;
     }
+    .burger:focus:not(:focus-visible){outline:none;box-shadow:var(--shadow)}
+    .burger:focus-visible{outline:3px solid rgba(0,51,204,.35);outline-offset:3px}
+
     .burger span{
       position:absolute;
       width:18px;
@@ -286,17 +290,28 @@
       width:44px;
       height:44px;
       border-radius:50%;
-      border:1px solid #e9eef8;
-      background:#f1f4fa;
-      color:var(--ink-60);
-      transition:.2s ease;
+      border:1px solid rgba(255,255,255,.16);
+      background:#1f2a48; /* viditelné i bez hoveru */
+      color:#ffffff;      /* ikona vždy viditelná */
+      transition:transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
       padding:0 !important;
       margin:0;
       line-height:0;
       border-bottom:0 !important;
     }
 
+    /* firemní barvy při hoveru */
+    .drawer-socials a[data-platform="facebook"]:hover{background:#1877F2;border-color:rgba(24,119,242,.45)}
+    .drawer-socials a[data-platform="youtube"]:hover{background:#FF0000;border-color:rgba(255,0,0,.45)}
+    .drawer-socials a[data-platform="instagram"]:hover{
+      background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af,#515bd4);
+      border-color:rgba(245,133,41,.35)
+    }
+
+    .drawer-socials a:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+
     .drawer-socials a svg,
+
     .drawer-socials a img{
       width:20px;
       height:20px;
@@ -551,15 +566,31 @@
     .pc-more{height:40px;border-radius:999px;border:1px solid rgba(0,51,204,.18);background:rgba(0,51,204,.06);color:var(--blue);font-weight:900;padding:0 14px;transition:.2s ease}
     .pc-more:hover{background:rgba(0,51,204,.10);transform:translateY(-1px)}
 
-    /* Desktop: chceme jen „Další ukázky“ */
+    /* Ukázky – stránkování (mobil 1 karta, desktop 3 karty) */
+    .portfolio-controls{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+    .pc-btn{width:40px;height:40px;border-radius:12px;border:1px solid #e9eef8;background:#fff;display:grid;place-items:center;box-shadow:var(--shadow-sm);font-weight:900;color:var(--ink);transition:.2s ease}
+    .pc-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+    .pc-count{font-weight:800;color:var(--ink-40);min-width:78px;text-align:center}
+    .pc-more{height:40px;border-radius:999px;border:1px solid rgba(0,51,204,.18);background:rgba(0,51,204,.06);color:var(--blue);font-weight:900;padding:0 14px;transition:.2s ease}
+    .pc-more:hover{background:rgba(0,51,204,.10);transform:translateY(-1px)}
+
+    /* Desktop: ovládání ukázek je dole pod gridem */
     @media (min-width: 641px){
       .pc-prev,.pc-next,.pc-count{display:none}
-      .pc-more{display:inline-flex;align-items:center}
+      .pc-more{display:none}
     }
 
-    /* Mobil: chceme šipky + počitadlo, tlačítko schovat */
+    /* Desktop: tlačítko dole pod ukázkami */
+    .pf-bottom{display:none;justify-content:center;margin-top:1.1rem}
+    .pc-more--bottom{height:44px;padding:0 18px;font-size:1rem}
+    @media (min-width: 641px){
+      .pf-bottom{display:flex}
+      .pc-more--bottom{display:inline-flex;align-items:center}
+    }
+
+    /* Mobil: šipky + počitadlo, tlačítko dole schovat */
     @media (max-width: 640px){
-      .pc-more{display:none}
+      .pf-bottom{display:none}
     }
 
     /* Skryté položky v portfoliu */
@@ -789,7 +820,7 @@
     </div>
 
     <div class="drawer-socials" aria-label="Sociální sítě">
-      <a href="javascript:void(0)" aria-disabled="true" aria-label="Instagram">
+      <a href="javascript:void(0)" aria-disabled="true" aria-label="Instagram" data-platform="instagram">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="2" width="20" height="20" rx="5"></rect>
           <circle cx="12" cy="12" r="4"></circle>
@@ -797,13 +828,13 @@
         </svg>
       </a>
 
-      <a href="javascript:void(0)" aria-disabled="true" aria-label="Facebook">
+      <a href="javascript:void(0)" aria-disabled="true" aria-label="Facebook" data-platform="facebook">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.6c0-2.4 1.4-3.7 3.6-3.7 1 0 2 .2 2 .2v2.2h-1.2c-1.2 0-1.6.7-1.6 1.5v1.8H16l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/>
         </svg>
       </a>
 
-      <a href="javascript:void(0)" aria-disabled="true" aria-label="YouTube">
+      <a href="javascript:void(0)" aria-disabled="true" aria-label="YouTube" data-platform="youtube">
         <svg width="22" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M23 12s0-3-1-4.4c-1-1.6-2-1.6-4-1.8C15 5.5 12 5.5 12 5.5h0s-3 0-6 .3c-2 .2-3 .2-4 1.8C1 9 1 12 1 12s0 3 1 4.4c1 1.6 2.3 1.6 4.6 1.9 1.7.2 5.4.3 5.4.3s3 0 6-.3c2-.2 3-.2 4-1.8 1-1.4 1-4.4 1-4.4zM10 15.5v-7l6 3.5-6 3.5z"/>
         </svg>
@@ -1010,205 +1041,214 @@
             <span class="pc-count" id="pfCount" aria-live="polite">1 / 1</span>
             <button class="pc-btn pc-next" type="button" id="pfNext" aria-label="Další ukázka">›</button>
 
-            <button class="pc-more" type="button" id="pfMore">Další ukázky</button>
+            <!-- Desktop: tlačítko bude dole pod gridem, aby nebylo nutné vracet se nahoru -->
+            <button class="pc-more" type="button" id="pfMore" style="display:none">Další ukázky</button>
           </div>
         </div>
       </div>
 
       <div class="grid grid--4" id="portfolioGrid">
-        <!-- (zůstává beze změny – tvoje portfolio karty) -->
+        <!-- Ukázky: Desktop ukáže 8, zbytek se "dočítá" (odkrývá) dole. Mobil ukáže 1 a šipkami přepínáš. -->
         <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://reklamas.cz" target="_blank" rel="noopener" aria-label="Otevřít Reklamas.cz">
+          <a class="project-preview portfolio-preview" href="https://www.reklamas.cz" target="_blank" rel="noopener">
             <span class="preview-label">Reklamas.cz</span>
-            <img alt="Reklamas.cz náhled" src="/images/reklamas.png">
+            <img src="/images/reklamas.png" alt="Reklamas.cz – náhled">
             <span class="preview-cta">Zobrazit <span>↗</span></span>
           </a>
           <div class="portfolio-meta">
-            <h3>Reklamas.cz</h3>
-            <p class="muted">Reklamas — hrdina vaší reklamy</p>
+            <h3 style="margin:.2rem 0 .2rem 0">Reklamas.cz</h3>
+            <p class="muted" style="margin:0">Mobilní reklama • poptávky • rychlost</p>
           </div>
         </div>
 
         <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://chatao.cz" target="_blank" rel="noopener" aria-label="Otevřít chatao.cz">
-            <span class="preview-label">Chatao.cz</span>
-            <img alt="chatao.cz náhled" src="/images/chatao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Chatao.cz</h3>
-            <p class="muted">Feedový booking chat</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://zahradao.cz" target="_blank" rel="noopener" aria-label="Otevřít Zahradao.cz">
-            <span class="preview-label">Zahradao.cz</span>
-            <img alt="Zahradao.cz náhled" src="/images/zahradao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Zahradao.cz</h3>
-            <p class="muted">Zahrada budoucnosti</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://vodao.cz" target="_blank" rel="noopener" aria-label="Otevřít vodao.cz">
-            <span class="preview-label">Vodao.cz</span>
-            <img alt="Vodao.cz náhled" src="/images/vodao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Vodao.cz</h3>
-            <p class="muted">„voda“ • služby • firmy • poptávky</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://herbao.cz" target="_blank" rel="noopener" aria-label="Otevřít herbao.cz">
+          <a class="project-preview portfolio-preview" href="https://www.herbao.cz" target="_blank" rel="noopener">
             <span class="preview-label">Herbao.cz</span>
-            <img alt="Herbao.cz náhled" src="/images/herbao.png">
+            <img src="/images/herbao.png" alt="Herbao.cz – náhled">
             <span class="preview-cta">Zobrazit <span>↗</span></span>
           </a>
           <div class="portfolio-meta">
-            <h3>Herbao.cz</h3>
-            <p class="muted">Přírodní rovnováha pro tělo i hlavu</p>
+            <h3 style="margin:.2rem 0 .2rem 0">Herbao.cz</h3>
+            <p class="muted" style="margin:0">Značka • e‑shop • čistý design</p>
           </div>
         </div>
 
         <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://oknao.cz" target="_blank" rel="noopener" aria-label="Otevřít oknao.cz">
-            <span class="preview-label">Oknao.cz</span>
-            <img alt="Oknao.cz náhled" src="/images/oknao.png">
+          <a class="project-preview portfolio-preview" href="https://www.gurmao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Gurmao.cz</span>
+            <img src="/images/gurmao.png" alt="Gurmao.cz – náhled">
             <span class="preview-cta">Zobrazit <span>↗</span></span>
           </a>
           <div class="portfolio-meta">
-            <h3>Oknao.cz</h3>
-            <p class="muted">okna & dveře-poptávka · montáž</p>
+            <h3 style="margin:.2rem 0 .2rem 0">Gurmao.cz</h3>
+            <p class="muted" style="margin:0">Gastro • katalog • lokální SEO</p>
           </div>
         </div>
 
         <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://farmao.cz" target="_blank" rel="noopener" aria-label="Otevřít Farmao.cz">
-            <span class="preview-label">Farmao.cz</span>
-            <img alt="Farmao.cz náhled" src="/images/farmao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Farmao.cz</h3>
-            <p class="muted">Čerstvá síla z lokálních farem</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://poptejplot.cz" target="_blank" rel="noopener" aria-label="Otevřít poptejplot.cz">
-            <span class="preview-label">Poptejplot.cz</span>
-            <img alt="Poptejplot.cz náhled" src="/images/poptejplot.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Poptejplot.cz</h3>
-            <p class="muted">Poptávky na ploty a oplocení</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://casinao.cz" target="_blank" rel="noopener" aria-label="Otevřít casinao.cz">
-            <span class="preview-label">Casinao.cz</span>
-            <img alt="Casinao.cz náhled" src="/images/casinao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Casinao.cz</h3>
-            <p class="muted">Online casina v ČR, bonusy a recenze</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://fitnao.cz" target="_blank" rel="noopener" aria-label="Otevřít fitnao.cz">
-            <span class="preview-label">Fitnao.cz</span>
-            <img alt="Fitnao.cz náhled" src="/images/fitnao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Fitnao.cz</h3>
-            <p class="muted">Jídlo. Pohyb. Režim. Klid.</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://slevao.cz" target="_blank" rel="noopener" aria-label="Otevřít slevao.cz">
-            <span class="preview-label">Slevao.cz</span>
-            <img alt="Slevao.cz náhled" src="/images/slevao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Slevao.cz</h3>
-            <p class="muted">Chytré slevy.Ne letáky.</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://webao.cz" target="_blank" rel="noopener" aria-label="Otevřít webao.cz">
-            <span class="preview-label">Webao.cz</span>
-            <img alt="Webao.cz náhled" src="/images/webao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Webao.cz</h3>
-            <p class="muted">Tvoříme weby, které prodávají</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://domenao.cz" target="_blank" rel="noopener" aria-label="Otevřít Domenao.cz">
-            <span class="preview-label">Domenao.cz</span>
-            <img alt="Domenao.cz náhled" src="/images/domenao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Domenao.cz</h3>
-            <p class="muted">Domény, které mají hodnotu</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://firmao.cz" target="_blank" rel="noopener" aria-label="Otevřít firmao.cz">
-            <span class="preview-label">Firmao.cz</span>
-            <img alt="firmao.cz náhled" src="/images/firmao.png">
-            <span class="preview-cta">Zobrazit <span>↗</span></span>
-          </a>
-          <div class="portfolio-meta">
-            <h3>Firmao.cz</h3>
-            <p class="muted">Vaše firma. Naše řešení.</p>
-          </div>
-        </div>
-
-        <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://adresao.cz" target="_blank" rel="noopener" aria-label="Otevřít Adresao.cz">
+          <a class="project-preview portfolio-preview" href="https://www.adresao.cz" target="_blank" rel="noopener">
             <span class="preview-label">Adresao.cz</span>
-            <img alt="Adresao.cz náhled" src="/images/adresao.png">
+            <img src="/images/adresao.png" alt="Adresao.cz – náhled">
             <span class="preview-cta">Zobrazit <span>↗</span></span>
           </a>
           <div class="portfolio-meta">
-            <h3>Adresao.cz</h3>
-            <p class="muted">Virtuální adresa pro firmy</p>
+            <h3 style="margin:.2rem 0 .2rem 0">Adresao.cz</h3>
+            <p class="muted" style="margin:0">Služby • důvěryhodnost • formuláře</p>
           </div>
         </div>
 
         <div class="card portfolio-card">
-          <a class="project-preview portfolio-preview" href="https://kartao.cz" target="_blank" rel="noopener" aria-label="Otevřít Kartao.cz">
-            <span class="preview-label">Kartao.cz</span>
-            <img alt="Kartao.cz náhled" src="/images/kartao.png">
+          <a class="project-preview portfolio-preview" href="https://www.startao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Startao.cz</span>
+            <img src="/images/startao.png" alt="Startao.cz – náhled">
             <span class="preview-cta">Zobrazit <span>↗</span></span>
           </a>
           <div class="portfolio-meta">
-            <h3>Kartao.cz</h3>
-            <p class="muted">Marketplace influencerů</p>
+            <h3 style="margin:.2rem 0 .2rem 0">StartAO.cz</h3>
+            <p class="muted" style="margin:0">Balíčky • rychlý start • konverze</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card">
+          <a class="project-preview portfolio-preview" href="https://www.domenao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Domenao.cz</span>
+            <img src="/images/domenao.png" alt="Domenao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">DomenAO.cz</h3>
+            <p class="muted" style="margin:0">Domény • vyhledávání • přehled</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card">
+          <a class="project-preview portfolio-preview" href="https://www.firmao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Firmao.cz</span>
+            <img src="/images/firmao.png" alt="Firmao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">FirmAO.cz</h3>
+            <p class="muted" style="margin:0">Katalog • vyhledávač • služby</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card">
+          <a class="project-preview portfolio-preview" href="https://www.rezervao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Rezervao.cz</span>
+            <img src="/images/rezervao.png" alt="Rezervao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">RezervAO.cz</h3>
+            <p class="muted" style="margin:0">Rezervace • kalendář • jednoduchost</p>
+          </div>
+        </div>
+
+        <!-- DALŠÍ UKÁZKY (skryté – odkrývají se tlačítkem / doskrolováním) -->
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.fitnao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Fitnao.cz</span>
+            <img src="/images/fitnao.png" alt="Fitnao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">FitnAO.cz</h3>
+            <p class="muted" style="margin:0">Fitness • programy • výkon</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.chatao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Chatao.cz</span>
+            <img src="/images/chatao.png" alt="Chatao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">Chatao.cz</h3>
+            <p class="muted" style="margin:0">Ubytování • zážitky • rezervace</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.vinao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Vinao.cz</span>
+            <img src="/images/vinao.png" alt="Vinao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">VinAO.cz</h3>
+            <p class="muted" style="margin:0">Víno • katalog • obsah</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.vodao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Vodao.cz</span>
+            <img src="/images/vodao.png" alt="Vodao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">VodAO.cz</h3>
+            <p class="muted" style="margin:0">Voda • služby • poptávky</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.zahradao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Zahradao.cz</span>
+            <img src="/images/zahradao.png" alt="Zahradao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">ZahradAO.cz</h3>
+            <p class="muted" style="margin:0">Zahrada • plánování • produkty</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.oknao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Oknao.cz</span>
+            <img src="/images/oknao.png" alt="Oknao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">Oknao.cz</h3>
+            <p class="muted" style="margin:0">Okna • kalkulace • poptávka</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.plotao.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Plotao.cz</span>
+            <img src="/images/plotao.png" alt="Plotao.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">PlotAO.cz</h3>
+            <p class="muted" style="margin:0">Ploty • poptávky • region</p>
+          </div>
+        </div>
+
+        <div class="card portfolio-card pf-hidden">
+          <a class="project-preview portfolio-preview" href="https://www.mobilnisklad.cz" target="_blank" rel="noopener">
+            <span class="preview-label">Mobilnisklad.cz</span>
+            <img src="/images/mobilnisklad.png" alt="Mobilnisklad.cz – náhled">
+            <span class="preview-cta">Zobrazit <span>↗</span></span>
+          </a>
+          <div class="portfolio-meta">
+            <h3 style="margin:.2rem 0 .2rem 0">MobilníSklad.cz</h3>
+            <p class="muted" style="margin:0">Sklad • pronájem • jednoduchost</p>
           </div>
         </div>
       </div>
+
+      <!-- Desktop: chytré „načítání“ dole (nemusíš zpět nahoru) -->
+      <div class="pf-bottom" id="pfBottom">
+        <button class="pc-more pc-more--bottom" type="button" id="pfMoreBottom">Další ukázky</button>
+      </div>
+      <div id="pfSentinel" aria-hidden="true" style="height:12px"></div>
+
     </div>
   </section>
 
@@ -1519,7 +1559,37 @@
     };
 
     // Bezpečnost: po načtení vždy zavřít (kdyby zůstal stav z cache)
-    closeMenu();
+    // POZOR: nevracet fokus na burger při prvním loadu (dělal "rámeček")
+    const closeMenuSilent = () => {
+      if (!drawer || !overlay || !burger) return;
+
+      drawer.classList.remove('open');
+      overlay.classList.remove('open');
+      burger.classList.remove('is-open');
+      burger.setAttribute('aria-expanded', 'false');
+      drawer.setAttribute('aria-hidden', 'true');
+      overlay.setAttribute('aria-hidden', 'true');
+
+      if (document.body.classList.contains('menu-open')) {
+        document.body.classList.remove('menu-open');
+        const yStr = document.body.dataset.scrollY;
+        document.body.style.top = '';
+        if (yStr) {
+          const y = parseInt(yStr, 10) || 0;
+          delete document.body.dataset.scrollY;
+          window.scrollTo(0, y);
+        } else {
+          delete document.body.dataset.scrollY;
+        }
+      }
+    };
+    closeMenuSilent();
+
+    // OPRAVA: na prvním načtení na mobilu občas prohlížeč nechá fokus na hamburgeru
+    // (a ukáže se rámeček). Nechceme ho trvale vypnout – jen ho při startu odfokusujeme.
+    requestAnimationFrame(() => {
+      if (burger && document.activeElement === burger) burger.blur();
+    });
 
     burger?.addEventListener('click', () => {
       const isOpen = drawer?.classList.contains('open');
@@ -1708,80 +1778,99 @@
     });
 
     // =========================
-    // UKÁZKY PRÁCE – stránkování
-    // Mobil: 1 karta + šipky
-    // Desktop: 3 karty + tlačítko „Další ukázky“
+    // UKÁZKY PRÁCE
+    // Mobil: 1 karta + šipky (přepínání po 1)
+    // Desktop: 8 ukázek a „chytré“ dočítání dole (tlačítko + auto při doskrolování)
     // =========================
     const pfGrid = document.getElementById('portfolioGrid');
     const pfPrev = document.getElementById('pfPrev');
     const pfNext = document.getElementById('pfNext');
-    const pfMore = document.getElementById('pfMore');
     const pfCount = document.getElementById('pfCount');
+    const pfMoreBottom = document.getElementById('pfMoreBottom');
+    const pfSentinel = document.getElementById('pfSentinel');
 
     if (pfGrid) {
       const items = Array.from(pfGrid.querySelectorAll('.portfolio-card'));
       if (items.length) {
-        let start = 0;
-        let lastPerPage = 0;
+        let start = 0;                 // mobilní index
+        let desktopVisible = 8;        // kolik ukázat na desktopu
+        const desktopStep = 8;         // po kolika dočítat
 
-        const perPage = () => (window.innerWidth <= 640 ? 1 : 3);
+        const isMobile = () => window.innerWidth <= 640;
 
-        const clampStart = (s, pp) => {
-          if (items.length <= pp) return 0;
-          const maxStart = Math.max(0, items.length - pp);
-          if (s < 0) return maxStart;
-          if (s > maxStart) return 0; // loop
-          return s;
+        const applyDesktop = () => {
+          const visible = Math.min(items.length, desktopVisible);
+          items.forEach((el, i) => el.classList.toggle('pf-hidden', i >= visible));
+
+          if (pfMoreBottom) {
+            pfMoreBottom.style.display = visible >= items.length ? 'none' : 'inline-flex';
+          }
         };
 
-        const render = () => {
-          const pp = perPage();
-          if (pp !== lastPerPage) {
-            // drž stejnou "stránku" při resize
-            const page = lastPerPage ? Math.floor(start / lastPerPage) : 0;
-            start = page * pp;
-            lastPerPage = pp;
-          }
+        const applyMobile = () => {
+          if (pfMoreBottom) pfMoreBottom.style.display = 'none';
 
-          start = clampStart(start, pp);
+          const pp = 1;
+          const maxStart = Math.max(0, items.length - pp);
+          if (start < 0) start = maxStart;
+          if (start > maxStart) start = 0;
 
           items.forEach((el, i) => {
             const visible = i >= start && i < start + pp;
             el.classList.toggle('pf-hidden', !visible);
           });
 
-          // počitadlo (jen mobil)
-          if (pfCount) {
-            const cur = Math.min(items.length, start + 1);
-            const total = items.length;
-            pfCount.textContent = `${cur} / ${total}`;
+          if (pfCount) pfCount.textContent = `${start + 1} / ${items.length}`;
+        };
+
+        const render = () => {
+          if (isMobile()) {
+            desktopVisible = 8; // reset pro případ otočení
+            applyMobile();
+          } else {
+            if (pfCount) pfCount.textContent = '';
+            applyDesktop();
           }
         };
 
-        const next = () => {
-          const pp = perPage();
-          start += pp;
-          render();
-        };
-
-        const prev = () => {
-          const pp = perPage();
-          start -= pp;
-          render();
-        };
+        const next = () => { start += 1; render(); };
+        const prev = () => { start -= 1; render(); };
 
         pfNext?.addEventListener('click', next);
         pfPrev?.addEventListener('click', prev);
-        pfMore?.addEventListener('click', next);
+
+        pfMoreBottom?.addEventListener('click', () => {
+          desktopVisible = Math.min(items.length, desktopVisible + desktopStep);
+          applyDesktop();
+        });
+
+        // Desktop: auto-dočtení při doskrolování na konec sekce
+        let io = null;
+        const setupObserver = () => {
+          if (!pfSentinel) return;
+          io?.disconnect?.();
+          io = null;
+          if (isMobile()) return;
+
+          io = new IntersectionObserver((entries) => {
+            const hit = entries.some(e => e.isIntersecting);
+            if (!hit) return;
+            if (desktopVisible >= items.length) return;
+            desktopVisible = Math.min(items.length, desktopVisible + desktopStep);
+            applyDesktop();
+          }, { root: null, threshold: 0.01, rootMargin: '220px 0px 220px 0px' });
+
+          io.observe(pfSentinel);
+        };
 
         window.addEventListener('resize', () => {
-          // menu sync je nahoře, tady jen přerender
           render();
+          setupObserver();
         }, { passive: true });
 
         // init
-        lastPerPage = perPage();
         render();
+        setupObserver();
       }
     }
   })();
@@ -2053,59 +2142,4 @@
   </script>
 
 
-<!-- Scroll to top button -->
-<button id="scrollTopBtn" aria-label="Nahoru" title="Nahoru">↑</button>
 
-<style>
-#scrollTopBtn{
-  position:fixed;
-  right:24px;
-  bottom:24px;
-  width:48px;
-  height:48px;
-  border-radius:50%;
-  border:none;
-  background:var(--blue);
-  color:#fff;
-  font-size:20px;
-  cursor:pointer;
-  box-shadow:0 10px 25px rgba(0,0,0,.15);
-  opacity:0;
-  pointer-events:none;
-  transition:all .25s ease;
-  z-index:999;
-}
-#scrollTopBtn:hover{
-  transform:translateY(-3px);
-  box-shadow:0 14px 35px rgba(0,0,0,.2);
-}
-#scrollTopBtn.show{
-  opacity:1;
-  pointer-events:auto;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  const scrollBtn = document.getElementById('scrollTopBtn');
-  if(!scrollBtn) return;
-
-  window.addEventListener('scroll', function(){
-    if (window.scrollY > 400) {
-      scrollBtn.classList.add('show');
-    } else {
-      scrollBtn.classList.remove('show');
-    }
-  });
-
-  scrollBtn.addEventListener('click', function(){
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  });
-});
-</script>
-
-</body>
-</html>

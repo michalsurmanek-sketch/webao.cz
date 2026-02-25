@@ -145,7 +145,7 @@
       background:var(--white);
       box-shadow:var(--shadow);
       border:1px solid #e9eef8;
-      display:none;
+      display:none; /* na desktopu skryté */
       align-items:center;
       justify-content:center;
       gap:6px;
@@ -165,108 +165,132 @@
     .burger.is-open span:nth-child(2){opacity:0}
     .burger.is-open span:nth-child(3){top:21px;transform:rotate(-45deg)}
 
-    /* Mobile menu (Reklamas.cz style: overlay + slide panel) */
-    .drawer{display:none}
-    .drawer-overlay{display:none}
+    /* Mobil: schovat desktop menu + CTA a ukázat burger */
     @media (max-width: 920px){
-      .nav-cta .btn{display:none}
-      .drawer{display:block}
       .menu{display:none}
+      .nav-cta > a{display:none}
       .burger{display:flex}
-
-      .drawer-overlay{
-        display:block;
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.35);
-        opacity:0;
-        pointer-events:none;
-        transition:opacity .2s ease;
-        z-index:60;
-      }
-      .drawer-overlay.open{opacity:1;pointer-events:auto}
-
-      .drawer{
-        position:fixed;
-        top:0;
-        right:0;
-        width:min(86%, 380px);
-        height:100dvh;
-        background:var(--white);
-        transform:translateX(102%);
-        transition:transform .25s ease;
-        box-shadow:var(--shadow);
-        padding:calc(env(safe-area-inset-top) + 1rem) 1.2rem 1rem 1.2rem;
-        z-index:61;
-        border-left:1px solid #eef2fb;
-        overflow:auto;
-        -webkit-overflow-scrolling:touch;
-      }
-      .drawer.open{transform:translateX(0)}
-
-      .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:.4rem 0 1rem 0}
-      .drawer-head b{font-size:1.05rem}
-      .drawer-close{
-        width:40px;height:40px;border-radius:12px;
-        border:1px solid #e9eef8;background:#fff;
-        display:grid;place-items:center;
-        cursor:pointer;transition:.2s ease;
-      }
-      .drawer-close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
-
-      .drawer a:not(.btn){
-        display:block;
-        padding:.95rem 0;
-        border-bottom:1px solid #eef2fb;
-        color:var(--ink-60);
-        font-weight:600;
-      }
-      .drawer a:not(.btn):hover{color:var(--ink)}
-
-      /* CTA tlačítka v draweru nesmí zdědit styl menu odkazů */
-      .drawer .btn{border-bottom:none;padding:.9rem 1.3rem}
-      .drawer .btn--primary{color:#fff}
-      .drawer .btn--ghost{color:var(--blue)}
-
-      .drawer-cta{display:grid;gap:.65rem;margin-top:1rem}
-      .drawer-cta .btn{width:100%;justify-content:center}
-
-      /* Lepší CTA blok (premium) */
-      .drawer-cta{padding-top:.6rem}
-      .drawer-cta .btn--primary{box-shadow:0 14px 32px rgba(0,51,204,.18)}
-      .drawer-cta .btn--ghost{background:rgba(0,51,204,.06)}
-
-      .drawer-socials{
-        margin-top:1.1rem;
-        padding-top:1rem;
-        border-top:1px solid #eef2fb;
-        display:flex;
-        gap:14px;
-        flex-wrap:wrap;
-        justify-content:center;
-      }
-      .drawer-socials a{
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        width:44px;
-        height:44px;
-        border-radius:50%;
-        border:1px solid #e9eef8;
-        background:#fff;
-        color:var(--ink-60);
-        transition:.2s ease;
-      }
-      .drawer-socials a:hover{
-        transform:translateY(-2px);
-        color:var(--ink);
-        box-shadow:0 10px 20px rgba(0,0,0,.08);
-        border-color:rgba(0,51,204,.25);
-      }
     }
 
-    /* body lock při otevřeném menu */
-    body.menu-open{overflow:hidden}
+    /* Mobile menu (výjezd shora POD headrem – nikdy nepřejede přes lištu) */
+    .drawer{
+      position:fixed;
+      left:0;
+      right:0;
+      width:100%;
+      /* top + height se dopočítá v JS podle reálné výšky headeru */
+      top:70px;
+      height:calc(100dvh - 70px);
+      background:var(--white);
+      z-index:1000;
+      padding:1.4rem 1.4rem 2rem 1.4rem;
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+
+      /* ZAVŘENO: obsah je schovaný "zespodu" (clip), takže animace nejede přes header */
+      clip-path: inset(0 0 100% 0);
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+      transition:
+        clip-path .34s cubic-bezier(.2,.9,.2,1),
+        opacity .22s ease,
+        visibility 0s linear .34s;
+      will-change:clip-path, opacity;
+    }
+    .drawer.open{
+      clip-path: inset(0 0 0 0);
+      opacity:1;
+      visibility:visible;
+      pointer-events:auto;
+      transition:
+        clip-path .34s cubic-bezier(.2,.9,.2,1),
+        opacity .22s ease,
+        visibility 0s;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .drawer{transition:none}
+    }
+
+    /* Overlay pod headrem (klikem zavře menu) */
+    .drawer-overlay{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      top:70px;
+      background:rgba(11,18,32,.45);
+      opacity:0;
+      pointer-events:none;
+      visibility:hidden;
+      transition:opacity .22s ease;
+      z-index:999;
+    }
+    .drawer-overlay.open{
+      opacity:1;
+      pointer-events:auto;
+      visibility:visible;
+    }
+
+    .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:.4rem 0 1rem 0}
+    .drawer-head b{font-size:1.05rem}
+    .drawer-close{
+      width:40px;height:40px;border-radius:12px;
+      border:1px solid #e9eef8;background:#fff;
+      display:grid;place-items:center;
+      cursor:pointer;transition:.2s ease;
+    }
+    .drawer-close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+
+    .drawer a:not(.btn){
+      display:block;
+      padding:.95rem 0;
+      border-bottom:1px solid #eef2fb;
+      color:var(--ink-60);
+      font-weight:600;
+    }
+    .drawer a:not(.btn):hover{color:var(--ink)}
+
+    /* CTA tlačítka v draweru nesmí zdědit styl menu odkazů */
+    .drawer .btn{border-bottom:none;padding:.9rem 1.3rem}
+    .drawer .btn--primary{color:#fff}
+    .drawer .btn--ghost{color:var(--blue)}
+
+    .drawer-cta{display:grid;gap:.65rem;margin-top:1rem;padding-top:.6rem}
+    .drawer-cta .btn{width:100%;justify-content:center}
+    .drawer-cta .btn--primary{box-shadow:0 14px 32px rgba(0,51,204,.18)}
+    .drawer-cta .btn--ghost{background:rgba(0,51,204,.06)}
+
+    .drawer-socials{
+      margin-top:1.1rem;
+      padding-top:1rem;
+      border-top:1px solid #eef2fb;
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    .drawer-socials a{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      border:1px solid #e9eef8;
+      background:#fff;
+      color:var(--ink-60);
+      transition:.2s ease;
+    }
+    .drawer-socials a:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);color:var(--ink)}
+
+    /* body lock při otevřeném menu (bez poskoku stránky) */
+    body.menu-open{
+      overflow:hidden;
+      position:fixed;
+      width:100%;
+    }
     body.cookie-open{overflow:hidden}
 
     /* Hero */
@@ -414,6 +438,29 @@
 
     /* Ukázky práce – stejný styl jako ukázkový projekt */
     .portfolio-card{padding:0;overflow:hidden}
+
+    /* Ukázky – stránkování (mobil 1 karta, desktop 3 karty) */
+    .portfolio-controls{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+    .pc-btn{width:40px;height:40px;border-radius:12px;border:1px solid #e9eef8;background:#fff;display:grid;place-items:center;box-shadow:var(--shadow-sm);font-weight:900;color:var(--ink);transition:.2s ease}
+    .pc-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+    .pc-count{font-weight:800;color:var(--ink-40);min-width:78px;text-align:center}
+    .pc-more{height:40px;border-radius:999px;border:1px solid rgba(0,51,204,.18);background:rgba(0,51,204,.06);color:var(--blue);font-weight:900;padding:0 14px;transition:.2s ease}
+    .pc-more:hover{background:rgba(0,51,204,.10);transform:translateY(-1px)}
+
+    /* Desktop: chceme jen „Další ukázky“ */
+    @media (min-width: 641px){
+      .pc-prev,.pc-next,.pc-count{display:none}
+      .pc-more{display:inline-flex;align-items:center}
+    }
+
+    /* Mobil: chceme šipky + počitadlo, tlačítko schovat */
+    @media (max-width: 640px){
+      .pc-more{display:none}
+    }
+
+    /* Skryté položky v portfoliu */
+    #portfolioGrid .pf-hidden{display:none !important}
+
     .portfolio-card .portfolio-meta{padding:1.05rem 1.2rem 1.2rem 1.2rem}
     .portfolio-preview{margin:0;border-radius:0;border:0;box-shadow:none;aspect-ratio:3/2;position:relative}
     .portfolio-preview img{width:100%;height:100%;object-fit:cover;object-position:top}
@@ -513,7 +560,45 @@
       .domain-check--hero .dc-actions{width:100%;justify-content:flex-end}
       .domain-check--hero .dc-row-btn{width:100%;justify-content:center}
     }
-  </style>
+    .cta-arrow{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.15em; /* relativní k textu tlačítka */
+    line-height:1;
+    transition:transform .2s ease;
+    font-weight:700;
+  }
+
+  .drawer .btn:hover .cta-arrow{
+    transform:translateX(4px);
+  }
+/* ===== MAPA SEKCE ===== */
+.section--map{
+  padding-top:0;
+}
+
+.map-wrap{
+  margin-top:1rem;
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.12);
+  border:1px solid #eef2fb;
+}
+
+.map-wrap iframe{
+  width:100%;
+  height:380px;
+  border:0;
+  display:block;
+}
+
+@media (max-width:640px){
+  .map-wrap iframe{
+    height:300px;
+  }
+}
+</style>
 </head>
 <body>
   <!-- Header -->
@@ -563,12 +648,7 @@
   <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
 
   <div class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-head">
-      <b>
-        <span style="color:var(--blue)">Web</span><span style="color:var(--ink)">AO</span>
-      </b>
-      <button class="drawer-close" id="drawerClose" type="button" aria-label="Zavřít menu">✕</button>
-    </div>
+    
 
     <a href="#domena">Doména</a>
     <a href="#sluzby">Služby</a>
@@ -578,8 +658,12 @@
     <a href="#kontakt">Kontakt</a>
 
     <div class="drawer-cta">
-      <a class="btn btn--ghost" href="#balicky">Ceník</a>
-      <a class="btn btn--primary" href="#kontakt">Poptat web</a>
+      <a href="#cenik" class="btn btn--ghost">
+        Ceník <span class="cta-arrow">→</span>
+      </a>
+      <a href="#kontakt" class="btn btn--primary">
+        Poptat web <span class="cta-arrow">→</span>
+      </a>
     </div>
 
     <div class="drawer-socials" aria-label="Sociální sítě">
@@ -781,10 +865,19 @@
         <h2>Ukázky práce</h2>
         <div class="section-h__right">
           <span class="muted only-mobile">Vybrané projekty WebAO</span>
+
+          <!-- Ovládání ukázek: mobil = 1 karta, desktop = 3 karty -->
+          <div class="portfolio-controls" id="portfolioControls" aria-label="Ovládání ukázek">
+            <button class="pc-btn pc-prev" type="button" id="pfPrev" aria-label="Předchozí ukázka">‹</button>
+            <span class="pc-count" id="pfCount" aria-live="polite">1 / 1</span>
+            <button class="pc-btn pc-next" type="button" id="pfNext" aria-label="Další ukázka">›</button>
+
+            <button class="pc-more" type="button" id="pfMore">Další ukázky</button>
+          </div>
         </div>
       </div>
 
-      <div class="grid grid--4">
+      <div class="grid grid--4" id="portfolioGrid">
         <!-- (zůstává beze změny – tvoje portfolio karty) -->
         <div class="card portfolio-card">
           <a class="project-preview portfolio-preview" href="https://reklamas.cz" target="_blank" rel="noopener" aria-label="Otevřít Reklamas.cz">
@@ -1039,6 +1132,26 @@
         <p>Telefon: <a href="tel:+420777000000">+420 000 000 000</a></p>
         <p><span class="pill">🛡 SSL • Zálohy • Monitoring</span></p>
         <div class="divider"></div>
+        <!-- MAPA – Uherské Hradiště -->
+<section class="section section--map" aria-labelledby="mapaTitle">
+  <div class="container">
+
+    <div class="section-h">
+      <h2 id="mapaTitle">Kde nás najdete</h2>
+    </div>
+
+    <div class="map-wrap">
+      <iframe
+        title="Mapa – Uherské Hradiště"
+        src="https://www.google.com/maps?q=Uhersk%C3%A9+Hradi%C5%A1t%C4%9B&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allowfullscreen>
+      </iframe>
+    </div>
+
+  </div>
+</section>
         <h4 style="margin:0 0 10px 0">FAQ</h4>
         <details open>
           <summary><strong> Jak rychle umíte dodat web?</strong></summary>
@@ -1193,13 +1306,38 @@
     // =========================
     // MOBILNÍ MENU (drawer)
     // =========================
+    const headerEl = document.querySelector('header');
     const burger = document.getElementById('burger');
     const drawer = document.getElementById('drawer');
     const overlay = document.getElementById('drawerOverlay');
     const closeBtn = document.getElementById('drawerClose');
 
+    // dopočítá skutečnou výšku headeru a nastaví top/height pro drawer + overlay
+    const syncDrawerTop = () => {
+      if (!headerEl || !drawer || !overlay) return;
+      const h = Math.round(headerEl.getBoundingClientRect().height || 70);
+      drawer.style.top = h + 'px';
+      drawer.style.height = 'calc(100dvh - ' + h + 'px)';
+      overlay.style.top = h + 'px';
+    };
+
+    // zavřít menu, pokud se přepne na desktop (a vždy držet správný top)
+    window.addEventListener('resize', () => {
+      syncDrawerTop();
+    }, { passive: true });
+
+    // hned na start
+    syncDrawerTop();
+
     const openMenu = () => {
+      syncDrawerTop();
       if (!drawer || !overlay || !burger) return;
+
+      // zamknout scroll bez poskoku
+      const y = window.scrollY || document.documentElement.scrollTop || 0;
+      document.body.dataset.scrollY = String(y);
+      document.body.style.top = `-${y}px`;
+
       drawer.classList.add('open');
       overlay.classList.add('open');
       document.body.classList.add('menu-open');
@@ -1207,17 +1345,39 @@
       burger.setAttribute('aria-expanded', 'true');
       drawer.setAttribute('aria-hidden', 'false');
       overlay.setAttribute('aria-hidden', 'false');
+
+      // Fokus do menu (lepší UX)
+      const firstLink = drawer.querySelector('a,button');
+      firstLink?.focus?.();
     };
 
     const closeMenu = () => {
       if (!drawer || !overlay || !burger) return;
+
       drawer.classList.remove('open');
       overlay.classList.remove('open');
-      document.body.classList.remove('menu-open');
       burger.classList.remove('is-open');
       burger.setAttribute('aria-expanded', 'false');
       drawer.setAttribute('aria-hidden', 'true');
       overlay.setAttribute('aria-hidden', 'true');
+
+      // odemknout scroll jen pokud byl skutečně zamknut
+      if (document.body.classList.contains('menu-open')) {
+        document.body.classList.remove('menu-open');
+
+        const yStr = document.body.dataset.scrollY;
+        document.body.style.top = '';
+        if (yStr) {
+          const y = parseInt(yStr, 10) || 0;
+          delete document.body.dataset.scrollY;
+          window.scrollTo(0, y);
+        } else {
+          delete document.body.dataset.scrollY;
+        }
+      }
+
+      // Fokus zpět na burger
+      burger.focus?.();
     };
 
     // Bezpečnost: po načtení vždy zavřít (kdyby zůstal stav z cache)
@@ -1380,15 +1540,112 @@
 
     // ESC zavře menu i cookie modal
     document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape') return;
-      if (drawer?.classList.contains('open')) closeMenu();
-      closeCookieModal();
+      if (e.key === 'Escape') {
+        if (drawer?.classList.contains('open')) closeMenu();
+        closeCookieModal();
+        return;
+      }
+
+      // jednoduchý focus trap v otevřeném draweru
+      if (e.key !== 'Tab') return;
+      if (!drawer?.classList.contains('open')) return;
+
+      const focusable = drawer.querySelectorAll('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     });
 
     // Při přechodu na desktop menu radši zavřít
     window.addEventListener('resize', () => {
       if (window.innerWidth > 920 && drawer?.classList.contains('open')) closeMenu();
     });
+
+    // =========================
+    // UKÁZKY PRÁCE – stránkování
+    // Mobil: 1 karta + šipky
+    // Desktop: 3 karty + tlačítko „Další ukázky“
+    // =========================
+    const pfGrid = document.getElementById('portfolioGrid');
+    const pfPrev = document.getElementById('pfPrev');
+    const pfNext = document.getElementById('pfNext');
+    const pfMore = document.getElementById('pfMore');
+    const pfCount = document.getElementById('pfCount');
+
+    if (pfGrid) {
+      const items = Array.from(pfGrid.querySelectorAll('.portfolio-card'));
+      if (items.length) {
+        let start = 0;
+        let lastPerPage = 0;
+
+        const perPage = () => (window.innerWidth <= 640 ? 1 : 3);
+
+        const clampStart = (s, pp) => {
+          if (items.length <= pp) return 0;
+          const maxStart = Math.max(0, items.length - pp);
+          if (s < 0) return maxStart;
+          if (s > maxStart) return 0; // loop
+          return s;
+        };
+
+        const render = () => {
+          const pp = perPage();
+          if (pp !== lastPerPage) {
+            // drž stejnou "stránku" při resize
+            const page = lastPerPage ? Math.floor(start / lastPerPage) : 0;
+            start = page * pp;
+            lastPerPage = pp;
+          }
+
+          start = clampStart(start, pp);
+
+          items.forEach((el, i) => {
+            const visible = i >= start && i < start + pp;
+            el.classList.toggle('pf-hidden', !visible);
+          });
+
+          // počitadlo (jen mobil)
+          if (pfCount) {
+            const cur = Math.min(items.length, start + 1);
+            const total = items.length;
+            pfCount.textContent = `${cur} / ${total}`;
+          }
+        };
+
+        const next = () => {
+          const pp = perPage();
+          start += pp;
+          render();
+        };
+
+        const prev = () => {
+          const pp = perPage();
+          start -= pp;
+          render();
+        };
+
+        pfNext?.addEventListener('click', next);
+        pfPrev?.addEventListener('click', prev);
+        pfMore?.addEventListener('click', next);
+
+        window.addEventListener('resize', () => {
+          // menu sync je nahoře, tady jen přerender
+          render();
+        }, { passive: true });
+
+        // init
+        lastPerPage = perPage();
+        render();
+      }
+    }
   })();
 </script>
 

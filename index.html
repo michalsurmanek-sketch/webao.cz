@@ -243,14 +243,15 @@
     }
     .drawer-close:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
 
-    .drawer a:not(.btn){
+    /* ODKAZY v mobilním menu – jen přímé položky (ne sociální ikony, ne CTA) */
+    .drawer > a{
       display:block;
       padding:.95rem 0;
       border-bottom:1px solid #eef2fb;
       color:var(--ink-60);
       font-weight:600;
     }
-    .drawer a:not(.btn):hover{color:var(--ink)}
+    .drawer > a:hover{color:var(--ink)}
 
     /* CTA tlačítka v draweru nesmí zdědit styl menu odkazů */
     .drawer .btn{border-bottom:none;padding:.9rem 1.3rem}
@@ -272,16 +273,28 @@
       justify-content:center;
     }
     .drawer-socials a{
-      display:inline-flex;
+      display:flex;
       align-items:center;
       justify-content:center;
       width:44px;
       height:44px;
       border-radius:50%;
       border:1px solid #e9eef8;
-      background:#fff;
+      background:#f1f4fa;
       color:var(--ink-60);
       transition:.2s ease;
+      padding:0 !important;
+      margin:0;
+      line-height:0;
+      border-bottom:0 !important;
+    }
+
+    .drawer-socials a svg,
+    .drawer-socials a img{
+      width:20px;
+      height:20px;
+      display:block;
+      margin:0;
     }
     .drawer-socials a:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);color:var(--ink)}
 
@@ -594,6 +607,24 @@
 }
 
 @media (max-width:640px){
+
+  /* SOC SÍTĚ – tmavší pozadí jen na mobilu */
+  .drawer-socials a{
+    background:#f1f4fa;
+    border-color:#e1e7f5;
+  }
+
+  .drawer-socials a:hover{
+    background:#e7ecf8;
+  }
+
+
+
+  /* ZMENŠENÍ MEZERY – Ukázkový projekt → Služby (jen mobil) */
+  .section--hero{margin-bottom:8px !important; padding-bottom:0 !important;}
+  .section--services{margin-top:0 !important; padding-top:0 !important;}
+
+
   .map-wrap iframe{
     height:300px;
   }

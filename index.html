@@ -509,24 +509,13 @@
     @media (max-width:640px){
 
   .icon-lupa{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  vertical-align:middle;
-  margin:0 6px;
-  color:var(--blue);
-}
-.icon-lupa svg{display:block;}
+    display:inline-flex;
+    vertical-align:middle;
+    margin:0 4px;
+    color:var(--blue);
+  }
 
-/* 3 řádky v nadpisu domény (1 patro / 2 patro / 3 patro) */
-.domain-subtitle{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:2px;
-  line-height:1.15;
-}
-.domain-subtitle .ds-line{display:block;}.icon-lupa svg{
+  .icon-lupa svg{
     display:block;
   }
 
@@ -863,7 +852,60 @@
       <div class="section-h">
         <h2>Služby</h2>
         <span class="muted">
-  <span class="domain-subtitle">
+          <span class="muted">
+          Vše pod jednou střechou 
+          <span class="roof-ao" aria-label="AO Group">
+            <svg viewBox="0 0 120 60" aria-hidden="true" focusable="false">
+              <path class="roof-shadow" d="M10 45 L60 10 L110 45" />
+              <path class="roof-path" d="M10 45 L60 10 L110 45" />
+            </svg>
+            <span class="ao-text">AO</span>
+            <span class="group-under">Group</span>
+          </span>
+        </span>
+      </div>
+
+      <div class="grid grid--3">
+        <div class="card">
+          <div class="icon">{}</div>
+          <h3>Tvorba webů</h3>
+          <p class="muted">Landing page, firemní web, mikrosite. Bleskové dodání a čistý kód.</p>
+        </div>
+        <div class="card">
+          <div class="icon">#</div>
+          <h3>E‑shopy</h3>
+          <p class="muted">Shoptet / WooCommerce – produkty, platby, doprava, faktury i sklad.</p>
+        </div>
+        <div class="card">
+          <div class="icon">↑</div>
+          <h3>SEO & obsah</h3>
+          <p class="muted">Analýza klíčových slov, on‑page, rychlost, copywriting a blog.</p>
+        </div>
+        <div class="card">
+          <div class="icon">☁</div>
+          <h3>Správa & hosting</h3>
+          <p class="muted">Aktualizace, zálohy, monitoring, e‑maily a SSL v ceně správy.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🤖</div>
+          <h3>AI automatizace</h3>
+          <p class="muted">Chatboti, generování obsahu, poptávkové asistenty, CRM propojení.</p>
+        </div>
+        <div class="card">
+          <div class="icon">★</div>
+          <h3>Branding & logo</h3>
+          <p class="muted">Logo, barvy, fonty, šablony dokumentů a firemní identita.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Kontrola domény (mezi Služby a Balíčky) -->
+  <section id="domena">
+    <div class="container">
+      <div class="section-h">
+        <h2>Zkontroluj dostupnost domény</h2>
+        <span class="muted"><span class="domain-subtitle">
     <span class="ds-line">Ověř si název</span>
     <span class="ds-line">ještě před
       <span class="icon-lupa" aria-hidden="true">
@@ -874,8 +916,7 @@
       </span>
     </span>
     <span class="ds-line">tvorbou webu</span>
-  </span>
-</span>
+  </span></span>
       </div>
 
       <div class="domain-check domain-check--hero" id="domainCheck" aria-label="Kontrola dostupnosti domény">

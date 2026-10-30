@@ -1,0 +1,31 @@
+import {BASE,KEY,ANON,request,escapeHTML as e,money} from './webao-api.js';
+const dialog=document.createElement('dialog');dialog.className='participate-dialog';dialog.setAttribute('aria-label','Podpořit projekt WEBAO');document.body.append(dialog);
+let lastTrigger,projects;
+async function openProject(slug,trigger){
+ lastTrigger=trigger;dialog.innerHTML='<button class="dialog-close" aria-label="Zavřít">×</button><p role="status">Načítám projekt…</p>';dialog.showModal();
+ try{
+  projects=await request('/rest/v1/webao_projects?select=*&order=sort_order');
+  const p=projects.find(p=>p.slug===slug);if(!p)throw new Error('Projekt zatím nemá otevřenou možnost spolupráce.');
+  dialog.innerHTML=`<button class="dialog-close" aria-label="Zavřít">×</button><p class="eyebrow">Staňte se součástí příběhu</p><h2>${e(p.name)}<span> může růst i s vámi.</span></h2><p class="participate-intro">${e(p.summary)}</p><div class="project-intent"><div><small>Kam projekt směřuje</small><p>${e(p.thesis||'Podrobnosti s vámi rádi probereme osobně.')}</p></div><div><small>Oblasti dalšího rozvoje</small><p>${e(p.use_of_funds||'Konkrétní rozsah dohodneme individuálně.')}</p></div></div><div class="project-state"><span>${e(p.stage)}</span>${p.funding_goal?`<span>Plán rozvoje: ${money(p.funding_goal)}</span>`:''}</div>${p.open_to_interest?`<form id="participate-form"><h3>Pojďme probrat možnosti</h3><p>Nezávazně nám napište, jak se chcete zapojit. Ozveme se s dalšími informacemi.</p><div class="interest-fields"><label>Jméno a příjmení *<input name="name" required minlength="2" maxlength="120" autocomplete="name"></label><label>E-mail *<input name="email" type="email" required maxlength="254" autocomplete="email"></label><label>Telefon<input name="phone" type="tel" maxlength="40" autocomplete="tel"></label><label>Firma<input name="company" maxlength="160" autocomplete="organization"></label><label>Jak se chcete zapojit? *<select name="interest_type"><option value="investment">Jednat o investici</option><option value="partnership">Obchodní partnerství</option><option value="expertise">Zkušenosti a odborná spolupráce</option></select></label><label>Orientační částka v Kč (nepovinné)<input name="amount" type="number" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="Nechávám otevřené"></label><label class="full-field">Co máte na mysli?<textarea name="message" maxlength="3000" rows="3" placeholder="Co vás na projektu zaujalo? Jakou spolupráci si představujete?"></textarea></label></div><label class="interest-honeypot" aria-hidden="true">Web<input name="website" tabindex="-1" autocomplete="off"></label><label class="privacy-check"><input name="privacy" type="checkbox" required> <span>Seznámil/a jsem se s <a href="/spoluprace-soukromi.html" target="_blank" rel="noopener">informacemi o zpracování osobních údajů</a>.</span></label><p class="interest-status" role="status" aria-live="polite"></p><button class="button" type="submit">Chci probrat spolupráci <b>→</b></button><small class="interest-note">Odeslání není závazkem investovat. Částka je orientační. Konkrétní podmínky, způsob financování a související rizika se řeší individuálně před případnou smlouvou.</small></form>`:'<p class="closed-interest">Tento projekt nyní nepřijímá nové zájemce. Napište nám na <a href="mailto:studio@webao.cz">studio@webao.cz</a>.</p>'}`;
+  dialog.scrollTop=0;
+  const form=dialog.querySelector('form');if(form)form.addEventListener('submit',async ev=>{
+   ev.preventDefault();if(!form.reportValidity())return;const button=form.querySelector('button[type="submit"]'),status=form.querySelector('.interest-status');button.disabled=true;status.textContent='Odesílám…';
+   try{const fields=Object.fromEntries(new FormData(form));const r=await fetch(BASE+'/functions/v1/webao-interest',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+ANON,'Content-Type':'application/json'},body:JSON.stringify({...fields,privacy:form.elements.privacy.checked,project:slug})});const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.error||'Odeslání se nepodařilo.');form.innerHTML='<div class="interest-success"><span>✓</span><h3>Děkujeme za váš zájem.</h3><p>Zpráva je bezpečně uložená u projektu '+e(p.name)+'. Ozveme se na uvedený e-mail a probereme další možnosti.</p><button class="button finish-interest" type="button">Zavřít</button></div>';}
+   catch(err){status.textContent=err.message;button.disabled=false;}
+  });
+ }catch(err){dialog.innerHTML='<button class="dialog-close" aria-label="Zavřít">×</button><h2>Ještě chvíli.</h2><p>'+e(err.message)+'</p><a class="button" href="mailto:studio@webao.cz">Napsat e-mail</a>';}
+}
+document.addEventListener('click',ev=>{const button=ev.target.closest('[data-support]');if(button)openProject(button.dataset.support,button);});
+dialog.addEventListener('click',ev=>{if(ev.target===dialog||ev.target.closest('.dialog-close,.finish-interest'))dialog.close();});
+dialog.addEventListener('close',()=>lastTrigger?.focus());
+
+// New projects created by the administrator also appear in the public overview.
+request('/rest/v1/webao_projects?select=slug,name,summary&order=sort_order').then(rows=>{
+ const list=document.getElementById('all-projects');if(!list)return;
+ for(const p of rows){
+  let item=list.querySelector('[data-support="'+p.slug+'"]')?.closest('.project-mini');
+  if(!item){item=document.createElement('div');item.className='project-mini';item.innerHTML='<a href="https://'+e(p.slug)+'.cz/" target="_blank" rel="noopener"><strong>'+e(p.name)+' <span>↗</span></strong><small>'+e(p.summary)+'</small></a><button type="button" data-support="'+e(p.slug)+'">Podpořit projekt ↗</button>';list.append(item);}
+  else{const small=item.querySelector('small');if(small)small.textContent=p.summary;}
+ }
+ const counter=document.querySelector('.stats strong');if(counter)counter.textContent=rows.length;
+}).catch(()=>{});

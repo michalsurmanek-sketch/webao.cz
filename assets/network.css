@@ -19,3 +19,4 @@ h1,h2,h3{font-weight:600}.hero-copy h1{line-height:.94}.hero-copy h1 span{displa
 .signature{position:relative;right:auto;bottom:auto;align-self:flex-end;margin:8px 7% 0;font-size:13px;line-height:1.1}.signature span{font-size:12px}.signature:after{margin:5px auto;width:40px}
 }
 @media(max-width:360px){.hero-copy h1{font-size:40px}.hero-copy h1 span{font-size:28px}.hero-copy .lead{font-size:17px}.hero-copy .eyebrow{font-size:6px;letter-spacing:1.3px}.network{top:auto}.hero-values{gap:4px}}
+@media(max-width:600px){header{overflow:hidden;transition:height .25s ease,opacity .25s ease,padding .25s ease}header.mobile-hidden{height:0;opacity:0;padding-block:0;border-bottom:0;pointer-events:none}}

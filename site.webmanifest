@@ -1,6 +1,6 @@
 {
-  "name": "WebAO – Weby, které prodávají",
-  "short_name": "WebAO",
+  "name": "WEBAO — česká síť projektů",
+  "short_name": "WEBAO",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#00150f",
@@ -16,5 +16,9 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "description": "Jedna síť. Spousta projektů.",
+  "lang": "cs",
+  "scope": "/",
+  "id": "/"
 }

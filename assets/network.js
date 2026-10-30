@@ -1,0 +1,1 @@
+document.querySelector('.all-link').addEventListener('click',function(){const panel=document.getElementById('all-projects');panel.hidden=!panel.hidden;this.setAttribute('aria-expanded',String(!panel.hidden));this.innerHTML=(panel.hidden?'Zobrazit všechny projekty':'Skrýt další projekty')+' <b>→</b>';});document.getElementById('year').textContent=new Date().getFullYear();

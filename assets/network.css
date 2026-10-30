@@ -2,3 +2,5 @@
 
 h1,h2,h3{font-weight:600}.hero-copy h1{line-height:.94}.hero-copy h1 span{display:inline-block;margin-top:9px}.brand>span{display:flex}.hero-values em svg{width:26px}.stats em svg{width:30px}
 @media(max-width:360px){header{padding-inline:4%}.logo{font-size:23px}nav{gap:13px;font-size:11px;white-space:nowrap}h1{font-size:54px}h1 span{font-size:36px}.lead{font-size:21px}.network{top:390px}.hero-copy .eyebrow{font-size:7px;letter-spacing:1.7px}h3{font-size:29px}.card-content{padding:24px 18px}.tag{top:60px}.project-card p{font-size:12px}.hero-values{left:4%;gap:5px}.hero-values div{min-width:84px}.stats>div{gap:8px}}
+
+.network a:focus:not(:focus-visible){outline:none}.network a:focus-visible{outline:none}.network a:focus-visible .domain-disc{stroke:#fff;stroke-width:2.5}.network a{-webkit-tap-highlight-color:transparent}

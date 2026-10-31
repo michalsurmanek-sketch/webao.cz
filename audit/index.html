@@ -63,7 +63,7 @@ function advice(item){
  if(key.includes('blokování celého webu'))return 'Ověřte záměr pravidla Disallow: /. Pokud má být web veřejně dohledatelný, odstraňte globální blokaci a znovu prověřte indexaci.';
  if(key.includes('sitemap'))return item.ok?'Udržujte sitemap aktuální a uveďte její adresu v robots.txt.':'Vytvořte dostupnou XML sitemap a přidejte její adresu do robots.txt.';
  if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele; jinak není nutný.';
- if(key.includes('spf politika all'))return item.points===0?'Po ověření všech legitimních odesílatelů odstraňte +all; pro přísné odmítání nastavte -all až ve chvíli, kdy jsou všichni odesílatelé správně uvedeni.':'Ověřte, že SPF obsahuje všechny legitimní odesílatele a na konci používá zvolenou politiku all.';
+ if(key.includes('spf politika all'))return item.points===null?'Potvrďte u správce e-mailu, že méně restriktivní SPF politika odpovídá všem vašim odesílatelům. Nepřepínejte na -all bez ověření všech legitimních zdrojů pošty.':item.points===0?'Po ověření všech legitimních odesílatelů odstraňte +all; pro přísné odmítání nastavte -all až ve chvíli, kdy jsou všichni odesílatelé správně uvedeni.':'Ověřte, že SPF obsahuje všechny legitimní odesílatele a na konci používá zvolenou politiku all.';
  if(key.includes('spf dns lookup'))return item.points===0?'Omezte počet mechanismů include/a/mx/ptr/exists/redirect; zkontrolujte i jejich zanořené DNS odkazy, aby celkové vyhodnocení zůstalo do 10 lookupů.':'Nechte poskytovatele ověřit celý strom include a redirect, protože tato kontrola počítá pouze termy přímo v záznamu.';
  if(key.includes('spf základní struktura'))return 'Opravte uvedené strukturální nedostatky a po změně ověřte celý SPF záznam validátorem DNS e-mailu.';
  if(key.includes('dmarc syntaxe'))return 'Opravte pořadí v=DMARC1, duplicitní tagy a neplatné hodnoty. Publikujte jediný DMARC záznam a znovu jej ověřte.';
@@ -281,7 +281,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.55';
+ const ruleVersion='2026-10-31.56';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;

@@ -84,6 +84,7 @@ function downloadAuditCsv(){
  for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',area.score===null?'Bez dostupných kontrol':'Skóre oblastí; zohledňuje jen provedené kontroly','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
  for(const item of data.findings)rows.push(['Nález',item.url||data.host,item.area,item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),item.effort||'',item.confidence||'',data.checkedAt]);
  for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'H1: '+(page.h1||'')+'; interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno'),'','','','','']);
+ for(const item of data.competitors||[])rows.push(['Srovnání',item.url,'Veřejná nabídka',item.status,'',item.title,'Hlavní sdělení: '+item.headline,'Cena: '+(item.price?'signál nalezen':'nerozpoznán')+'; kontakt: '+(item.contact?'signál nalezen':'nerozpoznán')+'; důvěra: '+(item.trust?'signál nalezen':'nerozpoznán'),'','','','']);
  const csv='\uFEFF'+rows.map(row=>row.map(safe).join(';')).join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
  const link=document.createElement('a');const objectUrl=URL.createObjectURL(blob);link.href=objectUrl;link.download='webao-audit-'+data.host+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
@@ -118,7 +119,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[]){
  const grade=score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F';
  const areaHtml=areas.map(area=>{const areaDelta=previous&&area.score!==null&&previous.areas&&previous.areas[area.name]!==null&&previous.areas[area.name]!==undefined?area.score-previous.areas[area.name]:null;const total=findings.filter(item=>item.area===area.name).length;const used=findings.filter(item=>item.area===area.name&&item.points!==null).length;return '<div class="area-score"><span>'+esc(area.name)+'<small style="display:block;color:#91a99a;font-size:11px;margin-top:4px">'+used+' z '+total+' kontrol tvoří skóre'+(areaDelta===null?'':' · změna '+(areaDelta>0?'+':'')+areaDelta+' b.')+'</small></span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>'}).join('');
  const reportDate=checkedAt;
- window.currentAuditData={host,findings,pages,checkedAt:reportDate,areas,score,grade,ruleVersion};
+ window.currentAuditData={host,findings,pages,competitors,checkedAt:reportDate,areas,score,grade,ruleVersion};
  const findingHtml=findings.map(item=>{
   const status=item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT');
   const severity=item.severity||(item.points===null?'Informační':item.points<50?'Závažná':item.points<80?'Střední':'Nízká');
@@ -257,6 +258,12 @@ form.addEventListener('submit',async event=>{
    const all=(parsed.raw+' '+parsed.body).toLowerCase();
    return{url:target.href,status:'Prověřeno',title:parsed.title,headline:parsed.h1s[0]||'',price:/\b(cena|ceník|cenik|kč|czk|od\s*\d+)\b/i.test(all),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(all),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(all)};
   });
+  if(competitorUrls.length){
+   const ownPages=pages.filter(item=>item.raw);
+   const ownText=ownPages.map(item=>item.raw+' '+(item.parsed?.body||'')).join(' ').toLowerCase();
+   const ownHome=ownPages.find(item=>item.type==='Úvodní stránka')||ownPages[0];
+   competitors.unshift({url:'https://'+url.hostname,status:'Váš web',title:ownHome?.title||'',headline:ownHome?.h1||'',price:/\b(cena|ceník|cenik|kč|czk|od\s*\d+)\b/i.test(ownText),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(ownText),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(ownText)});
+  }
   const crawlMeta={scanned:pages.filter(item=>item.raw).length,note:discoveredUrls.length>5?'Zobrazeno prvních 6 URL včetně homepage.':'Rozsah vychází z homepage a dostupné sitemapy; nejde o úplný procházeč webu.'};
   const findings=[
    {area:'SEO a obsah',name:'Titulek stránky',ok:!!title,points:title?100:40,detail:title?'Načtený titulek: '+title:'Titulek nebyl ve veřejném textovém výstupu nalezen; ověřte HTML stránky.'},

@@ -55,3 +55,19 @@ footer{flex-wrap:wrap}.social-links{display:flex;gap:12px;flex-wrap:wrap;font-si
 .webao-footer .footer-signature{color:#a2ed8d;font:italic 24px/1.15 Georgia,serif;text-align:right;transform:rotate(-6deg)}
 @media(max-width:1080px){.webao-footer .footer-main{grid-template-columns:repeat(2,minmax(0,1fr));gap:36px}.webao-footer .footer-main>*+*{padding-left:24px}.webao-footer .footer-main>*:nth-child(3){border-left:0;padding-left:0}}
 @media(max-width:640px){.webao-footer{padding:0 6%!important}.webao-footer .footer-main{grid-template-columns:1fr 1fr;gap:32px 16px;padding:36px 0}.webao-footer .footer-main>*+*{border-left:0;padding-left:0}.webao-footer .footer-brand,.webao-footer .footer-contact{grid-column:1/-1}.webao-footer .footer-logo img{width:110px;height:110px}.webao-footer .footer-brand p{font-size:15px;margin:12px 0 18px}.webao-footer .footer-column{gap:12px}.webao-footer .footer-column h3{letter-spacing:2px;font-size:10px!important}.webao-footer .footer-navigation a,.webao-footer .footer-services a{font-size:14px}.webao-footer .footer-services a{gap:5px;white-space:normal}.webao-footer .footer-services a span{font-size:17px;min-width:19px}.webao-footer .footer-contact-line{font-size:16px}.webao-footer .footer-bottom{justify-content:flex-start;flex-wrap:wrap;font-size:12px;gap:13px 18px}.webao-footer .footer-signature{width:100%;text-align:left;margin-top:12px;font-size:22px}}
+
+
+/* WEBAO map redesign: preserve the real regional geometry sourced from PLOTAO. */
+.network .czech-map{
+  fill:#a3c58e;
+  fill-opacity:.2;
+  stroke:#e7e4a0;
+  stroke-opacity:.82;
+  stroke-width:.9;
+  stroke-linejoin:round;
+  filter:drop-shadow(0 0 10px rgba(190,218,123,.22));
+  transform-box:fill-box;
+  transform-origin:center;
+  transform:scale(1.12);
+}
+.network .czech-map path{vector-effect:non-scaling-stroke}

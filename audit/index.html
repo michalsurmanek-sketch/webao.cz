@@ -75,6 +75,11 @@ function buildDetektiv(pages){
  ];
  const result=checks.map(check=>{const found=check.re.test(allText);const source=found?(usable.find(page=>check.re.test(page.parsed.body+' '+page.parsed.raw))||home):home;return{...check,found,source:source?source.url:''}});
  const cards=result.map(item=>'<article class="detektiv-card"><b>'+(item.found?'Signál nalezen':'Signál nenalezen v kontrolovaném vzorku')+' · '+esc(item.label)+'</b><p>'+esc(item.question)+' '+(item.found?'Ve vzorku stránek se objevuje odpovídající informace.':'V načteném vzorku se odpovídající informace nepodařilo rozpoznat; nemusí to znamenat, že na webu chybí.')+(item.source?' <a class="audit-link" href="'+esc(item.source)+'" target="_blank" rel="noopener">Otevřít zdrojovou stránku</a>.':'')+'</p></article>').join('');
+ const contacts=extractPublicContacts(usable);
+ window.currentAuditContacts=contacts;
+ if(window.currentAuditData)window.currentAuditData.contacts=contacts;
+ const contactRows=contacts.map(item=>'<tr><td><a href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></td><td>'+esc(item.emails.join(', ')||'Nerozpoznán')</td><td>'+esc(item.phones.join(', ')||'Nerozpoznán')+'</td></tr>').join('');
+ const contactHtml='<h4>Registr veřejných kontaktů</h4><p class="detektiv-intro">Kontakty rozpoznané v omezeném vzorku. Rozdílné údaje mohou odpovídat různým pobočkám nebo oddělením.</p>'+(contacts.length?'<div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Stránka</th><th>E-mail</th><th>Telefon</th></tr></thead><tbody>'+contactRows+'</tbody></table></div>':'<p class="detektiv-intro">Kontaktní údaje se z textového výstupu nepodařilo rozpoznat.</p>');
  const headlineText=headline?'Na úvodní stránce je jako hlavní sdělení rozpoznáno „'+esc(headline)+'“.':'Hlavní sdělení úvodní stránky se z dostupného textu nepodařilo rozpoznat.';
  const claims=[];
  const claimPattern=/\b(?:garance\w*|záruk\w*|nejlepší|nejrychlejší|nejlevnější|největší|více než\s+\d+\s*(?:let|rok|roky|roků)|\d+\s*(?:%|let|roků|rok|hodin|dnů|dní))\b/giu;
@@ -95,7 +100,7 @@ function buildDetektiv(pages){
  if(window.currentAuditData)window.currentAuditData.claims=claims;
  const claimHtml='<h4>Registr obchodních tvrzení</h4><p class="detektiv-intro">Rozpoznané formulace, které stojí za ověření a doložení. Nástroj kontroluje jejich přítomnost, ne jejich pravdivost.</p>'+(claims.length?'<div class="finding-list">'+claims.map(item=>'<div class="finding"><strong>'+esc(item.phrase)+'</strong><p><a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">Zdrojová stránka</a> · Ověřte, zda tvrzení odpovídá skutečnosti a má dostupný důkaz.</p></div>').join('')+'</div>':'<p class="detektiv-intro">V omezeném vzorku nebylo rozpoznáno žádné tvrzení z nastaveného seznamu klíčových formulací.</p>');
 
- return '<section class="detektiv"><h3>Webový detektiv · obchodní čitelnost</h3><p class="detektiv-intro">'+headlineText+' Jde o automatické hypotézy z veřejného textu a omezeného vzorku načtených URL, nikoli o měření skutečného chování zákazníků.</p><div class="detektiv-grid">'+cards+'</div><h4>Simulátor zákaznické situace</h4><p class="detektiv-intro">Vyberte úkol a ověřte, zda jej návštěvník na webu zvládne. Výsledek je založen na signálech z omezeného vzorku.</p><div class="scenario-tabs">'+result.map(item=>'<button type="button" data-scenario="'+item.key+'" aria-pressed="false">'+esc(item.label)+'</button>').join('')+'</div><div class="scenario-result" id="scenario-result">Zvolte situaci. Nástroj ukáže nalezený signál a doporučený ruční test.</div>'+claimHtml+'</section>';
+ return '<section class="detektiv"><h3>Webový detektiv · obchodní čitelnost</h3><p class="detektiv-intro">'+headlineText+' Jde o automatické hypotézy z veřejného textu a omezeného vzorku načtených URL, nikoli o měření skutečného chování zákazníků.</p><div class="detektiv-grid">'+cards+'</div><h4>Simulátor zákaznické situace</h4><p class="detektiv-intro">Vyberte úkol a ověřte, zda jej návštěvník na webu zvládne. Výsledek je založen na signálech z omezeného vzorku.</p><div class="scenario-tabs">'+result.map(item=>'<button type="button" data-scenario="'+item.key+'" aria-pressed="false">'+esc(item.label)+'</button>').join('')+'</div><div class="scenario-result" id="scenario-result">Zvolte situaci. Nástroj ukáže nalezený signál a doporučený ruční test.</div>'+contactHtml+claimHtml+'</section>';
 }
 function downloadAuditCsv(){
  const data=window.currentAuditData;
@@ -106,6 +111,7 @@ function downloadAuditCsv(){
  for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',area.score===null?'Bez dostupných kontrol':'Skóre oblastí; zohledňuje jen provedené kontroly','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
  for(const item of data.findings)rows.push(['Nález',item.url||data.host,item.area,item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),item.effort||'',item.confidence||'',data.checkedAt]);
  for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'H1: '+(page.h1||'')+'; slov ve výstupu: '+(page.wordCount??'nezjištěno')+'; obrázky: '+(page.imageCount??'nezjištěno')+'; bez alt: '+(page.missingAltCount??'nezjištěno')+'; interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno'),'','','','','']);
+ for(const item of data.contacts||[])rows.push(['Kontakt',item.url,'Veřejné kontakty','ZACHYCENO','','E-mail: '+item.emails.join(', '),'Telefon: '+item.phones.join(', '),'','','','Textové rozpoznání',data.checkedAt]);
  for(const item of data.claims||[])rows.push(['Tvrzení',item.url,'Obchodní obsah','K PROVĚŘENÍ','',item.phrase,'Rozpoznáno ve veřejném textu','','Ověřit a doložit tvrzení','','Automatické rozpoznání',data.checkedAt]);
  for(const item of data.competitors||[])rows.push(['Srovnání',item.url,'Veřejná nabídka',item.status,'',item.title,'Hlavní sdělení: '+item.headline,'Cena: '+(item.price?'signál nalezen':'nerozpoznán')+'; kontakt: '+(item.contact?'signál nalezen':'nerozpoznán')+'; důvěra: '+(item.trust?'signál nalezen':'nerozpoznán'),'','','','']);
  const csv='\uFEFF'+rows.map(row=>row.map(safe).join(';')).join('\r\n');
@@ -133,7 +139,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.10';
+ const ruleVersion='2026-10-31.11';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -223,6 +229,15 @@ function getSitemapUrls(text,host){
  const found=[];
  for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(isSameSiteHost(u.hostname,host)&&!/\.xml$/i.test(u.pathname)&&!found.includes(u.href))found.push(u.href)}catch{}}
  return found;
+}
+function extractPublicContacts(pages){
+ return pages.filter(page=>page.raw&&page.parsed).map(page=>{
+  const text=page.raw+' '+page.parsed.body;
+  const emails=[...new Set((text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[]).map(value=>value.toLowerCase()))];
+  const matches=[...text.matchAll(/(^|[^\d])((?:\+420|00420)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{3}|\d{3}[\s.-]\d{3}[\s.-]\d{3})(?!\d)/gm)];
+  const phones=[...new Set(matches.map(match=>{const digits=match[2].replace(/\D/g,'');return digits.length===12&&digits.startsWith('420')?'+420 '+digits.slice(3,6)+' '+digits.slice(6,9)+' '+digits.slice(9):digits.length===9?'+420 '+digits.slice(0,3)+' '+digits.slice(3,6)+' '+digits.slice(6):''}).filter(Boolean))];
+  return{url:page.url,emails,phones};
+ });
 }
 function robotsBlocksAll(text){
  const lines=text.split(/\r?\n/).map(line=>line.split('#')[0].trim()).filter(Boolean);
@@ -439,6 +454,13 @@ form.addEventListener('submit',async event=>{
   for(const item of pages.filter(page=>page.raw&&page.type!=='Úvodní stránka')){
    const key=item.url.replace(/\/$/,'');
    if(item.links&&inbound.has(key)&&inbound.get(key)===0)findings.push({area:'Technické SEO',name:'Odkaz na stránku ve vzorku',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'Z dalších kontrolovaných URL nebyl v textovém výstupu rozpoznán interní odkaz na tuto stránku. Může být propojena z jiné, neprověřené části webu.',evidence:'Prověřeno '+pages.filter(page=>page.raw).length+' URL; příchozích odkazů mezi nimi: 0.',impact:'Návštěvníci i vyhledávače mohou mít obtížnější cestu k této stránce, pokud není propojena jinde.',confidence:'Nízká — omezený vzorek URL',effort:'Nízká'});
+  }
+  const contactRegistry=extractPublicContacts(pages);
+  const emailSet=new Set(contactRegistry.flatMap(item=>item.emails));
+  const phoneSet=new Set(contactRegistry.flatMap(item=>item.phones));
+  if(emailSet.size>1||phoneSet.size>1){
+   const evidence=contactRegistry.map(item=>item.url+' — e-mail: '+(item.emails.join(', ')||'—')+'; telefon: '+(item.phones.join(', ')||'—')).join(' | ');
+   findings.push({area:'SEO a obsah',name:'Rozdílné veřejné kontakty — hypotéza',ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'V kontrolovaném vzorku bylo rozpoznáno více e-mailových adres nebo telefonních čísel. Mohou patřit pobočkám či oddělením; ověřte jejich aktuálnost a účel.',evidence,impact:'Nejasné nebo zastaralé kontakty mohou návštěvníka odvést od správné cesty ke společnosti.',confidence:'Nízká — omezený vzorek a možné legitimní rozdíly',effort:'Nízká'});
   }
   for(const [area] of areaDefs){
    if(!findings.some(item=>item.area===area))findings.push({area,name:'Kontrola oblasti: '+area,ok:false,points:null,detail:'Tato oblast zatím nemá napojené spolehlivé měření. Není zahrnuta do celkového procenta.'});

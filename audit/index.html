@@ -42,8 +42,8 @@ function normalize(raw){
 function esc(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
 function advice(item){
  const key=item.name.toLowerCase();
- if(key.includes('titulek'))return item.ok?'Udržujte titulek jedinečný a výstižný pro konkrétní stránku.':'Doplňte jedinečný titulek stránky, který stručně vystihne její nabídku.';
- if(key.includes('description'))return item.ok?'Zkontrolujte, že popis odpovídá aktuálnímu obsahu a hlavnímu cíli stránky.':'Doplňte stručný popis stránky s jasným přínosem pro návštěvníka.';
+ if(key.includes('titulek'))return item.ok?'Udržujte titulek jedinečný a výstižný pro konkrétní stránku.':(item.evidence&&item.evidence!=='Veřejný textový výstup neobsahuje rozpoznaný řádek Title.'?'Upravte délku titulku a ponechte v něm hlavní téma stránky.':'Doplňte jedinečný titulek stránky, který stručně vystihne její nabídku.');
+ if(key.includes('description'))return item.ok?'Zkontrolujte, že popis odpovídá aktuálnímu obsahu a hlavnímu cíli stránky.':(item.evidence&&item.evidence!=='Veřejný textový výstup neobsahuje rozpoznaný řádek Description.'?'Upravte délku popisu a stručně vysvětlete nabídku stránky.':'Doplňte stručný popis stránky s jasným přínosem pro návštěvníka.');
  if(key.includes('nadpis h1'))return item.ok?'Ověřte, že H1 jasně pojmenovává hlavní téma stránky.':'Přidejte jeden srozumitelný hlavní nadpis H1.';
  if(key.includes('robots.txt'))return item.ok?'Pravidelně ověřujte, že robots.txt neblokuje důležité veřejné stránky.':'Zkontrolujte pravidla User-agent a povolte indexaci stránek, které mají být ve vyhledávačích.';
  if(key.includes('blokování celého webu'))return 'Ověřte záměr pravidla Disallow: /. Pokud má být web veřejně dohledatelný, odstraňte globální blokaci a znovu prověřte indexaci.';
@@ -130,7 +130,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.5';
+ const ruleVersion='2026-10-31.6';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -163,6 +163,11 @@ async function getReportBranding(){
  if(file.size>2*1024*1024||!['image/png','image/jpeg'].includes(file.type))return{company,notes,logo:'',logoNote:'Logo nebylo přidáno: použijte PNG/JPG do 2 MB.'};
  const logo=await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>resolve('');reader.readAsDataURL(file)});
  return{company,notes,logo};
+}
+async function mapLimit(items,limit,worker){
+ const results=new Array(items.length);let cursor=0;
+ const runners=Array.from({length:Math.min(limit,items.length)},async()=>{while(cursor<items.length){const index=cursor++;try{results[index]={status:'fulfilled',value:await worker(items[index],index)}}catch(reason){results[index]={status:'rejected',reason}}}});
+ await Promise.all(runners);return results;
 }
 async function fetchTimed(url,options={},timeoutMs=12000){
  const controller=new AbortController();
@@ -292,17 +297,17 @@ form.addEventListener('submit',async event=>{
    nestedResults.forEach(result=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname))}});
   }
   let discoveredUrls=[...new Set(sitemapTexts.flatMap(text=>getSitemapUrls(text,url.hostname)))];
-  const eligibleUrls=[...new Set([rootUrl,...discoveredUrls])].filter((candidate,index)=>index===0||!excludedPaths.some(path=>new URL(candidate).pathname.startsWith(path)));
+  const eligibleUrls=[...new Set([rootUrl,...discoveredUrls])].filter((candidate,index)=>index===0||!excludedPaths.some(path=>{const normalized=path.replace(/\/+$/,'')||'/';const pathname=new URL(candidate).pathname;return pathname===normalized||pathname.startsWith(normalized==='/'?'/':normalized+'/')}));
   const candidateUrls=eligibleUrls.slice(0,pageLimit);
   const discoveredCount=discoveredUrls.length+(discoveredUrls.some(candidate=>new URL(candidate).href===rootUrl)?0:1);
   const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:Math.max(0,eligibleUrls.length-candidateUrls.length),sitemapFiles,note:'Rozsah vychází z homepage a veřejných sitemap. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
   out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
-  const pageResults=await Promise.allSettled(candidateUrls.map(candidate=>{
+  const pageResults=await mapLimit(candidateUrls,2,candidate=>{
    const target=new URL(candidate);
    if(target.href===rootUrl)return Promise.resolve(page);
    return fetchReadablePage(target,target.pathname+target.search);
-  }));
+  });
   const pages=pageResults.map((result,index)=>{
    const target=new URL(candidateUrls[index]);
    if(result.status!=='fulfilled')return{url:target.href,type:pageType(target.pathname),title:'',h1:'',state:'Nelze načíst',raw:null,links:[]};

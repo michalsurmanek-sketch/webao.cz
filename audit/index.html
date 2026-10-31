@@ -42,7 +42,9 @@ function normalize(raw){
 function esc(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
 function advice(item){
  const key=item.name.toLowerCase();
+ if(key.includes('duplicitní titulek'))return 'Vytvořte pro každou z uvedených URL samostatný titulek odpovídající jejímu obsahu.';
  if(key.includes('titulek'))return item.ok?'Udržujte titulek jedinečný a výstižný pro konkrétní stránku.':(item.evidence&&item.evidence!=='Veřejný textový výstup neobsahuje rozpoznaný řádek Title.'?'Upravte délku titulku a ponechte v něm hlavní téma stránky.':'Doplňte jedinečný titulek stránky, který stručně vystihne její nabídku.');
+ if(key.includes('duplicitní meta description'))return 'Napište pro každou URL samostatný popis, který odpovídá jejímu obsahu a odlišuje ji od ostatních stránek.';
  if(key.includes('description'))return item.ok?'Zkontrolujte, že popis odpovídá aktuálnímu obsahu a hlavnímu cíli stránky.':(item.evidence&&item.evidence!=='Veřejný textový výstup neobsahuje rozpoznaný řádek Description.'?'Upravte délku popisu a stručně vysvětlete nabídku stránky.':'Doplňte stručný popis stránky s jasným přínosem pro návštěvníka.');
  if(key.includes('nadpis h1'))return item.ok?'Ověřte, že H1 jasně pojmenovává hlavní téma stránky.':'Přidejte jeden srozumitelný hlavní nadpis H1.';
  if(key.includes('robots.txt'))return item.ok?'Pravidelně ověřujte, že robots.txt neblokuje důležité veřejné stránky.':'Zkontrolujte pravidla User-agent a povolte indexaci stránek, které mají být ve vyhledávačích.';
@@ -130,7 +132,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.6';
+ const ruleVersion='2026-10-31.7';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -402,6 +404,16 @@ form.addEventListener('submit',async event=>{
   }
   for(const duplicateGroup of titleGroups.values())if(duplicateGroup.length>1){
    for(const item of duplicateGroup)findings.push({area:'SEO a obsah',name:'Duplicitní titulek ve vzorku',url:item.url,ok:false,points:55,severity:'Střední',detail:'Stejný titulek byl rozpoznán na '+duplicateGroup.length+' kontrolovaných URL.',evidence:duplicateGroup.map(page=>page.url+' — '+page.title).join(' | '),confidence:'Vysoká v rámci načteného textu'});
+  }
+  const descriptionGroups=new Map();
+  for(const item of pages.filter(page=>page.raw&&page.parsed&&page.parsed.description)){
+   const key=item.parsed.description.trim().toLowerCase();
+   if(!descriptionGroups.has(key))descriptionGroups.set(key,[]);
+   descriptionGroups.get(key).push(item);
+  }
+  for(const group of descriptionGroups.values())if(group.length>1){
+   const evidence=group.map(item=>item.url+' — '+item.parsed.description).join(' | ');
+   for(const item of group)findings.push({area:'SEO a obsah',name:'Duplicitní meta description ve vzorku',url:item.url,ok:false,points:55,severity:'Střední',detail:'Stejný meta popis byl rozpoznán na '+group.length+' kontrolovaných URL.',evidence,confidence:'Vysoká v rámci načteného textu'});
   }
   const bodyGroups=new Map();
   for(const item of pages.filter(page=>page.raw&&page.parsed)){

@@ -45,6 +45,8 @@ function advice(item){
  if(key.includes('titulek'))return item.ok?'Udržujte titulek jedinečný a výstižný pro konkrétní stránku.':'Doplňte jedinečný titulek stránky, který stručně vystihne její nabídku.';
  if(key.includes('description'))return item.ok?'Zkontrolujte, že popis odpovídá aktuálnímu obsahu a hlavnímu cíli stránky.':'Doplňte stručný popis stránky s jasným přínosem pro návštěvníka.';
  if(key.includes('nadpis h1'))return item.ok?'Ověřte, že H1 jasně pojmenovává hlavní téma stránky.':'Přidejte jeden srozumitelný hlavní nadpis H1.';
+ if(key.includes('robots.txt'))return item.ok?'Pravidelně ověřujte, že robots.txt neblokuje důležité veřejné stránky.':'Zkontrolujte pravidla User-agent a povolte indexaci stránek, které mají být ve vyhledávačích.';
+ if(key.includes('sitemap'))return item.ok?'Udržujte sitemap aktuální a uveďte její adresu v robots.txt.':'Vytvořte dostupnou XML sitemap a přidejte její adresu do robots.txt.';
  if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele.';
  if(key.includes('spf'))return item.ok?'Zkontrolujte, že SPF povoluje všechny oprávněné odesílatele a neobsahuje více SPF záznamů.':'Pokud z domény odesíláte e-mail, nastavte jeden SPF TXT záznam pro používané odesílací služby.';
  if(key.includes('dmarc'))return item.ok?'Zkontrolujte politiku DMARC a pravidelně vyhodnocujte reporty.':'Pokud doména odesílá e-mail, začněte DMARC politikou p=none a po vyhodnocení reportů ji bezpečně zpřísněte.';
@@ -64,8 +66,8 @@ function renderReport(host,findings){
  const measured=findings.filter(item=>item.points!==null).length;
  out.innerHTML='<div class="print-only">WEBAO Audit · '+esc(host)+' · '+new Date().toLocaleString('cs-CZ')+'</div><h2>Výsledek auditu: '+esc(host)+'</h2><div class="score-head"><div class="score-big">'+(score===null?'—':score+'<small>%</small>')+'</div><div class="score-explain"><strong>Známka '+grade+'</strong><br>Vážený průměr změřených oblastí. Oblasti bez dat do skóre nevstupují.<br><small>Změřeno '+measured+' kontrol; pokryto '+scored.length+' z '+areaDefs.length+' oblastí.</small><br><small>Skóre je předběžné a vychází pouze z oblastí s dostupnými daty.</small></div></div><div class="report-actions"><button type="button" onclick="window.print()">Stáhnout / uložit PDF</button></div><h3>Skóre oblastí</h3>'+areaHtml+'<h3 style="margin-top:28px">Detailní nálezy a doporučení</h3><div class="finding-list">'+findingHtml+'</div><p class="audit-disclaimer">Procento je vážená úspěšnost automatických kontrol, které se podařilo změřit. Nejde o garanci bezpečnosti, souladu s právem ani pozic ve vyhledávání. Nezměřené oblasti se do skóre nezapočítávají. Stránka a DNS se dotazují přes externí veřejné služby; nepřihlašujeme se a neodesíláme formuláře.</p>';
 }
-async function fetchReadablePage(url){
- const response=await fetch('https://r.jina.ai/http://'+url.hostname,{headers:{Accept:'text/plain'}});
+async function fetchReadablePage(url,path='/'){
+ const response=await fetch('https://r.jina.ai/http://'+url.hostname+path,{headers:{Accept:'text/plain'}});
  if(!response.ok)throw new Error('Veřejný zdroj stránky neodpověděl.');
  return await response.text();
 }
@@ -82,7 +84,7 @@ form.addEventListener('submit',async event=>{
  out.innerHTML='<h2>Kontroluji '+esc(url.hostname)+'…</h2><p class="result-summary">Načítám základní veřejné signály.</p>';
  out.scrollIntoView({behavior:'smooth',block:'center'});
  try{
-  const pagePromise=fetchReadablePage(url);
+  const pagePromise=fetchReadablePage(url,'/');
   const dnsPromise=Promise.allSettled([queryDns(url.hostname,'MX'),queryDns(url.hostname,'TXT'),queryDns('_dmarc.'+url.hostname,'TXT')]);
   const [pageResult,dnsResults]=await Promise.all([pagePromise,dnsPromise]);
   const page=pageResult;
@@ -91,10 +93,19 @@ form.addEventListener('submit',async event=>{
   const descriptionLine=lines.find(line=>line.toLowerCase().startsWith('description:'));
   const hasH1=lines.some(line=>line.trim().toLowerCase().startsWith('h1:'));
   const title=titleLine?titleLine.slice(titleLine.indexOf(':')+1).trim():'';
+  const [robotsResult,sitemapResult]=await Promise.allSettled([fetchReadablePage(url,'/robots.txt'),fetchReadablePage(url,'/sitemap.xml')]);
+  const robots=robotsResult.status==='fulfilled'?robotsResult.value:'';
+  const sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
+  const robotsKnown=robotsResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(robots);
+  const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
+  const sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
+  const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||/sitemap/i.test(robots));
   const findings=[
    {area:'SEO a obsah',name:'Titulek stránky',ok:!!title,points:title?100:40,detail:title?'Načtený titulek: '+title:'Titulek nebyl ve veřejném textovém výstupu nalezen; ověřte HTML stránky.'},
    {area:'SEO a obsah',name:'Meta description',ok:!!descriptionLine,points:descriptionLine?100:45,detail:descriptionLine?'Meta description byla ve výstupu rozpoznána.':'Meta description se nepodařilo potvrdit; ověřte vlastní popis stránky.'},
-   {area:'SEO a obsah',name:'Hlavní nadpis H1',ok:hasH1,points:hasH1?100:50,detail:hasH1?'Ve výstupu byl rozpoznán hlavní nadpis H1.':'H1 nebyl ve výstupu rozpoznán; ověřte strukturu nadpisů.'}
+   {area:'SEO a obsah',name:'Hlavní nadpis H1',ok:hasH1,points:hasH1?100:50,detail:hasH1?'Ve výstupu byl rozpoznán hlavní nadpis H1.':'H1 nebyl ve výstupu rozpoznán; ověřte strukturu nadpisů.'},
+   {area:'Technické SEO',name:'Pravidla robots.txt',ok:robotsRules,points:robotsKnown?(robotsRules?100:45):null,detail:robotsKnown?(robotsRules?'Soubor robots.txt je dostupný a obsahuje pravidla User-agent.':'Soubor se načetl, ale pravidla User-agent nebyla rozpoznána. Ověřte, zda roboty omylem neblokujete.'):'robots.txt se nepodařilo spolehlivě načíst.'},
+   {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown?(sitemapFound?100:45):null,detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml nebyla rozpoznána XML sitemap; ověřte adresu sitemap a její dostupnost.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
   if(dnsResults.every(result=>result.status==='fulfilled')){
    const [mx,txt,dmarc]=dnsResults.map(result=>result.value);

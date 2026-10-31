@@ -234,8 +234,9 @@ function extractPublicContacts(pages){
  return pages.filter(page=>page.raw&&page.parsed).map(page=>{
   const text=page.raw+' '+page.parsed.body;
   const emails=[...new Set((text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[]).map(value=>value.toLowerCase()))];
-  const matches=[...text.matchAll(/(^|[^\d])((?:\+420|00420)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{3}|\d{3}[\s.-]\d{3}[\s.-]\d{3})(?!\d)/gm)];
-  const phones=[...new Set(matches.map(match=>{const digits=match[2].replace(/\D/g,'');return digits.length===12&&digits.startsWith('420')?'+420 '+digits.slice(3,6)+' '+digits.slice(6,9)+' '+digits.slice(9):digits.length===9?'+420 '+digits.slice(0,3)+' '+digits.slice(3,6)+' '+digits.slice(6):''}).filter(Boolean))];
+  const matches=[...text.matchAll(/(^|[^\d])((?:\+420|00420)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{3}|\d{3}[\s.-]\d{3}[\s.-]\d{3})(?!\d)/gm)].map(match=>match[2]);
+  const telMatches=[...text.matchAll(/tel:([+0-9][0-9().\s-]{7,18})/gi)].map(match=>match[1]);
+  const phones=[...new Set([...matches,...telMatches].map(raw=>{const digits=raw.replace(/\D/g,'');return digits.length===12&&digits.startsWith('420')?'+420 '+digits.slice(3,6)+' '+digits.slice(6,9)+' '+digits.slice(9):digits.length===9?'+420 '+digits.slice(0,3)+' '+digits.slice(3,6)+' '+digits.slice(6):''}).filter(Boolean))];
   return{url:page.url,emails,phones};
  });
 }

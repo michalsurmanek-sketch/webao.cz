@@ -130,7 +130,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.4';
+ const ruleVersion='2026-10-31.5';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -278,14 +278,16 @@ form.addEventListener('submit',async event=>{
   const sitemapQueue=[...declaredSitemaps,...getSitemapLocations(sitemap,url.hostname)];
   const seenSitemaps=new Set([new URL('/sitemap.xml',url.origin).href,sitemapSource]);
   let sitemapFiles=sitemapTexts.length;
-  while(sitemapQueue.length&&sitemapFiles<8){
+  let sitemapAttempts=1+(sitemapSource!==new URL('/sitemap.xml',url.origin).href?1:0);
+  while(sitemapQueue.length&&sitemapAttempts<8){
    const batch=[];
-   while(sitemapQueue.length&&batch.length<3&&sitemapFiles+batch.length<8){
+   while(sitemapQueue.length&&batch.length<3&&sitemapAttempts+batch.length<8){
     const raw=sitemapQueue.shift();
     if(seenSitemaps.has(raw))continue;
     seenSitemaps.add(raw);batch.push(raw);
    }
-   if(!batch.length)break;
+   if(!batch.length)continue;
+   sitemapAttempts+=batch.length;
    const nestedResults=await Promise.allSettled(batch.map(raw=>{const nested=new URL(raw);return fetchReadablePage(nested,nested.pathname+nested.search)}));
    nestedResults.forEach(result=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname))}});
   }
@@ -348,11 +350,13 @@ form.addEventListener('submit',async event=>{
    if(pageItem.url===rootUrl)continue;
    const parsed=pageItem.parsed;
    const titleOk=!!parsed.title;
-   const description=parsed.raw.split('\n').find(line=>line.toLowerCase().startsWith('description:'))||'';
+   const titleLength=parsed.title.trim().length;
+   const description=parsed.description;
+   const descriptionLength=description.trim().length;
    const h1Count=parsed.h1s.length;
    findings.push(
-    {area:'SEO a obsah',name:'Titulek podstránky',url:pageItem.url,ok:titleOk,points:titleOk?(parsed.title.length>65?80:100):35,severity:titleOk?'Nízká':'Střední',detail:titleOk?'Nalezen titulek ('+parsed.title.length+' znaků): '+parsed.title:'Titulek nebyl ve výstupu rozpoznán.',evidence:titleOk?parsed.title:'Veřejný textový výstup neobsahuje rozpoznaný řádek Title.',confidence:'Střední — textový výstup veřejné čtečky'},
-    {area:'SEO a obsah',name:'Meta description podstránky',url:pageItem.url,ok:!!description,points:description?(description.length>170?80:100):40,severity:description?'Nízká':'Střední',detail:description?'Meta description byla rozpoznána ('+description.length+' znaků).':'Meta description nebyla ve výstupu rozpoznána.',evidence:description.trim()||'Veřejný textový výstup neobsahuje rozpoznaný řádek Description.',confidence:'Střední — textový výstup veřejné čtečky'},
+    {area:'SEO a obsah',name:'Titulek podstránky',url:pageItem.url,ok:titleOk&&titleLength>=15&&titleLength<=65,points:titleOk?(titleLength<15?65:titleLength>65?80:100):35,severity:!titleOk||titleLength<15?'Střední':titleLength>65?'Nízká':'Nízká',detail:titleOk?'Nalezen titulek ('+titleLength+' znaků): '+parsed.title:'Titulek nebyl ve výstupu rozpoznán.',evidence:titleOk?parsed.title:'Veřejný textový výstup neobsahuje rozpoznaný řádek Title.',confidence:'Střední — textový výstup veřejné čtečky'},
+    {area:'SEO a obsah',name:'Meta description podstránky',url:pageItem.url,ok:descriptionLength>=70&&descriptionLength<=170,points:description?(descriptionLength<70?80:descriptionLength>170?80:100):40,severity:!description?'Střední':descriptionLength<70||descriptionLength>170?'Nízká':'Nízká',detail:description?'Meta description byla rozpoznána ('+descriptionLength+' znaků).':'Meta description nebyla ve výstupu rozpoznána.',evidence:description.trim()||'Veřejný textový výstup neobsahuje rozpoznaný řádek Description.',confidence:'Střední — textový výstup veřejné čtečky'},
     {area:'SEO a obsah',name:'Hlavní nadpis podstránky',url:pageItem.url,ok:h1Count===1,points:h1Count===1?100:h1Count===0?40:70,severity:h1Count===1?'Nízká':'Střední',detail:h1Count===1?'Byl rozpoznán jeden H1.':h1Count===0?'H1 nebyl rozpoznán.':'Bylo rozpoznáno '+h1Count+' nadpisů H1.',evidence:parsed.h1s.join(' | ')||'Veřejný textový výstup neobsahuje rozpoznaný řádek H1.',confidence:'Střední — textový výstup veřejné čtečky'}
    );
   }

@@ -46,3 +46,14 @@
 .website-card .project-name-label{display:block;font:600 17px/1.2 Arial,sans-serif;color:#f3f6f1;letter-spacing:0;text-transform:none}
 .website-card .project-full-svg{width:100%;max-width:260px;height:60px;max-height:none;object-fit:contain;object-position:left center}
 @media(max-width:600px){.website-card .project-full-svg{max-width:175px;height:46px}}
+
+
+/* Desktop only: calmer project tags and actions */
+@media(min-width:851px){
+ .website-card .tag{padding:7px 12px;border-color:#527663;border-radius:9px;background:#0b2b205c;color:#c2d5c8;font-size:10px;letter-spacing:.045em}
+ .website-card[data-accent="gold"] .tag{border-color:#8c8053;color:#ded19d;background:#27251766}
+ .website-card .project-actions .button{min-height:50px;padding:10px 14px;border-color:#456d59;border-radius:10px;background:#00180f42;color:#edf4ef;font-size:14px;font-weight:600}
+ .website-card .project-actions .support-button{border-color:#96b99b;background:#96b99b;color:#10251a}
+ .website-card[data-accent="gold"] .project-actions .support-button{border-color:#c6b779;background:#c6b779;color:#2b2613}
+ .website-card .project-actions .button:hover{filter:brightness(1.06);transform:translateY(-1px)}
+}

@@ -238,7 +238,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.25';
+ const ruleVersion='2026-10-31.26';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -397,17 +397,15 @@ form.addEventListener('submit',async event=>{
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
   const robotsBlocksSite=robotsKnown&&robotsBlocksAll(robots);
   let sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
-  const declaredSitemaps=getSitemapLocations(robots,url.hostname);
-  if(!sitemapKnown&&declaredSitemaps.length){
-   try{const sitemapUrl=new URL(declaredSitemaps[0]);sitemap=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);sitemapKnown=true}catch{}
-  }
-  const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);
-  const rootUrl=url.origin+'/';
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;
+  const declaredSitemaps=getSitemapLocations(robots,url.hostname);
+  const rootUrl=url.origin+'/';
   if(!sitemapKnown&&declaredSitemaps.length){
    try{const sitemapUrl=new URL(declaredSitemaps[0]);sitemap=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);sitemapKnown=true;sitemapSource=sitemapUrl.href}catch{}
   }
+  const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);
   const sitemapTexts=sitemapKnown&&sitemap?[sitemap]:[];
+  const sitemapSources=sitemapTexts.length?[sitemapSource]:[];
   const sitemapQueue=[...declaredSitemaps,...getSitemapLocations(sitemap,url.hostname)];
   const seenSitemaps=new Set([new URL('/sitemap.xml',url.origin).href,sitemapSource]);
   let sitemapFiles=sitemapTexts.length;
@@ -422,13 +420,19 @@ form.addEventListener('submit',async event=>{
    if(!batch.length)continue;
    sitemapAttempts+=batch.length;
    const nestedResults=await Promise.allSettled(batch.map(raw=>{const nested=new URL(raw);return fetchReadablePage(nested,nested.pathname+nested.search)}));
-   nestedResults.forEach(result=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname))}});
+   nestedResults.forEach((result,index)=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapSources.push(batch[index]);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname))}});
   }
-  let discoveredUrls=[...new Set(sitemapTexts.flatMap(text=>getSitemapUrls(text,url.hostname)))];
-  const eligibleUrls=[...new Set([rootUrl,...discoveredUrls])].filter((candidate,index)=>index===0||!excludedPaths.some(path=>{const normalized=path.replace(/\/+$/,'')||'/';const pathname=new URL(candidate).pathname;return pathname===normalized||pathname.startsWith(normalized==='/'?'/':normalized+'/')}));
+  const discoveredEntries=sitemapTexts.flatMap((text,index)=>getSitemapUrls(text,url.hostname).map(candidate=>({url:candidate,source:sitemapSources[index]||sitemapSource})));
+  const discoveredUrls=[...new Set(discoveredEntries.map(item=>item.url))];
+  const sitemapSourceByUrl=new Map();
+  for(const item of discoveredEntries)if(!sitemapSourceByUrl.has(item.url))sitemapSourceByUrl.set(item.url,item.source);
+  const isExcluded=candidate=>excludedPaths.some(path=>{const normalized=path.replace(/\/+$/,'')||'/';const pathname=new URL(candidate).pathname;return pathname===normalized||pathname.startsWith(normalized==='/'?'/':normalized+'/')});
+  const excludedUrls=discoveredUrls.filter(isExcluded);
+  const eligibleUrls=[...new Set([rootUrl,...discoveredUrls.filter(candidate=>!isExcluded(candidate))])];
   const candidateUrls=eligibleUrls.slice(0,pageLimit);
   const discoveredCount=discoveredUrls.length+(discoveredUrls.some(candidate=>new URL(candidate).href===rootUrl)?0:1);
-  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:Math.max(0,eligibleUrls.length-candidateUrls.length),sitemapFiles,note:'Rozsah vychází z homepage a veřejných sitemap. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
+  const omittedByLimit=Math.max(0,eligibleUrls.length-candidateUrls.length);
+  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:omittedByLimit,omittedByLimit,excludedUrlCount:excludedUrls.length,excludedUrlExamples:excludedUrls.slice(0,100),omittedUrlExamples:eligibleUrls.slice(pageLimit,pageLimit+100),sitemapFiles,note:'Rozsah vychází z homepage a veřejných sitemap. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
   out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
   const pageResults=await mapLimit(candidateUrls,2,candidate=>{

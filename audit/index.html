@@ -271,7 +271,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.49';
+ const ruleVersion='2026-10-31.50';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -709,7 +709,8 @@ form.addEventListener('submit',async event=>{
    const labCls=audits['cumulative-layout-shift']&&audits['cumulative-layout-shift'].numericValue;
    const pageMetrics=payload.loadingExperience&&payload.loadingExperience.metrics||{};
    const originMetrics=payload.originLoadingExperience&&payload.originLoadingExperience.metrics||{};
-   const hasPageFieldData=Object.keys(pageMetrics).length>0,metrics=hasPageFieldData?pageMetrics:originMetrics;
+   const pageHasCwv=Number.isFinite(pageMetrics.LARGEST_CONTENTFUL_PAINT_MS&&pageMetrics.LARGEST_CONTENTFUL_PAINT_MS.percentile)&&Number.isFinite(pageMetrics.CUMULATIVE_LAYOUT_SHIFT_SCORE&&pageMetrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile);
+   const hasPageFieldData=pageHasCwv||!Object.keys(originMetrics).length,metrics=pageHasCwv?pageMetrics:Object.keys(originMetrics).length?originMetrics:pageMetrics;
    const fieldScope=hasPageFieldData?'pro URL':'za celý origin';
    const fieldLcp=metrics.LARGEST_CONTENTFUL_PAINT_MS&&metrics.LARGEST_CONTENTFUL_PAINT_MS.percentile;
    const fieldCls=metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE&&metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile;
@@ -721,6 +722,15 @@ form.addEventListener('submit',async event=>{
    if(Number.isFinite(fieldInp))metricDetails.push('terénní INP p75 '+(fieldInp>=1000?(fieldInp/1000).toFixed(2)+' s':Math.round(fieldInp)+' ms')+' ('+fieldScope+')');
    if(Number.isFinite(labLcp))metricDetails.push('Lighthouse lab LCP '+(labLcp/1000).toFixed(2)+' s');
    if(Number.isFinite(labCls))metricDetails.push('Lighthouse lab CLS '+labCls.toFixed(3));
+   const hasFieldCwv=Number.isFinite(fieldLcp)&&Number.isFinite(fieldCls);
+   const fieldClsValue=Number.isFinite(fieldCls)?Number(fieldCls)/1000:null;
+   if(hasFieldCwv){
+    const passesFieldCwv=fieldLcp<=2500&&fieldClsValue<=0.1&&(!Number.isFinite(fieldInp)||fieldInp<=200);
+    const cwvMetrics='LCP '+(fieldLcp/1000).toFixed(2)+' s, CLS '+fieldClsValue.toFixed(3)+(Number.isFinite(fieldInp)?', INP '+Math.round(fieldInp)+' ms':'');
+    findings.push({area:'Rychlost a Core Web Vitals',name:'Terénní Core Web Vitals — '+device+' ('+fieldScope+')',url:url.origin+'/',ok:passesFieldCwv,points:passesFieldCwv?100:0,severity:passesFieldCwv?'Nízká':'Závažná',detail:(passesFieldCwv?'Terénní p75 metriky splňují':'Terénní p75 metriky nesplňují')+' prahy Core Web Vitals: '+cwvMetrics+'. Data vycházejí z anonymizovaného 28denního souhrnu, pokud je Google pro daný rozsah poskytne.',evidence:'PageSpeed Insights / Chrome UX Report · '+cwvMetrics+' · rozsah '+fieldScope,confidence:'Vysoká pro agregované terénní hodnoty; nemusí být dostupné pro každý web nebo stránku.'});
+   }else{
+    findings.push({area:'Rychlost a Core Web Vitals',name:'Terénní Core Web Vitals — '+device,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Pro vyhodnocení Core Web Vitals nejsou dostupné současně terénní p75 hodnoty LCP a CLS. PageSpeed může mít nedostatek vzorků pro URL i origin.',evidence:'Google PageSpeed Insights loadingExperience / originLoadingExperience',confidence:'Nelze určit bez dostatečných terénních dat'});
+   }
    const categoryRefs=[];
    if(strategy==='mobile'){
     for(const auditId of ['viewport','tap-targets','font-size','content-width']){

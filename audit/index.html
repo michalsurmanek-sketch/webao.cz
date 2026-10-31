@@ -52,6 +52,7 @@ function estimateEffort(item){
 }
 function advice(item){
  const key=item.name.toLowerCase();
+ if(item.action)return item.action;
  if(key.includes('duplicitní titulek'))return 'Vytvořte pro každou z uvedených URL samostatný titulek odpovídající jejímu obsahu.';
  if(key.includes('alternativní texty obrázků'))return 'Zkontrolujte každý uvedený obrázek v HTML. Přidejte popisný alt tam, kde obrázek předává informaci; u čistě dekorativních obrázků ponechte alt prázdný.';
  if(key.includes('titulek'))return item.ok?'Udržujte titulek jedinečný a výstižný pro konkrétní stránku.':(item.evidence&&item.evidence!=='Veřejný textový výstup neobsahuje rozpoznaný řádek Title.'?'Upravte délku titulku a ponechte v něm hlavní téma stránky.':'Doplňte jedinečný titulek stránky, který stručně vystihne její nabídku.');
@@ -270,7 +271,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.46';
+ const ruleVersion='2026-10-31.47';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -291,7 +292,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
   return '<div class="finding '+(item.ok?'':'warn')+'" data-finding-card data-area="'+esc(item.area)+'" data-severity="'+esc(severity)+'" data-work-status="'+esc(progress.status||'Nový')+'" data-finding-kind="'+esc(findingKind(item))+'"><span class="state">'+esc(status)+'</span><span class="severity">'+esc(severity)+'</span><span class="kind">'+esc(findingKind(item))+'</span><strong>'+esc(item.name)+'</strong>'+((item.url||(pages[0]&&pages[0].url))?'<p><b>Stránka:</b> <a class="audit-link" href="'+esc(item.url||(pages[0]&&pages[0].url))+'" target="_blank" rel="noopener">'+esc(item.url||(pages[0]&&pages[0].url))+'</a></p>':'')+'<p>'+esc(item.detail)+'</p>'+'<p><b>Důkaz:</b> '+esc(item.evidence||item.detail||'Automatický signál uvedený výše.')+'</p>'+'<p><b>Možný dopad:</b> '+esc(impact)+'</p><p><b>Doporučené řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Jistota:</b> '+esc(item.confidence|| (item.points===null?'Nízká — kontrola neměla dostatek dat.':'Střední — automatický výsledek vyžaduje interpretaci.'))+' · <b>Pracnost:</b> '+esc(estimateEffort(item))+' · <b>Kontrolováno:</b> '+esc(reportDate)+'</p>'+renderFindingWorkControls(workKey,progress)+renderFindingWorkNote(progress)+'</div>';
  }).join('');
  const priorityBuckets=new Map();
- for(const item of findings.filter(item=>item.points!==null&&item.points<100&&!item.ok)){
+ for(const item of findings.filter(item=>(item.points!==null&&item.points<100&&!item.ok)||item.priorityPoints!==undefined)) {
   const key=[item.area,item.name,item.detail].join('|');
   if(!priorityBuckets.has(key))priorityBuckets.set(key,[]);
   priorityBuckets.get(key).push(item);
@@ -689,6 +690,7 @@ form.addEventListener('submit',async event=>{
   }else{
    findings.push({area:'DNS a e-mail',name:'DNS záznamy',ok:false,points:null,detail:'Veřejný DNS resolver nebyl dostupný; DNS oblast nebylo možné vyhodnotit.'});
   }
+  const pageSpeedRecommendations=[];
   const pageSpeedStrategies=['mobile','desktop'];
   const pageSpeedCategoryMap=[['performance','Rychlost a Core Web Vitals','výkon'],['accessibility','Přístupnost','přístupnost'],['seo','SEO a obsah','SEO'],['best-practices','Lighthouse — nejlepší postupy','Best Practices']];
   pageSpeedResults.forEach((result,index)=>{
@@ -714,6 +716,20 @@ form.addEventListener('submit',async event=>{
    if(Number.isFinite(fieldInp))metricDetails.push('terénní INP p75 '+(fieldInp>=1000?(fieldInp/1000).toFixed(2)+' s':Math.round(fieldInp)+' ms')+' ('+fieldScope+')');
    if(Number.isFinite(labLcp))metricDetails.push('Lighthouse lab LCP '+(labLcp/1000).toFixed(2)+' s');
    if(Number.isFinite(labCls))metricDetails.push('Lighthouse lab CLS '+labCls.toFixed(3));
+   const categoryRefs=[];
+   for(const [category,area,label] of pageSpeedCategoryMap){
+    const refs=categories[category]&&categories[category].auditRefs||[];
+    for(const ref of refs){
+     const audit=audits[ref.id];
+     if(!audit||!Number.isFinite(audit.score)||audit.score>=0.9||(ref.weight||0)<=0||['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode))continue;
+     categoryRefs.push({category,area,label,ref,audit});
+    }
+   }
+   categoryRefs.sort((a,b)=>a.audit.score-b.audit.score||(b.ref.weight||0)-(a.ref.weight||0));
+   for(const item of categoryRefs.slice(0,6)){
+    const audit=item.audit,points=Math.round(audit.score*100);
+    pageSpeedRecommendations.push({area:item.area,name:'Lighthouse doporučení — '+audit.title+' ('+device+')',url:url.origin+'/',points:null,priorityPoints:points,state:'DOPORUČENÍ',severity:points<50?'Závažná':'Střední',detail:(audit.displayValue?audit.displayValue+'. ':'')+'Lighthouse skóre této kontroly '+points+'/100 pro '+device+'.',evidence:'Audit '+item.ref.id+' · '+item.label+' · '+device+(audit.displayValue?' · '+audit.displayValue:''),action:audit.description||'Otevřete detail auditu PageSpeed Insights a ověřte doporučený postup.',confidence:'Vysoká pro automatický Lighthouse signál; dopad je potřeba posoudit v kontextu webu.',impact:'Lighthouse označil konkrétní automatickou kontrolu za nevyhovující. Výsledek sám nevyčísluje ztrátu návštěvnosti ani poptávek.'});
+   }
    for(const [category,area,label] of pageSpeedCategoryMap){
     const rawScore=categories[category]&&categories[category].score;
     const points=Number.isFinite(rawScore)?Math.round(rawScore*100):null;
@@ -721,6 +737,7 @@ form.addEventListener('submit',async event=>{
     findings.push({area,name:'PageSpeed Insights — '+label+' ('+device+')',ok:points!==null&&points>=90,points,state:points===null?'NELZE OVĚŘIT':undefined,severity:points===null?'Informační':points<50?'Kritická':points<75?'Závažná':points<90?'Střední':'Nízká',detail:points===null?'Lighthouse neposkytl skóre této kategorie.':label+' skóre '+points+'/100 pro '+device+'. '+speedDetails,evidence:'Google PageSpeed Insights / Lighthouse · '+(payload.id||url.origin+'/')+(metricDetails.length?' · '+metricDetails.join(' · '):''),confidence:'Vysoká pro tento běh Lighthouse; výsledek se může mezi běhy měnit.'});
    }
   });
+  findings.push(...pageSpeedRecommendations);
   const titleGroups=new Map();
   for(const item of pages.filter(page=>page.raw&&page.title)){
    const key=item.title.trim().toLowerCase();

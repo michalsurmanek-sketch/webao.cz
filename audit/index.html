@@ -18,7 +18,7 @@
 <div class="audit-top">Nástroj WEBAO</div>
 <section class="audit-hero">
 <div><div class="audit-kicker">Webový audit, kterému rozumíte</div><h1>Váš web může<br><span>fungovat lépe.</span></h1><p class="audit-lead">Zadejte adresu a prověřte důležité veřejně dostupné základy webu. Dostanete konkrétní nálezy, jejich vysvětlení a doporučené další kroky — přehledně na jednom místě.</p>
-<form class="audit-form" id="audit-form"><label for="domain" class="sr-only" style="position:absolute;left:-9999px">Adresa webu</label><input id="domain" name="domain" type="text" inputmode="url" autocomplete="url" placeholder="vasedomena.cz" required><button type="submit">Zkontrolovat web <span aria-hidden="true">→</span></button></form><div class="competitor-field"><label for="competitors">Porovnat s konkurencí <span>(volitelné)</span></label><input id="competitors" name="competitors" type="text" inputmode="url" placeholder="konkurent.cz, dalsifirma.cz"><small>Zadejte nejvýše 3 domény oddělené čárkou. Porovnáváme jen veřejný obsah úvodních stránek.</small></div><details class="scope-settings"><summary>Rozsah auditu</summary><label for="pageLimit">Maximální počet stránek</label><select id="pageLimit"><option value="3">3 stránky</option><option value="6" selected>6 stránek</option><option value="10">10 stránek</option></select><label for="excludedPaths">Vynechat cesty (oddělené čárkou)</label><input id="excludedPaths" type="text" placeholder="/blog, /tag"><small>Vynechání se vztahuje na URL ze sitemap. Homepage se kontroluje vždy.</small></details><details class="scope-settings"><summary>Údaje do reportu</summary><label for="reportCompany">Název firmy</label><input id="reportCompany" type="text" maxlength="100" placeholder="Vaše firma"><label for="reportLogo">Logo do PDF (PNG/JPG, max. 2 MB)</label><input id="reportLogo" type="file" accept="image/png,image/jpeg"><label for="reportNotes">Vlastní poznámka</label><textarea id="reportNotes" rows="3" maxlength="600" placeholder="Poznámka, kterou chcete přidat do reportu"></textarea></details><div class="audit-note">Veřejná URL domény a zadaných konkurentů se předají službám Jina Reader, Google Public DNS a RDAP registru. Bez přístupu do administrace.</div><div class="audit-trust"><span>Jasné priority</span><span>Konkrétní důkazy</span><span>Veřejné údaje</span></div></div>
+<form class="audit-form" id="audit-form"><label for="domain" class="sr-only" style="position:absolute;left:-9999px">Adresa webu</label><input id="domain" name="domain" type="text" inputmode="url" autocomplete="url" placeholder="vasedomena.cz" required><button type="submit">Zkontrolovat web <span aria-hidden="true">→</span></button></form><div class="competitor-field"><label for="competitors">Porovnat s konkurencí <span>(volitelné)</span></label><input id="competitors" name="competitors" type="text" inputmode="url" placeholder="konkurent.cz, dalsifirma.cz"><small>Zadejte nejvýše 3 domény oddělené čárkou. Porovnáváme jen veřejný obsah úvodních stránek.</small></div><details class="scope-settings"><summary>Rozsah auditu</summary><label for="pageLimit">Maximální počet stránek</label><select id="pageLimit"><option value="3">3 stránky</option><option value="6" selected>6 stránek</option><option value="10">10 stránek</option><option value="25">25 stránek</option></select><label for="excludedPaths">Vynechat cesty (oddělené čárkou)</label><input id="excludedPaths" type="text" placeholder="/blog, /tag"><small>Vynechání se vztahuje na URL ze sitemap. Homepage se kontroluje, pokud ji pravidla robots.txt neblokují.</small></details><details class="scope-settings"><summary>Údaje do reportu</summary><label for="reportCompany">Název firmy</label><input id="reportCompany" type="text" maxlength="100" placeholder="Vaše firma"><label for="reportLogo">Logo do PDF (PNG/JPG, max. 2 MB)</label><input id="reportLogo" type="file" accept="image/png,image/jpeg"><label for="reportNotes">Vlastní poznámka</label><textarea id="reportNotes" rows="3" maxlength="600" placeholder="Poznámka, kterou chcete přidat do reportu"></textarea></details><div class="audit-note">Veřejná URL domény a zadaných konkurentů se předají službám Jina Reader, Google Public DNS a RDAP registru. Bez přístupu do administrace.</div><div class="audit-trust"><span>Jasné priority</span><span>Konkrétní důkazy</span><span>Veřejné údaje</span></div></div>
 <aside class="audit-visual" aria-label="Ukázka přehledu auditu"><div class="visual-head"><span>WEBAO AUDIT</span><span>UKÁZKA REPORTU</span></div><div class="visual-score"><div class="score-ring"><strong>—</strong></div><div><strong>Čeká na měření</strong><small>Ukázkové rozhraní reportu</small></div></div><div class="visual-row"><span>HTTPS a přesměrování</span><span class="badge">Ukázka</span></div><div class="visual-row"><span>SEO základní prvky</span><span class="badge">Prověřeno ✓</span></div><div class="visual-row"><span>Bezpečnostní hlavičky</span><span style="color:#e9cb72">Ukázka</span></div><div class="visual-row"><span>E-mailová doména</span><span class="badge">Prověřeno ✓</span></div></aside>
 </section>
 <section class="result" id="result" aria-live="polite"></section>
@@ -268,7 +268,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.40';
+ const ruleVersion='2026-10-31.42';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -315,9 +315,9 @@ async function getReportBranding(){
  const logo=await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>resolve('');reader.readAsDataURL(file)});
  return{company,notes,logo};
 }
-async function mapLimit(items,limit,worker){
- const results=new Array(items.length);let cursor=0;
- const runners=Array.from({length:Math.min(limit,items.length)},async()=>{while(cursor<items.length){const index=cursor++;try{results[index]={status:'fulfilled',value:await worker(items[index],index)}}catch(reason){results[index]={status:'rejected',reason}}}});
+async function mapLimit(items,limit,worker,onProgress){
+ const results=new Array(items.length);let cursor=0,completed=0;
+ const runners=Array.from({length:Math.min(limit,items.length)},async()=>{while(cursor<items.length){const index=cursor++;try{results[index]={status:'fulfilled',value:await worker(items[index],index)}}catch(reason){results[index]={status:'rejected',reason}}finally{completed++;if(onProgress)onProgress(completed,items.length)}}});
  await Promise.all(runners);return results;
 }
 async function fetchTimed(url,options={},timeoutMs=12000){
@@ -557,6 +557,8 @@ form.addEventListener('submit',async event=>{
    const target=new URL(candidate);
    if(target.href===rootUrl)return Promise.resolve(page);
    return fetchReadablePage(target,target.pathname+target.search);
+  },(completed,total)=>{
+   out.querySelector('.result-summary').textContent='Načteno '+completed+' z '+total+' URL. Stránky mimo limit a zakázané pravidly robots.txt budou vypsány v reportu.';
   });
   const pages=pageResults.map((result,index)=>{
    const target=new URL(candidateUrls[index]);

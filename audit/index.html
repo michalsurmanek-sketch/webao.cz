@@ -47,9 +47,12 @@ function advice(item){
  if(key.includes('nadpis h1'))return item.ok?'Ověřte, že H1 jasně pojmenovává hlavní téma stránky.':'Přidejte jeden srozumitelný hlavní nadpis H1.';
  if(key.includes('robots.txt'))return item.ok?'Pravidelně ověřujte, že robots.txt neblokuje důležité veřejné stránky.':'Zkontrolujte pravidla User-agent a povolte indexaci stránek, které mají být ve vyhledávačích.';
  if(key.includes('sitemap'))return item.ok?'Udržujte sitemap aktuální a uveďte její adresu v robots.txt.':'Vytvořte dostupnou XML sitemap a přidejte její adresu do robots.txt.';
- if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele.';
- if(key.includes('spf'))return item.ok?'Zkontrolujte, že SPF povoluje všechny oprávněné odesílatele a neobsahuje více SPF záznamů.':'Pokud z domény odesíláte e-mail, nastavte jeden SPF TXT záznam pro používané odesílací služby.';
+ if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele; jinak není nutný.';
+ if(key.includes('spf'))return item.ok?'Zkontrolujte, že SPF povoluje všechny oprávněné odesílatele a neobsahuje více SPF záznamů.':item.points===0?'Sjednoťte nastavení do jediného SPF TXT záznamu.':'Pokud z domény odesíláte e-mail, nastavte jeden SPF TXT záznam pro používané odesílací služby.';
  if(key.includes('dmarc'))return item.ok?'Zkontrolujte politiku DMARC a pravidelně vyhodnocujte reporty.':'Pokud doména odesílá e-mail, začněte DMARC politikou p=none a po vyhodnocení reportů ji bezpečně zpřísněte.';
+ if(key.includes('dnssec'))return 'Ověřte DNSSEC u registrátora a správce DNS; před zapnutím zkontrolujte správný DS záznam.';
+ if(key.includes('caa'))return 'Pokud chcete omezit vydávání certifikátů, nastavte CAA záznamy pro svého certifikačního poskytovatele.';
+ if(key.includes('dns adresa'))return item.ok?'Ověřte, že adresy patří vašemu hostingu a jsou aktuální.':'Zkontrolujte A nebo AAAA záznam u správce DNS.';
  return item.points===null?'Tato část vyžaduje další měřicí modul.':'Zopakujte kontrolu po provedení změny.';
 }
 function renderReport(host,findings){
@@ -62,7 +65,7 @@ function renderReport(host,findings){
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const grade=score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F';
  const areaHtml=areas.map(area=>'<div class="area-score"><span>'+esc(area.name)+'</span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>').join('');
- const findingHtml=findings.map(item=>'<div class="finding '+(item.ok?'':'warn')+'"><span class="state">'+(item.points===null?'BEZ MĚŘENÍ':item.ok?'V POŘÁDKU':'OPRAVIT')+'</span><strong>'+esc(item.name)+'</strong><p>'+esc(item.detail)+'</p><p><b>Doporučený další krok:</b> '+esc(advice(item))+'</p></div>').join('');
+ const findingHtml=findings.map(item=>'<div class="finding '+(item.ok?'':'warn')+'"><span class="state">'+(item.state|| (item.points===null?'BEZ MĚŘENÍ':item.ok?'V POŘÁDKU':'OPRAVIT'))+'</span><strong>'+esc(item.name)+'</strong><p>'+esc(item.detail)+'</p><p><b>Doporučený další krok:</b> '+esc(advice(item))+'</p></div>').join('');
  const measured=findings.filter(item=>item.points!==null).length;
  out.innerHTML='<div class="print-only">WEBAO Audit · '+esc(host)+' · '+new Date().toLocaleString('cs-CZ')+'</div><h2>Výsledek auditu: '+esc(host)+'</h2><div class="score-head"><div class="score-big">'+(score===null?'—':score+'<small>%</small>')+'</div><div class="score-explain"><strong>Známka '+grade+'</strong><br>Vážený průměr změřených oblastí. Oblasti bez dat do skóre nevstupují.<br><small>Změřeno '+measured+' kontrol; pokryto '+scored.length+' z '+areaDefs.length+' oblastí.</small><br><small>Skóre je předběžné a vychází pouze z oblastí s dostupnými daty.</small></div></div><div class="report-actions"><button type="button" onclick="window.print()">Stáhnout / uložit PDF</button></div><h3>Skóre oblastí</h3>'+areaHtml+'<h3 style="margin-top:28px">Detailní nálezy a doporučení</h3><div class="finding-list">'+findingHtml+'</div><p class="audit-disclaimer">Procento je vážená úspěšnost automatických kontrol, které se podařilo změřit. Nejde o garanci bezpečnosti, souladu s právem ani pozic ve vyhledávání. Nezměřené oblasti se do skóre nezapočítávají. Stránka a DNS se dotazují přes externí veřejné služby; nepřihlašujeme se a neodesíláme formuláře.</p>';
 }
@@ -85,7 +88,7 @@ form.addEventListener('submit',async event=>{
  out.scrollIntoView({behavior:'smooth',block:'center'});
  try{
   const pagePromise=fetchReadablePage(url,'/');
-  const dnsPromise=Promise.allSettled([queryDns(url.hostname,'MX'),queryDns(url.hostname,'TXT'),queryDns('_dmarc.'+url.hostname,'TXT')]);
+  const dnsPromise=Promise.allSettled([queryDns(url.hostname,'MX'),queryDns(url.hostname,'TXT'),queryDns('_dmarc.'+url.hostname,'TXT'),queryDns(url.hostname,'A'),queryDns(url.hostname,'AAAA'),queryDns(url.hostname,'CAA')]);
   const [pageResult,dnsResults]=await Promise.all([pagePromise,dnsPromise]);
   const page=pageResult;
   const lines=page.split('\n');
@@ -107,19 +110,27 @@ form.addEventListener('submit',async event=>{
    {area:'Technické SEO',name:'Pravidla robots.txt',ok:robotsRules,points:robotsKnown?(robotsRules?100:45):null,detail:robotsKnown?(robotsRules?'Soubor robots.txt je dostupný a obsahuje pravidla User-agent.':'Soubor se načetl, ale pravidla User-agent nebyla rozpoznána. Ověřte, zda roboty omylem neblokujete.'):'robots.txt se nepodařilo spolehlivě načíst.'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown?(sitemapFound?100:45):null,detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml nebyla rozpoznána XML sitemap; ověřte adresu sitemap a její dostupnost.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
-  if(dnsResults.every(result=>result.status==='fulfilled')){
-   const [mx,txt,dmarc]=dnsResults.map(result=>result.value);
-   const answers=response=>Array.isArray(response.Answer)?response.Answer.map(answer=>answer.data||''):[];
-   const mxRecords=answers(mx).filter(record=>!record.includes('SOA'));
-   const spf=answers(txt).some(record=>record.toLowerCase().includes('v=spf1'));
-   const dmarcFound=answers(dmarc).some(record=>record.toLowerCase().includes('v=dmarc1'));
+  const dnsOk=dnsResults.slice(0,5).every(result=>result.status==='fulfilled');
+  if(dnsOk){
+   const [mx,txt,dmarc,a,aaaa,caa]=dnsResults.map(result=>result.status==='fulfilled'?result.value:null);
+   const answers=response=>response&&Array.isArray(response.Answer)?response.Answer:[];
+   const txtValues=answers(txt).filter(record=>record.type===16).map(record=>(record.data||'').replace(/^"|"$/g,''));
+   const mxRecords=answers(mx).filter(record=>record.type===15);
+   const spfRecords=txtValues.filter(value=>/^v=spf1(?:\s|$)/i.test(value));
+   const dmarcRecord=answers(dmarc).map(record=>(record.data||'').replace(/^"|"$/g,'')).find(value=>/^v=dmarc1(?:\s|$)/i.test(value));
+   const addressRecords=[...answers(a),...answers(aaaa)].filter(record=>record.type===1||record.type===28);
+   const caaRecords=answers(caa).filter(record=>record.type===257);
+   const mxPresent=mxRecords.length>0;
    findings.push(
-    {area:'DNS a e-mail',name:'MX záznamy',ok:mxRecords.length>0,points:mxRecords.length?100:20,detail:mxRecords.length?'Nalezeno '+mxRecords.length+' veřejných MX záznamů.':'MX záznam nebyl nalezen; ověřte, zda má doména přijímat e-mail.'},
-    {area:'DNS a e-mail',name:'SPF záznam',ok:spf,points:spf?100:35,detail:spf?'TXT záznam obsahuje SPF.':'SPF záznam nebyl nalezen v TXT záznamech kořenové domény.'},
-    {area:'DNS a e-mail',name:'DMARC záznam',ok:dmarcFound,points:dmarcFound?100:35,detail:dmarcFound?'DMARC záznam byl nalezen.':'DMARC záznam nebyl nalezen na _dmarc.'}
+    {area:'DNS a e-mail',name:'DNS adresa webu (A / AAAA)',ok:addressRecords.length>0,points:addressRecords.length?100:25,detail:addressRecords.length?'Doména vrací '+addressRecords.length+' veřejných IPv4/IPv6 adres.':'Veřejný DNS dotaz nevrátil A ani AAAA adresu; ověřte DNS záznamy webu.'},
+    {area:'DNS a e-mail',name:'MX záznamy',ok:mxPresent,points:mxPresent?100:null,state:mxPresent?null:'INFORMATIVNÍ',detail:mxPresent?'Nalezeno '+mxRecords.length+' veřejných MX záznamů.':'MX záznam nebyl nalezen. To je důležité pouze v případě, že doména přijímá e-mail.'},
+    {area:'DNS a e-mail',name:'SPF záznam',ok:spfRecords.length===1,points:spfRecords.length===1?100:spfRecords.length>1?0:null,state:spfRecords.length===0?'INFORMATIVNÍ':null,detail:spfRecords.length===1?'Nalezen jeden SPF TXT záznam.':spfRecords.length>1?'Nalezeno více SPF záznamů; SPF standardně vyžaduje jediný záznam.':'SPF nebyl nalezen. Je potřebný, pokud doména odesílá e-mail.'},
+    {area:'DNS a e-mail',name:'DMARC záznam',ok:!!dmarcRecord,points:dmarcRecord?( /(?:^|;)\s*p=reject(?:;|$)/i.test(dmarcRecord)?100:/(?:^|;)\s*p=quarantine(?:;|$)/i.test(dmarcRecord)?90:75):null,state:dmarcRecord?null:'INFORMATIVNÍ',detail:dmarcRecord?'DMARC záznam nalezen; politika '+((dmarcRecord.match(/(?:^|;)\s*p=([^;]+)/i)||[])[1]||'není rozpoznána')+'.':'DMARC nebyl nalezen. Je vhodný pro doménu, která odesílá e-mail.'},
+    {area:'DNS a e-mail',name:'DNSSEC validace',ok:a.AD===true,points:a.AD===true?100:null,state:a.AD===true?null:'INFORMATIVNÍ',detail:a.AD===true?'DNS odpověď byla validována pomocí DNSSEC.':'DNSSEC validace nebyla potvrzena; může jít o nepodepsanou doménu, ne automaticky o chybu.'},
+    {area:'DNS a e-mail',name:'CAA záznamy',ok:caaRecords.length>0,points:null,state:'INFORMATIVNÍ',detail:caaRecords.length?'Nalezeny CAA záznamy určující povolené vydavatele certifikátů.':'CAA záznam nebyl nalezen. Je volitelný; jeho absence sama o sobě neznamená problém.'}
    );
   }else{
-   findings.push({area:'DNS a e-mail',name:'DNS / e-mailové záznamy',ok:false,points:null,detail:'Veřejný DNS resolver nebyl dostupný; záznamy nebylo možné vyhodnotit.'});
+   findings.push({area:'DNS a e-mail',name:'DNS záznamy',ok:false,points:null,detail:'Veřejný DNS resolver nebyl dostupný; DNS oblast nebylo možné vyhodnotit.'});
   }
   for(const [area] of areaDefs){
    if(!findings.some(item=>item.area===area))findings.push({area,name:'Kontrola oblasti: '+area,ok:false,points:null,detail:'Tato oblast zatím nemá napojené spolehlivé měření. Není zahrnuta do celkového procenta.'});

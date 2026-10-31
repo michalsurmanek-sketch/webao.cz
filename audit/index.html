@@ -238,7 +238,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.26';
+ const ruleVersion='2026-10-31.27';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -432,7 +432,7 @@ form.addEventListener('submit',async event=>{
   const candidateUrls=eligibleUrls.slice(0,pageLimit);
   const discoveredCount=discoveredUrls.length+(discoveredUrls.some(candidate=>new URL(candidate).href===rootUrl)?0:1);
   const omittedByLimit=Math.max(0,eligibleUrls.length-candidateUrls.length);
-  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:omittedByLimit,omittedByLimit,excludedUrlCount:excludedUrls.length,excludedUrlExamples:excludedUrls.slice(0,100),omittedUrlExamples:eligibleUrls.slice(pageLimit,pageLimit+100),sitemapFiles,note:'Rozsah vychází z homepage a veřejných sitemap. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
+  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:omittedByLimit,omittedByLimit,excludedUrlCount:excludedUrls.length,excludedUrlExamples:excludedUrls.slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'XML sitemap'})),omittedUrlExamples:eligibleUrls.slice(pageLimit,pageLimit+100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'XML sitemap'})),sitemapFiles,note:'Rozsah vychází z homepage a veřejných sitemap. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
   out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
   const pageResults=await mapLimit(candidateUrls,2,candidate=>{
@@ -442,9 +442,11 @@ form.addEventListener('submit',async event=>{
   });
   const pages=pageResults.map((result,index)=>{
    const target=new URL(candidateUrls[index]);
-   if(result.status!=='fulfilled')return{url:target.href,type:pageType(target.pathname),title:'',h1:'',state:'Nelze načíst',raw:null,links:null,externalLinks:null,inboundLinks:null};
+   const sourceUrl=target.href===rootUrl?'':(sitemapSourceByUrl.get(target.href)||'');
+   const source=target.href===rootUrl?'Homepage':sourceUrl?'XML sitemap':'Sitemap (zdroj nerozpoznán)';
+   if(result.status!=='fulfilled')return{url:target.href,type:pageType(target.pathname),title:'',h1:'',source,sourceUrl,state:'Textová čtečka stránku nenačetla',loadError:result.reason?.message||'Čtečka nevrátila veřejný textový obsah.',raw:null,links:null,externalLinks:null,inboundLinks:null};
    const parsed=parsePageText(result.value,target);
-   return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:parsed.h1s.join(' · '),wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null};
+   return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:parsed.h1s.join(' · '),source,sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null};
   });
   const competitors=competitorResults.map((result,index)=>{
    const target=competitorUrls[index];
@@ -481,7 +483,7 @@ form.addEventListener('submit',async event=>{
   }
   for(const pageItem of pages){
    if(!pageItem.raw){
-    findings.push({area:'SEO a obsah',name:'Načtení stránky',url:pageItem.url,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejný textový zdroj stránku nenačetl; nelze z toho samotného usuzovat na chybu serveru.',confidence:'Nízká'});
+    findings.push({area:'SEO a obsah',name:'Načtení stránky',url:pageItem.url,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejná textová čtečka stránku nenačetla; nelze z toho samotného usuzovat na chybu serveru.',evidence:pageItem.loadError||'Není k dispozici další chybová informace.',confidence:'Nízká'});
     continue;
    }
    const parsed=pageItem.parsed;

@@ -1,0 +1,3 @@
+/* Isolated, cache-safe logo treatment for official MONTAO and VIBRAO artwork. */
+.website-card .project-full-svg.project-light-logo{box-sizing:border-box;padding:5px 9px;border-radius:7px;background:#f3f4f0;object-fit:contain}
+@media(max-width:600px){.website-card .project-full-svg.project-light-logo{padding:4px 7px;border-radius:6px}}

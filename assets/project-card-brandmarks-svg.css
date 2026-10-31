@@ -40,3 +40,11 @@
  .website-card .project-vydrhnu>strong{font-size:16px}
  .website-card .project-webao img{width:40px;height:40px}
 }
+/* Brand marks sit directly on the card surface; never add a light tile. */
+.website-card .project-logo,.website-card .project-full-svg{background:transparent!important;border:0!important;box-shadow:none!important}
+.website-card .project-full-svg.project-light-logo{padding:0!important;border-radius:0!important;background:transparent!important}
+.website-card .project-reklamas{gap:10px}
+.website-card .project-reklamas img{display:block;flex:none;width:38px;height:38px;object-fit:contain}
+.website-card .project-reklamas strong{font:800 21px/1 Arial,sans-serif;letter-spacing:.02em;color:#f5fff9}
+@media(max-width:850px){.website-card .project-reklamas img{width:32px;height:32px}.website-card .project-reklamas strong{font-size:18px}}
+@media(max-width:450px){.website-card .project-reklamas img{width:28px;height:28px}.website-card .project-reklamas strong{font-size:16px}}

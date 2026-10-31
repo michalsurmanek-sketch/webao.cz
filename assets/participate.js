@@ -1,4 +1,3 @@
-import {projectLogo} from './project-brands.js?v=20261031-shared';
 import {BASE,KEY,ANON,request,escapeHTML as e,money} from './webao-api.js';
 const dialog=document.createElement('dialog');dialog.className='participate-dialog';dialog.setAttribute('aria-label','Podpořit projekt WEBAO');document.body.append(dialog);
 let lastTrigger,projects;
@@ -22,7 +21,6 @@ dialog.addEventListener('close',()=>lastTrigger?.focus());
 
 
 const cardGrid=document.querySelector('.cards');
-const initialCards=new Map(Array.from(cardGrid?.querySelectorAll('.project-card')||[]).map(card=>[card.querySelector('[data-support]')?.dataset.support,card.cloneNode(true)]));
 const networkLinks=Array.from(document.querySelectorAll('.network a[href]'));
 let lastProjectSignature='',syncing=false;
 const domainFor=p=>p.slug==='kurzy'?'kurzy.pro':p.slug+'.cz';
@@ -32,11 +30,9 @@ function renderPublicProjects(rows){
  if(cardGrid)cardGrid.replaceChildren();
  for(const p of rows){
   const domain=domainFor(p),url='https://'+domain+'/';
-  let card=initialCards.get(p.slug)?.cloneNode(true);
-  if(!card){card=document.createElement('article');card.className='project-card';card.innerHTML='<div class="card-image project-image-fallback"></div><div class="card-content"><div class="brand"></div><span class="tag">'+e(p.category)+'</span><h3>'+e(p.name)+'</h3><p>'+e(p.summary)+'</p><div class="project-actions"><a class="button" href="'+e(url)+'" target="_blank" rel="noopener">Navštívit web <b>→</b></a><button class="button support-button" data-support="'+e(p.slug)+'" type="button">Podpořit projekt ↗</button></div></div>';}
-  card.dataset.project=p.slug;
-  const brand=card.querySelector('.brand');if(brand)brand.innerHTML=projectLogo(p);
-  const support=card.querySelector('[data-support]');if(support)support.hidden=!p.open_to_interest;
+  const card=document.createElement('article');card.className='project-card website-card';card.dataset.project=p.slug;card.setAttribute('aria-label',p.name);
+  const hasPreview=new Set(['plotao','gurmao','slevao','betonao','montao','renovao','vibrao','poptejplot','poptejcenu','vydrhnu','reklamas','adresao','chatao','herbao','casinao','farmao','webao']).has(p.slug);
+  card.innerHTML='<div class="website-preview">'+(hasPreview?'<img src="/assets/previews/'+e(p.slug)+'.webp" alt="Náhled úvodní stránky '+e(domain)+'" loading="lazy" decoding="async" width="1100" height="756">':'<span class="preview-pending">'+e(domain)+' · Náhled připravujeme</span>')+'</div><span class="tag">'+e(p.category)+'</span><div class="project-actions"><a class="button" href="'+e(url)+'" target="_blank" rel="noopener" aria-label="Navštívit '+e(domain)+'">Navštívit web <b>↗</b></a>'+(p.open_to_interest?'<button class="button support-button" data-support="'+e(p.slug)+'" type="button">Podpořit projekt ↗</button>':'')+'</div>';
   cardGrid?.append(card);
   if(list){const item=document.createElement('div');item.className='project-mini';item.innerHTML='<a href="'+e(url)+'" target="_blank" rel="noopener"><strong>'+e(p.name)+' <span>↗</span></strong><small>'+e(p.summary)+'</small></a>'+(p.open_to_interest?'<button type="button" data-support="'+e(p.slug)+'">Podpořit projekt ↗</button>':'');list.append(item);}
  }
@@ -59,3 +55,4 @@ window.addEventListener('storage',ev=>{if(ev.key==='webao-projects-changed')sync
 window.addEventListener('focus',syncPublicProjects);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPublicProjects();});
 setInterval(()=>{if(!document.hidden)syncPublicProjects();},15000);
+

@@ -36,9 +36,9 @@ function renderPublicProjects(rows){
   card.dataset.accent=accent;
   const shortName=e(p.name||domain.replace('.cz','').toUpperCase());
   const description=e(p.summary||'Projekt sítě WEBAO');
-  const verifiedSvgLogos={plotao:'/assets/brand-logos/plotao.svg?v=20261031-source',betonao:'/assets/brand-logos/betonao.svg?v=20261031-source',renovao:'/assets/brand-logos/renovao.svg?v=20261031-source',slevao:'/assets/brand-logos/slevao.svg?v=20261031-source',vibrao:'/assets/brand-logos/vibrao.png',casinao:'/assets/brand-logos/casinao.png',webao:'/assets/brand-logos/webao.svg'};
+  const verifiedSvgLogos={plotao:'/assets/brand-logos/plotao.svg?v=20261031-source',betonao:'/assets/brand-logos/betonao.svg?v=20261031-source',renovao:'/assets/brand-logos/renovao.svg?v=20261031-source',slevao:'/assets/brand-logos/slevao.svg?v=20261031-source',vibrao:'/assets/brand-logos/vibrao.svg',casinao:'/assets/brand-logos/casinao.svg',webao:'/assets/brand-logos/webao.svg'};
   const brandSvg=verifiedSvgLogos[p.slug]||'';
-  const brandLogoClass=['betonao','slevao','vibrao','casinao'].includes(p.slug)?' project-light-logo':'';
+  const brandLogoClass=['betonao','slevao'].includes(p.slug)?' project-light-logo':'';
   const customBrandMarkup={
    montao:'<span class="project-montao-brand"><img src="/assets/brand-logos/montao.svg" alt="" aria-hidden="true"><strong>Montao.cz</strong></span>',
    gurmao:'<span class="project-source-brand project-wordmark-gurmao"><strong>GUR<span>M</span>AO</strong></span>',
@@ -49,7 +49,7 @@ function renderPublicProjects(rows){
    chatao:'<span class="project-source-brand"><span class="project-brand-icon project-brand-chat" aria-hidden="true">🏡</span><span class="project-brand-copy"><strong>CHATAO</strong><small>Feedový booking chat</small></span></span>',
    herbao:'<span class="project-source-brand"><span class="project-brand-icon project-brand-green"><img src="/assets/brand-logos/herbao.svg" alt=""></span><span class="project-brand-copy"><strong>Herbao</strong><small>přírodní rovnováha</small></span></span>',
    farmao:'<span class="project-source-brand"><span class="project-brand-icon project-brand-farm"><img src="/assets/brand-logos/farmao.svg" alt=""></span><span class="project-brand-copy"><strong>farmao.cz</strong><small>Vše pro farmy a pěstování</small></span></span>',
-   casinao:'<span class="project-source-brand"><img class="project-brand-icon project-brand-casino" src="/assets/brand-logos/casinao.png" alt=""><span class="project-brand-copy"><strong>Casinao.cz</strong><small>Recenze · Bonusy · Návody</small></span></span>',
+   casinao:'<span class="project-source-brand"><img class="project-brand-icon project-brand-casino" src="/assets/brand-logos/casinao.svg" alt=""><span class="project-brand-copy"><strong>Casinao.cz</strong><small>Recenze · Bonusy · Návody</small></span></span>',
    webao:'<span class="project-source-brand project-webao"><img src="/assets/brand-logos/webao.svg" alt="WEBAO"></span>'
   };
   const cardBrand=customBrandMarkup[p.slug]||(brandSvg?'<img class="project-full-svg'+brandLogoClass+'" src="'+e(brandSvg)+'" alt="'+shortName+'" loading="lazy" decoding="async">':'<span class="project-name-label">'+shortName+'</span>');

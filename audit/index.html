@@ -326,22 +326,24 @@ async function normalizeDnsTxt(value){
  return String(value||'').replace(/"\s+"/g,'').replace(/^"|"$/g,'').replace(/\\032/g,' ').trim();
 }
 function analyzeSpf(values){
- const records=values.map(normalizeDnsTxt).filter(value=>/^v=spf1(?:\s|$)/i.test(value));
- if(records.length!==1)return{records,valid:false,reason:records.length>1?'Více SPF záznamů; SPF vyžaduje jeden záznam.':'SPF záznam nebyl rozpoznán.'};
- const record=records[0],tokens=record.split(/\s+/),versionValid=/^v=spf1$/i.test(tokens[0]);
+ const candidates=values.map(normalizeDnsTxt).filter(value=>/^v\s*=\s*spf/i.test(value));
+ const validRecords=candidates.filter(value=>/^v=spf1(?:\s|$)/i.test(value));
+ if(validRecords.length!==1)return{candidates,validRecords,records:candidates,valid:false,errors:candidates.length>1?['Nalezeno více TXT hodnot začínajících na SPF.']:candidates.length===1?['SPF záznam nemá rozpoznanou verzi v=spf1.']:[],warnings:[],reason:candidates.length>1?'Nalezeno více TXT hodnot začínajících na SPF.':candidates.length===1?'TXT hodnota začíná na SPF, ale její verze není v=spf1.':'SPF záznam nebyl rozpoznán.'};
+ const record=validRecords[0],tokens=record.split(/\s+/),versionValid=/^v=spf1$/i.test(tokens[0]);
  const mechanisms=tokens.slice(1).filter(token=>!/^([a-z][a-z0-9_-]*)=/i.test(token));
  const all=mechanisms.map((token,index)=>({token,index,match:token.match(/^([+?~-]?)(all)$/i)})).filter(item=>item.match);
- const lookupTerms=tokens.slice(1).filter(token=>/^(?:[+?~-])?(?:include:|exists:|a(?::|\/|$)|mx(?::|\/|$)|ptr(?::|$))/i.test(token)||/^(?:redirect)=/i.test(token));
- const errors=[];
+ const lookupTerms=tokens.slice(1).filter(token=>/^(?:[+?~-])?(?:include:|exists:|a(?::|\/|$)|mx(?::|\/|$)|ptr(?::|$))/i.test(token)||/^redirect=/i.test(token));
+ const errors=[],warnings=[];
  if(!versionValid)errors.push('Neplatná verze SPF.');
  if(all.length>1)errors.push('Záznam obsahuje více mechanismů all.');
- if(all.length===1&&mechanisms.slice(all[0].index+1).length)errors.push('Za mechanismem all následují další mechanismy.');
- return{records,record,tokens,mechanisms,all,lookupTerms,versionValid,valid:errors.length===0,errors,allQualifier:all[0]?.match[1]||'',lookupCount:lookupTerms.length};
+ if(all.length===1&&mechanisms.slice(all[0].index+1).length)warnings.push('Mechanismy za all se podle SPF ignorují.');
+ return{candidates,validRecords,records:candidates,record,tokens,mechanisms,all,lookupTerms,versionValid,valid:errors.length===0,errors,warnings,allQualifier:all[0]?.match[1]||'',lookupCount:lookupTerms.length};
 }
 function analyzeDmarc(values){
- const records=values.map(normalizeDnsTxt).filter(value=>/^v=DMARC1(?:\s|;|$)/.test(value));
- if(records.length!==1)return{records,valid:false,tags:{},errors:records.length>1?['Nalezeno více DMARC záznamů; publikujte jediný.']:[]};
- const record=records[0],parts=record.split(';').map(value=>value.trim()).filter(Boolean),tags={},errors=[],warnings=[];
+ const candidates=values.map(normalizeDnsTxt).filter(value=>/^\s*v\s*=\s*dmarc/i.test(value));
+ const validRecords=candidates.filter(value=>/^\s*v\s*=\s*DMARC1(?:\s|;|$)/.test(value));
+ if(validRecords.length!==1)return{candidates,validRecords,records:candidates,valid:false,tags:{},errors:candidates.length>1?['Nalezeno více DMARC kandidátních záznamů; publikujte jediný platný záznam.']:candidates.length===1?['Verzní tag musí být přesně v=DMARC1 a být první.']:[],warnings:[]};
+ const record=validRecords[0],parts=record.split(';').map(value=>value.trim()).filter(Boolean),tags={},errors=[],warnings=[];
  if(!parts.length)errors.push('DMARC záznam je prázdný.');
  for(const part of parts){
   const separator=part.indexOf('=');
@@ -363,7 +365,7 @@ function analyzeDmarc(values){
  }
  if(Object.prototype.hasOwnProperty.call(tags,'pct'))warnings.push('Tag pct pochází ze starší specifikace; aktuální RFC 9989 jej nedefinuje.');
  const effectivePolicy=(tags.p||'none').toLowerCase();
- return{records,record,tags,errors,warnings,valid:errors.length===0,effectivePolicy,testing:(tags.t||'n').toLowerCase()==='y'};
+ return{candidates,validRecords,records:candidates,record,tags,errors,warnings,valid:errors.length===0,effectivePolicy,testing:(tags.t||'n').toLowerCase()==='y'};
 }
 function queryDns(domain,type){
  const response=await fetchTimed('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+type,{headers:{Accept:'application/dns-json'}},8000);

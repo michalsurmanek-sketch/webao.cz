@@ -144,25 +144,30 @@ async function getReportBranding(){
  const logo=await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>resolve('');reader.readAsDataURL(file)});
  return{company,notes,logo};
 }
+async function fetchTimed(url,options={},timeoutMs=12000){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),timeoutMs);
+ try{return await fetch(url,{...options,signal:controller.signal})}finally{clearTimeout(timer)}
+}
 async function fetchReadablePage(url,path='/'){
- const response=await fetch('https://r.jina.ai/http://'+url.hostname+path,{headers:{Accept:'text/plain'}});
+ const response=await fetchTimed('https://r.jina.ai/http://'+url.hostname+path,{headers:{Accept:'text/plain'}},12000);
  if(!response.ok)throw new Error('Veřejný zdroj stránky neodpověděl.');
  return await response.text();
 }
 async function queryRdap(domain){
  const tld=domain.split('.').pop().toLowerCase();
- const discovery=await fetch('https://data.iana.org/rdap/dns.json',{headers:{Accept:'application/json'}});
+ const discovery=await fetchTimed('https://data.iana.org/rdap/dns.json',{headers:{Accept:'application/json'}},10000);
  if(!discovery.ok)throw new Error('RDAP seznam registrů není dostupný.');
  const bootstrap=await discovery.json();
  const service=bootstrap.services.find(item=>Array.isArray(item[0])&&item[0].includes(tld));
  if(!service||!service[1]||!service[1][0])throw new Error('Pro tuto koncovku nebyl nalezen RDAP registr.');
  const base=service[1][0].replace(/\/$/,'')+'/';
- const response=await fetch(base+'domain/'+encodeURIComponent(domain),{headers:{Accept:'application/rdap+json, application/json'}});
+ const response=await fetchTimed(base+'domain/'+encodeURIComponent(domain),{headers:{Accept:'application/rdap+json, application/json'}},10000);
  if(!response.ok)throw new Error('Registr neposkytl veřejná data RDAP.');
  return await response.json();
 }
 async function queryDns(domain,type){
- const response=await fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+type,{headers:{Accept:'application/dns-json'}});
+ const response=await fetchTimed('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+type,{headers:{Accept:'application/dns-json'}},8000);
  if(!response.ok)throw new Error('DNS resolver není dostupný.');
  return await response.json();
 }

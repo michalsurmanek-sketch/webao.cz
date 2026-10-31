@@ -36,9 +36,9 @@ function renderPublicProjects(rows){
   card.dataset.accent=accent;
   const shortName=e(p.name||domain.replace('.cz','').toUpperCase());
   const description=e(p.summary||'Projekt sítě WEBAO');
-  const verifiedSvgLogos={plotao:'/assets/brand-logos/plotao.svg?v=20261031-source',betonao:'/assets/brand-logos/betonao.svg?v=20261031-source',renovao:'/assets/brand-logos/renovao.svg?v=20261031-source',slevao:'/assets/brand-logos/slevao.svg?v=20261031-source',vibrao:'/assets/brand-logos/vibrao.svg',casinao:'/assets/brand-logos/casinao.svg',webao:'/assets/brand-logos/webao.svg'};
+  const verifiedSvgLogos={plotao:'/assets/brand-logos/plotao.svg?v=20261031-source',betonao:'/assets/brand-logos/betonao.svg?v=20261031-logos2',renovao:'/assets/brand-logos/renovao.svg?v=20261031-source',slevao:'/assets/brand-logos/slevao.svg?v=20261031-logos2',vibrao:'/assets/brand-logos/vibrao.svg',casinao:'/assets/brand-logos/casinao.svg'};
   const brandSvg=verifiedSvgLogos[p.slug]||'';
-  const brandLogoClass=['betonao','slevao'].includes(p.slug)?' project-light-logo':'';
+  const brandLogoClass='';
   const customBrandMarkup={
    montao:'<span class="project-montao-brand"><img src="/assets/brand-logos/montao.svg" alt="" aria-hidden="true"><strong>Montao.cz</strong></span>',
    gurmao:'<span class="project-source-brand project-wordmark-gurmao"><strong>GUR<span>M</span>AO</strong></span>',
@@ -50,7 +50,8 @@ function renderPublicProjects(rows){
    herbao:'<span class="project-source-brand"><span class="project-brand-icon project-brand-green"><img src="/assets/brand-logos/herbao.svg" alt=""></span><span class="project-brand-copy"><strong>Herbao</strong><small>přírodní rovnováha</small></span></span>',
    farmao:'<span class="project-source-brand"><span class="project-brand-icon project-brand-farm"><img src="/assets/brand-logos/farmao.svg" alt=""></span><span class="project-brand-copy"><strong>farmao.cz</strong><small>Vše pro farmy a pěstování</small></span></span>',
    casinao:'<span class="project-source-brand"><img class="project-brand-icon project-brand-casino" src="/assets/brand-logos/casinao.svg" alt=""><span class="project-brand-copy"><strong>Casinao.cz</strong><small>Recenze · Bonusy · Návody</small></span></span>',
-   webao:'<span class="project-source-brand project-webao"><img src="/assets/brand-logos/webao.svg" alt="WEBAO"></span>'
+   reklamas:'<span class="project-source-brand project-reklamas"><img src="/assets/brand-logos/reklamas.svg" alt=""><strong>REKLAMAS</strong></span>',
+   webao:'<span class="project-source-brand project-webao"><img src="/assets/webao-logo.svg" alt="WEBAO"></span>'
   };
   const cardBrand=customBrandMarkup[p.slug]||(brandSvg?'<img class="project-full-svg'+brandLogoClass+'" src="'+e(brandSvg)+'" alt="'+shortName+'" loading="lazy" decoding="async">':'<span class="project-name-label">'+shortName+'</span>');
   card.innerHTML='<div class="project-card-heading"><div class="project-identity">'+cardBrand+'<div class="project-identity-text"><span>'+description+'</span></div></div><span class="tag">'+e(p.category)+'</span></div><div class="website-preview">'+(hasPreview?'<img src="/assets/previews/'+e(p.slug)+'.webp" alt="Náhled úvodní stránky '+e(domain)+'" loading="lazy" decoding="async" width="1100" height="756">':'<span class="preview-pending">'+e(domain)+' · Náhled připravujeme</span>')+'</div><div class="project-quick-info"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg><span><small>Web projektu</small><strong>'+e(domain)+'</strong></span></span><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 22h8M12 19v3"/></svg><span><small>Oblast</small><strong>'+e(p.category)+'</strong></span></span></div><div class="project-actions"><a class="button" href="'+e(url)+'" target="_blank" rel="noopener" aria-label="Navštívit '+e(domain)+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-10 10M19 14v5H5V5h5"/></svg>Navštívit web ↗</a>'+(p.open_to_interest?'<button class="button support-button" data-support="'+e(p.slug)+'" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Podpořit projekt</button>':'')+'</div>';

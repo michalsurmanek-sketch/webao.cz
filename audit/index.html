@@ -65,7 +65,7 @@ function advice(item){
  if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele; jinak není nutný.';
  if(key.includes('spf politika all'))return item.points===null?'Potvrďte u správce e-mailu, že méně restriktivní SPF politika odpovídá všem vašim odesílatelům. Nepřepínejte na -all bez ověření všech legitimních zdrojů pošty.':item.points===0?'Po ověření všech legitimních odesílatelů odstraňte +all; pro přísné odmítání nastavte -all až ve chvíli, kdy jsou všichni odesílatelé správně uvedeni.':'Ověřte, že SPF obsahuje všechny legitimní odesílatele a na konci používá zvolenou politiku all.';
  if(key.includes('spf dns lookup'))return item.points===0?'Omezte počet mechanismů include/a/mx/ptr/exists/redirect; zkontrolujte i jejich zanořené DNS odkazy, aby celkové vyhodnocení zůstalo do 10 lookupů.':'Nechte poskytovatele ověřit celý strom include a redirect, protože tato kontrola počítá pouze termy přímo v záznamu.';
- if(key.includes('spf základní struktura'))return 'Opravte uvedené strukturální nedostatky a po změně ověřte celý SPF záznam validátorem DNS e-mailu.';
+ if(key.includes('spf základní struktura'))return item.ok?'Základní kontrola verze, mechanismu all a duplicit prošla. Pro jistotu ověřte úplnou gramatiku SPF a všechny odesílatele domény u svého e-mailového poskytovatele.':'Opravte konkrétní strukturální problémy uvedené v nálezu a celý SPF záznam znovu ověřte validátorem DNS e-mailu.';
  if(key.includes('dmarc syntaxe'))return 'Opravte pořadí v=DMARC1, duplicitní tagy a neplatné hodnoty. Publikujte jediný DMARC záznam a znovu jej ověřte.';
  if(key.includes('dmarc politika'))return item.ok?'Ponechte politiku vynucování a průběžně sledujte agregované reporty, aby neblokovala legitimní poštu.':'Začněte politikou p=none, vyhodnoťte reporty a p=quarantine nebo p=reject zvažte až po ověření všech legitimních odesílatelů.';
  if(key.includes('dmarc agregované reporty'))return 'Nastavte rua na řízenou schránku nebo reportovací službu a ověřte, že reporty umíte bezpečně přijímat a vyhodnocovat.';
@@ -281,7 +281,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.56';
+ const ruleVersion='2026-10-31.57';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;

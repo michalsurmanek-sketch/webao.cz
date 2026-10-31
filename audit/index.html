@@ -50,6 +50,9 @@ function advice(item){
  if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele; jinak není nutný.';
  if(key.includes('spf'))return item.ok?'Zkontrolujte, že SPF povoluje všechny oprávněné odesílatele a neobsahuje více SPF záznamů.':item.points===0?'Sjednoťte nastavení do jediného SPF TXT záznamu.':'Pokud z domény odesíláte e-mail, nastavte jeden SPF TXT záznam pro používané odesílací služby.';
  if(key.includes('dmarc'))return item.ok?'Zkontrolujte politiku DMARC a pravidelně vyhodnocujte reporty.':'Pokud doména odesílá e-mail, začněte DMARC politikou p=none a po vyhodnocení reportů ji bezpečně zpřísněte.';
+ if(key.includes('dkim'))return 'Zjistěte DKIM selektor u poskytovatele odesílacího e-mailu a ověřte odpovídající TXT záznam pod <selektor>._domainkey.'; 
+ if(key.includes('nameservery'))return item.ok?'Ověřte, že uvedené nameservery odpovídají aktuálnímu správci DNS.':'Zkontrolujte delegaci nameserverů u registrátora domény a jejich dostupnost.';
+ if(key.includes('cname na kořenové'))return 'U kořenové domény CNAME často není potřeba. Ověřte A/AAAA nebo aliasovou funkci DNS poskytovatele a variantu www.';
  if(key.includes('dnssec'))return 'Ověřte DNSSEC u registrátora a správce DNS; před zapnutím zkontrolujte správný DS záznam.';
  if(key.includes('caa'))return 'Pokud chcete omezit vydávání certifikátů, nastavte CAA záznamy pro svého certifikačního poskytovatele.';
  if(key.includes('dns adresa'))return item.ok?'Ověřte, že adresy patří vašemu hostingu a jsou aktuální.':'Zkontrolujte A nebo AAAA záznam u správce DNS.';

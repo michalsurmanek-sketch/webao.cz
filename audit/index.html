@@ -269,7 +269,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.44';
+ const ruleVersion='2026-10-31.45';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -396,7 +396,7 @@ function analyzeDmarc(values){
  const effectivePolicy=(tags.p||'none').toLowerCase();
  return{candidates,validRecords,records:candidates,record,tags,errors,warnings,valid:errors.length===0,effectivePolicy,testing:(tags.t||'n').toLowerCase()==='y'};
 }
-function queryDns(domain,type){
+async function queryDns(domain,type){
  const response=await fetchTimed('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+type,{headers:{Accept:'application/dns-json'}},8000);
  if(!response.ok)throw new Error('DNS resolver není dostupný.');
  return await response.json();

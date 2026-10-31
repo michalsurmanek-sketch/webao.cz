@@ -140,12 +140,12 @@ footer{flex-wrap:wrap}.social-links{display:flex;gap:12px;flex-wrap:wrap;font-si
  .webao-footer .footer-signature{font-size:17px}
 }
 
-/* Decorative footer artwork reused from the Betonao source repository. */
+/* Brand-specific footer artwork: abstract network, no fence motif. */
 .webao-footer:after{
   height:clamp(100px,16vw,190px);
-  opacity:.3;
+  opacity:.42;
   background:
-    linear-gradient(0deg,#1d3025 0%,rgba(29,48,37,.32) 30%,transparent 78%),
-    url("https://betonao.cz/assets/betonao-footer-fence.webp") center bottom / 100% auto no-repeat;
+    linear-gradient(0deg,#1d3025 0%,rgba(29,48,37,.28) 36%,transparent 82%),
+    url("/assets/webao-footer-network.svg") center bottom / 100% auto no-repeat;
 }
 @media(max-width:760px){.webao-footer:after{height:clamp(86px,19vw,132px)}}

@@ -41,3 +41,8 @@
 .website-card .project-identity-text>span{font-size:clamp(12px,1.1vw,15px)}
 @media(max-width:850px){.website-card .project-full-svg{max-width:190px;max-height:45px}.website-card .project-wordmark{font-size:20px}}
 @media(max-width:450px){.website-card .project-full-svg{max-width:155px;max-height:40px}.website-card .project-wordmark{font-size:17px}}
+
+/* Verified source brand files only; other titles are explicitly plain labels. */
+.website-card .project-name-label{display:block;font:600 17px/1.2 Arial,sans-serif;color:#f3f6f1;letter-spacing:0;text-transform:none}
+.website-card .project-full-svg{width:100%;max-width:260px;height:60px;max-height:none;object-fit:contain;object-position:left center}
+@media(max-width:600px){.website-card .project-full-svg{max-width:175px;height:46px}}

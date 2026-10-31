@@ -57,3 +57,7 @@
  .website-card[data-accent="gold"] .project-actions .support-button{border-color:#c6b779;background:#c6b779;color:#2b2613}
  .website-card .project-actions .button:hover{filter:brightness(1.06);transform:translateY(-1px)}
 }
+
+/* Montao and Vibrao source artwork includes an opaque light background. */
+.website-card .project-full-svg.project-light-logo{box-sizing:border-box;padding:5px 9px;border-radius:7px;background:#f3f4f0;object-fit:contain}
+@media(max-width:600px){.website-card .project-full-svg.project-light-logo{padding:4px 7px;border-radius:6px}}

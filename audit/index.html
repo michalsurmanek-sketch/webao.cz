@@ -137,6 +137,18 @@ async function fetchReadablePage(url,path='/'){
  if(!response.ok)throw new Error('Veřejný zdroj stránky neodpověděl.');
  return await response.text();
 }
+async function queryRdap(domain){
+ const tld=domain.split('.').pop().toLowerCase();
+ const discovery=await fetch('https://data.iana.org/rdap/dns.json',{headers:{Accept:'application/json'}});
+ if(!discovery.ok)throw new Error('RDAP seznam registrů není dostupný.');
+ const bootstrap=await discovery.json();
+ const service=bootstrap.services.find(item=>Array.isArray(item[0])&&item[0].includes(tld));
+ if(!service||!service[1]||!service[1][0])throw new Error('Pro tuto koncovku nebyl nalezen RDAP registr.');
+ const base=service[1][0].replace(/\/$/,'')+'/';
+ const response=await fetch(base+'domain/'+encodeURIComponent(domain),{headers:{Accept:'application/rdap+json, application/json'}});
+ if(!response.ok)throw new Error('Registr neposkytl veřejná data RDAP.');
+ return await response.json();
+}
 async function queryDns(domain,type){
  const response=await fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+type,{headers:{Accept:'application/dns-json'}});
  if(!response.ok)throw new Error('DNS resolver není dostupný.');
@@ -194,7 +206,7 @@ form.addEventListener('submit',async event=>{
   const pagePromise=fetchReadablePage(url,'/');
   const dkimSelectors=['google','selector1','selector2','default','k1','mail'];
   const dnsPromise=Promise.allSettled([queryDns(url.hostname,'MX'),queryDns(url.hostname,'TXT'),queryDns('_dmarc.'+url.hostname,'TXT'),queryDns(url.hostname,'A'),queryDns(url.hostname,'AAAA'),queryDns(url.hostname,'CAA'),queryDns(url.hostname,'NS'),queryDns(url.hostname,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+url.hostname,'TXT'))]);
-  const [pageResult,dnsResults]=await Promise.all([pagePromise,dnsPromise]);
+  const [pageResult,dnsResults,rdapResult]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error}))]);
   const page=pageResult;
   const lines=page.split('\n');
   const titleLine=lines.find(line=>line.toLowerCase().startsWith('title:'));
@@ -244,6 +256,17 @@ form.addEventListener('submit',async event=>{
    {area:'Technické SEO',name:'Blokování celého webu v robots.txt',ok:!robotsBlocksSite,points:robotsKnown?(robotsBlocksSite?20:100):null,severity:robotsBlocksSite?'Kritická':'Nízká',detail:robotsBlocksSite?'Bylo rozpoznáno pravidlo Disallow: / ve skupině pro všechny roboty (*). Může blokovat procházení webu.':'V pravidlech pro všechny roboty nebylo rozpoznáno globální Disallow: /. Kontrola neověřuje všechny kombinace pravidel pro jednotlivé roboty.',evidence:robotsBlocksSite?'robots.txt obsahuje User-agent: * a Disallow: /.':'Veřejný text robots.txt byl prohledán na globální blokaci.',confidence:'Střední — parser textového výstupu robots.txt'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown?(sitemapFound?100:45):null,detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml nebyla rozpoznána XML sitemap; ověřte adresu sitemap a její dostupnost.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
+  if(rdapResult.status==='fulfilled'){
+   const rdap=rdapResult.value;
+   const expiry=(rdap.events||[]).find(item=>item.eventAction==='expiration'||item.eventAction==='registrar expiration');
+   if(expiry&&expiry.eventDate){
+    const expiryDate=new Date(expiry.eventDate);
+    const daysLeft=Math.ceil((expiryDate.getTime()-Date.now())/86400000);
+    findings.push({area:'Technické SEO',name:'Expirace domény',url:'https://'+url.hostname,ok:daysLeft>90,points:daysLeft<=30?20:daysLeft<=90?65:100,severity:daysLeft<=30?'Kritická':daysLeft<=90?'Závažná':'Nízká',detail:'RDAP uvádí expiraci '+expiryDate.toLocaleDateString('cs-CZ')+' (přibližně '+daysLeft+' dní).',evidence:'Veřejná RDAP odpověď registru: '+expiry.eventDate,confidence:'Vysoká — údaj z veřejného registru',effort:'Nízká'});
+   }else findings.push({area:'Technické SEO',name:'Expirace domény',url:'https://'+url.hostname,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'RDAP registr odpověděl, ale datum expirace nebylo v odpovědi rozpoznáno.',evidence:'Odpověď registru neobsahovala rozpoznanou událost expiration.',confidence:'Střední'});
+  }else{
+   findings.push({area:'Technické SEO',name:'Expirace domény',url:'https://'+url.hostname,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejný RDAP registr nebo jeho odpověď nebyly dostupné. Neznamená to, že doména neexistuje.',evidence:rdapResult.reason&&rdapResult.reason.message||'RDAP služba neodpověděla.',confidence:'Nízká'});
+  }
   for(const pageItem of pages){
    if(!pageItem.raw){
     findings.push({area:'SEO a obsah',name:'Načtení stránky',url:pageItem.url,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejný textový zdroj stránku nenačetl; nelze z toho samotného usuzovat na chybu serveru.',confidence:'Nízká'});

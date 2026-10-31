@@ -187,7 +187,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.18';
+ const ruleVersion='2026-10-31.19';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -427,15 +427,15 @@ form.addEventListener('submit',async event=>{
     findings.push({area:'SEO a obsah',name:'Načtení stránky',url:pageItem.url,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejný textový zdroj stránku nenačetl; nelze z toho samotného usuzovat na chybu serveru.',confidence:'Nízká'});
     continue;
    }
-   if(pageItem.url===rootUrl)continue;
    const parsed=pageItem.parsed;
+   const imagesWithoutAlt=parsed.images.filter(image=>!image.alt);
+   if(parsed.images.length)findings.push({area:'Přístupnost',name:'Alternativní texty obrázků',url:pageItem.url,ok:imagesWithoutAlt.length===0,points:null,state:imagesWithoutAlt.length?'K PROVĚŘENÍ':'ALT ROZPOZNÁN',severity:imagesWithoutAlt.length?'Střední':'Nízká',detail:imagesWithoutAlt.length?'U '+imagesWithoutAlt.length+' z '+parsed.images.length+' obrázků nebyl v textovém výstupu rozpoznán alt.':'U '+parsed.images.length+' obrázků byl v textovém výstupu rozpoznán alt.',evidence:parsed.images.slice(0,5).map(image=>(image.alt||'(prázdný alt)')+' — '+image.url).join(' | '),impact:imagesWithoutAlt.length?'Lidé používající čtečky obrazovky nemusí zjistit, co obrázek sděluje. U dekorativních obrázků má být prázdný alt záměrný.':'Textová čtečka rozpoznala alternativní popis; automatika tím nepotvrzuje plnou přístupnost.',confidence:'Střední — vychází z Markdownu externí čtečky',effort:imagesWithoutAlt.length?'Nízká':'Nelze určit'});
+   if(pageItem.url===rootUrl)continue;
    const titleOk=!!parsed.title;
    const titleLength=parsed.title.trim().length;
    const description=parsed.description;
    const descriptionLength=description.trim().length;
    const h1Count=parsed.h1s.length;
-   const imagesWithoutAlt=parsed.images.filter(image=>!image.alt);
-   if(parsed.images.length)findings.push({area:'Přístupnost',name:'Alternativní texty obrázků',url:pageItem.url,ok:imagesWithoutAlt.length===0,points:null,state:imagesWithoutAlt.length?'K PROVĚŘENÍ':'ALT ROZPOZNÁN',severity:imagesWithoutAlt.length?'Střední':'Nízká',detail:imagesWithoutAlt.length?'U '+imagesWithoutAlt.length+' z '+parsed.images.length+' obrázků nebyl v textovém výstupu rozpoznán alt.':'U '+parsed.images.length+' obrázků byl v textovém výstupu rozpoznán alt.',evidence:parsed.images.slice(0,5).map(image=>(image.alt||'(prázdný alt)')+' — '+image.url).join(' | '),impact:imagesWithoutAlt.length?'Lidé používající čtečky obrazovky nemusí zjistit, co obrázek sděluje. U dekorativních obrázků má být prázdný alt záměrný.':'Textová čtečka rozpoznala alternativní popis; automatika tím nepotvrzuje plnou přístupnost.',confidence:'Střední — vychází z Markdownu externí čtečky',effort:imagesWithoutAlt.length?'Nízká':'Nelze určit'});
 
    findings.push(
     {area:'SEO a obsah',name:'Titulek podstránky',url:pageItem.url,ok:titleOk&&titleLength>=15&&titleLength<=65,points:titleOk?(titleLength<15?65:titleLength>65?80:100):null,state:titleOk?undefined:'NELZE OVĚŘIT',severity:!titleOk?'Informační':titleLength<15?'Střední':'Nízká',detail:titleOk?'Nalezen titulek ('+titleLength+' znaků): '+parsed.title:'Textová čtečka titulek nepotvrdila; bez přímého čtení HTML nelze určit, zda chybí, nebo jej extrakce vynechala.',evidence:titleOk?parsed.title:'Veřejný textový výstup neobsahuje rozpoznaný řádek Title.',confidence:'Střední — textový výstup veřejné čtečky'},

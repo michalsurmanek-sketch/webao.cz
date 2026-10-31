@@ -80,11 +80,13 @@ function downloadAuditCsv(){
  if(!data)return;
  const safe=value=>{let text=String(value??'');if(/^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
  const rows=[['Typ','URL','Oblast','Stav','Závažnost','Název','Důkaz / detail','Dopad','Doporučené řešení','Pracnost','Jistota','Kontrolováno']];
+ rows.push(['Souhrn',data.host,'Celkové skóre','',data.grade||'',data.score===null?'Není dostupné':data.score+'%', 'Vážený průměr změřených oblastí', '', '', '', 'Metodika '+(data.ruleVersion||''),data.checkedAt]);
+ for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',area.score===null?'Bez dostupných kontrol':'Skóre oblastí; zohledňuje jen provedené kontroly','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
  for(const item of data.findings)rows.push(['Nález',item.url||data.host,item.area,item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),item.effort||'',item.confidence||'',data.checkedAt]);
  for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'H1: '+(page.h1||'')+'; interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno'),'','','','','']);
  const csv='\uFEFF'+rows.map(row=>row.map(safe).join(';')).join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
- const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='webao-audit-'+data.host+'.csv';link.click();URL.revokeObjectURL(link.href);
+ const link=document.createElement('a');const objectUrl=URL.createObjectURL(blob);link.href=objectUrl;link.download='webao-audit-'+data.host+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
 }
 function saveLocalAuditHistory(host,snapshot){
  const key='webao-audit-history:'+host;
@@ -116,7 +118,7 @@ function renderReport(host,findings,pages=[],crawlMeta={}){
  const grade=score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F';
  const areaHtml=areas.map(area=>{const areaDelta=previous&&area.score!==null&&previous.areas&&previous.areas[area.name]!==null&&previous.areas[area.name]!==undefined?area.score-previous.areas[area.name]:null;const total=findings.filter(item=>item.area===area.name).length;const used=findings.filter(item=>item.area===area.name&&item.points!==null).length;return '<div class="area-score"><span>'+esc(area.name)+'<small style="display:block;color:#91a99a;font-size:11px;margin-top:4px">'+used+' z '+total+' kontrol tvoří skóre'+(areaDelta===null?'':' · změna '+(areaDelta>0?'+':'')+areaDelta+' b.')+'</small></span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>'}).join('');
  const reportDate=checkedAt;
- window.currentAuditData={host,findings,pages,checkedAt:reportDate};
+ window.currentAuditData={host,findings,pages,checkedAt:reportDate,areas,score,grade,ruleVersion};
  const findingHtml=findings.map(item=>{
   const status=item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT');
   const severity=item.severity||(item.points===null?'Informační':item.points<50?'Závažná':item.points<80?'Střední':'Nízká');

@@ -250,7 +250,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.29';
+ const ruleVersion='2026-10-31.30';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -442,9 +442,9 @@ form.addEventListener('submit',async event=>{
   const excludedUrls=discoveredUrls.filter(isExcluded);
   const eligibleUrls=[...new Set([rootUrl,...discoveredUrls.filter(candidate=>!isExcluded(candidate))])];
   const candidateUrls=eligibleUrls.slice(0,pageLimit);
-  const discoveredCount=discoveredUrls.length+(discoveredUrls.some(candidate=>new URL(candidate).href===rootUrl)?0:1);
+  const discoveredCount=discoveredUrls.length;
   const omittedByLimit=Math.max(0,eligibleUrls.length-candidateUrls.length);
-  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:omittedByLimit,omittedByLimit,excludedUrlCount:excludedUrls.length,excludedUrlExamples:excludedUrls.slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'XML sitemap'})),omittedUrlExamples:eligibleUrls.slice(pageLimit,pageLimit+100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'XML sitemap'})),sitemapFiles,note:'Rozsah vychází z homepage a veřejných sitemap. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
+  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:omittedByLimit,omittedByLimit,excludedUrlCount:excludedUrls.length,excludedUrlExamples:excludedUrls.slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'XML sitemap'})),omittedUrlExamples:eligibleUrls.slice(pageLimit,pageLimit+100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'XML sitemap'})),sitemapFiles,note:'Homepage se prověřuje vždy a započítává se do limitu. Další URL pocházejí z veřejných sitemap; nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
   out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
   const pageResults=await mapLimit(candidateUrls,2,candidate=>{

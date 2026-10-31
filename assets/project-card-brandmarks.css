@@ -1,0 +1,42 @@
+/* Authentic project wordmarks and inline-header marks copied from each source repository. */
+.website-card .project-source-brand{display:flex;align-items:center;gap:9px;min-width:0;min-height:60px;color:#f5fff9;white-space:nowrap}
+.website-card .project-brand-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.website-card .project-brand-copy strong,.website-card .project-source-brand>strong{font:800 clamp(18px,1.8vw,24px)/1.05 Arial,sans-serif;letter-spacing:-.45px;color:#f5fff9}
+.website-card .project-brand-copy small{font:500 9px/1.2 Arial,sans-serif;letter-spacing:.015em;color:#c5d9d0}
+.website-card .project-brand-icon{box-sizing:border-box;display:grid;place-items:center;flex:none;width:40px;height:40px;padding:9px;border-radius:11px;background:#087443;color:#fff}
+.website-card .project-brand-icon img{display:block;width:100%;height:100%;object-fit:contain}
+.website-card .project-brand-blue{padding:0;background:transparent}
+.website-card .project-brand-chat{padding:0;font-size:23px;background:#0e503c}
+.website-card .project-brand-green{background:#087443}
+.website-card .project-brand-farm{background:linear-gradient(145deg,#1f9b5c,#087443)}
+.website-card .project-brand-casino{padding:0;border-radius:50%;object-fit:contain;background:#fff}
+.website-card .project-wordmark-gurmao strong{font:800 23px/1 Arial,sans-serif;letter-spacing:.01em;color:#f5fff9}
+.website-card .project-wordmark-gurmao strong span{color:#edc667}
+.website-card .project-source-brand em{font-style:normal;color:#76cf9d}
+.website-card .project-source-brand .brand-gold{color:#efc95e}
+.website-card .project-source-brand .brand-blue{color:#45bde4}
+.website-card .project-vydrhnu{gap:8px}
+.website-card .project-vydrhnu-mark{display:block;flex:none;width:37px;height:37px;color:#f5c900}
+.website-card .project-vydrhnu>strong{font:800 21px/1 Arial,sans-serif;letter-spacing:.02em}
+.website-card .project-vydrhnu>strong span{color:#f5c900}
+.website-card .project-webao img{display:block;flex:none;width:56px;height:56px;object-fit:contain}
+@media(max-width:850px){
+ .website-card .project-source-brand{min-height:46px;gap:7px}
+ .website-card .project-brand-copy strong,.website-card .project-source-brand>strong{font-size:19px}
+ .website-card .project-brand-copy small{font-size:8px}
+ .website-card .project-brand-icon{width:34px;height:34px;padding:7px;border-radius:9px}
+ .website-card .project-brand-chat{font-size:20px}
+ .website-card .project-vydrhnu-mark{width:32px;height:32px}
+ .website-card .project-vydrhnu>strong{font-size:18px}
+ .website-card .project-webao img{width:45px;height:45px}
+}
+@media(max-width:450px){
+ .website-card .project-source-brand{gap:6px;min-height:40px}
+ .website-card .project-brand-copy strong,.website-card .project-source-brand>strong{font-size:16px}
+ .website-card .project-brand-copy small{font-size:7px}
+ .website-card .project-brand-icon{width:30px;height:30px;padding:6px;border-radius:8px}
+ .website-card .project-brand-chat{font-size:18px}
+ .website-card .project-vydrhnu-mark{width:28px;height:28px}
+ .website-card .project-vydrhnu>strong{font-size:16px}
+ .website-card .project-webao img{width:40px;height:40px}
+}

@@ -221,7 +221,7 @@ function initFindingWorkControls(host){
 const coverageLimitations={
  'SEO a obsah':'Veřejný textový výstup a omezený vzorek stránek. Neověřuje indexaci v Google ani pozice; nerozpoznané meta údaje se označují jako neověřené.',
  'Technické SEO':'Kontrola robots.txt, sitemap a odkazů jen mezi vybranými stránkami. Nejde o úplný crawl; neověřují se spolehlivě HTTP kódy všech URL, canonical, hreflang ani osiřelé stránky.',
- 'Bezpečnost a HTTPS':'V této verzi se neměří TLS konfigurace, certifikační řetězec, bezpečnostní hlavičky, smíšený obsah, zranitelnosti ani penetrační test.',
+ 'Bezpečnost a HTTPS':'PageSpeed Insights Lighthouse poskytuje jen vybrané signály HTTPS, známých zranitelných knihoven a CSP. Neměří se zde konfigurace TLS ani certifikační řetězec, bezpečnostní hlavičky, cookie atributy nebo kompletní zranitelnosti; nejde o penetrační test.',
  'Rychlost a Core Web Vitals':'Lighthouse skóre a laboratorní LCP/CLS měří PageSpeed Insights v simulovaném prostředí. Terénní Core Web Vitals jsou k dispozici jen tehdy, pokud Google poskytne dost dat pro URL nebo origin.',
  'Přístupnost':'Zachytí automatické Lighthouse kontroly a alternativní texty v textovém vzorku. Neověřuje ručně klávesnici, čtečky obrazovky ani úplný soulad s WCAG.',
  'Mobilní použitelnost':'PageSpeed Insights používá mobilní emulaci a kontroluje viewport, velikost písma a dotykové cíle tam, kde jsou audity dostupné. Nejde o test na skutečných zařízeních ani o úplný test interakcí.',
@@ -271,7 +271,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.50';
+ const ruleVersion='2026-10-31.51';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -732,6 +732,30 @@ form.addEventListener('submit',async event=>{
     findings.push({area:'Rychlost a Core Web Vitals',name:'Terénní Core Web Vitals — '+device,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Pro vyhodnocení Core Web Vitals nejsou dostupné současně terénní p75 hodnoty LCP a CLS. PageSpeed může mít nedostatek vzorků pro URL i origin.',evidence:'Google PageSpeed Insights loadingExperience / originLoadingExperience',confidence:'Nelze určit bez dostatečných terénních dat'});
    }
    const categoryRefs=[];
+   const securityAuditSpecs=[
+    {id:'is-on-https',name:'HTTPS a nezabezpečené zdroje',severity:'Závažná',action:'Zajistěte, aby stránka i její zdroje používaly HTTPS a aby HTTP požadavky byly odstraněny nebo bezpečně přesměrovány.'},
+    {id:'no-vulnerable-libraries',name:'Známé zranitelnosti JavaScriptových knihoven',severity:'Závažná',action:'Ověřte označené knihovny a jejich verze; aktualizujte je na podporované opravené verze nebo odstraňte nepoužívané závislosti.'},
+    {id:'csp-xss',name:'Content Security Policy (CSP)',severity:'Střední',action:'Nechte správce posoudit CSP podle doporučení Lighthouse. Změny nejprve ověřte v režimu report-only, protože příliš přísná politika může blokovat funkce webu.'}
+   ];
+   for(const spec of securityAuditSpecs){
+    const audit=audits[spec.id];
+    if(!audit)continue;
+    const auditDetails=audit.details||{};
+    const detailItems=Array.isArray(auditDetails.items)?auditDetails.items:[];
+    const itemEvidence=detailItems.slice(0,8).map(item=>Object.entries(item).filter(([key,value])=>value!==null&&value!==undefined&&typeof value!=='object').map(([key,value])=>key+': '+value).join(', ')).filter(Boolean);
+    const warnings=Array.isArray(audit.warnings)?audit.warnings.filter(Boolean):[];
+    const measured=Number.isFinite(audit.score)&&!['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode);
+    const passed=measured&&audit.score>=0.9;
+    const detailParts=[audit.displayValue,audit.explanation,warnings.join(' ')].filter(Boolean);
+    if(itemEvidence.length)detailParts.push('Nalezené položky: '+itemEvidence.join(' | '));
+    if(spec.id==='csp-xss'&&!measured&&!detailParts.length)detailParts.push('Lighthouse kontrolu CSP poskytl bez skórovaného výsledku; vyžaduje ruční bezpečnostní posouzení.');
+    if(measured){
+     const points=Math.round(audit.score*100);
+     findings.push({area:'Bezpečnost a HTTPS',name:spec.name+' ('+device+')',url:payload.id||url.origin+'/',ok:passed,points,severity:passed?'Nízká':spec.severity,detail:(audit.title||spec.name)+'. '+(detailParts.join(' ')||'Lighthouse automatická kontrola '+(passed?'prošla.':'neprošla.'))+' Výsledek je signál z automatického auditu, nikoli penetrační test.',evidence:'PageSpeed Insights / Lighthouse audit '+spec.id+' · '+(payload.id||url.origin+'/')+(audit.displayValue?' · '+audit.displayValue:'')+(itemEvidence.length?' · '+itemEvidence.join(' | '):''),confidence:'Vysoká pro konkrétní automatický signál Lighthouse; neprokazuje celkovou bezpečnost webu.',action:spec.action,impact:'Upozorňuje na konkrétní HTTPS nebo aplikační bezpečnostní opatření. Nevyčísluje pravděpodobnost zneužití ani obchodní ztrátu.'});
+    }else{
+     findings.push({area:'Bezpečnost a HTTPS',name:spec.name+' — bez skórovaného výsledku ('+device+')',url:payload.id||url.origin+'/',points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:(audit.title||spec.name)+'. '+(detailParts.join(' ')||'Lighthouse neposkytl skórovaný výsledek této kontroly; nelze ji označit jako vyhovující ani jako potvrzenou chybu.'),evidence:'PageSpeed Insights / Lighthouse audit '+spec.id+' · '+(payload.id||url.origin+'/')+(warnings.length?' · '+warnings.join(' | '):''),confidence:'Nelze určit bez skórovaného výstupu; případné automatické varování je uvedeno výše.',action:spec.action});
+    }
+   }
    if(strategy==='mobile'){
     for(const auditId of ['viewport','tap-targets','font-size','content-width']){
      const audit=audits[auditId];if(!audit||!Number.isFinite(audit.score))continue;
@@ -743,6 +767,7 @@ form.addEventListener('submit',async event=>{
     const refs=categories[category]&&categories[category].auditRefs||[];
     for(const ref of refs){
      const audit=audits[ref.id];
+     if(['is-on-https','no-vulnerable-libraries','csp-xss'].includes(ref.id))continue;
      if(!audit||!Number.isFinite(audit.score)||audit.score>=0.9||(ref.weight||0)<=0||['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode))continue;
      categoryRefs.push({category,area,label,ref,audit});
     }

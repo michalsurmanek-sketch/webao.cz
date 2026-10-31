@@ -61,6 +61,7 @@ function advice(item){
  if(key.includes('nadpis h1'))return item.ok?'Ověřte, že H1 jasně pojmenovává hlavní téma stránky.':'Přidejte jeden srozumitelný hlavní nadpis H1.';
  if(key.includes('robots.txt'))return item.ok?'Pravidelně ověřujte, že robots.txt neblokuje důležité veřejné stránky.':'Zkontrolujte pravidla User-agent a povolte indexaci stránek, které mají být ve vyhledávačích.';
  if(key.includes('blokování celého webu'))return 'Ověřte záměr pravidla Disallow: /. Pokud má být web veřejně dohledatelný, odstraňte globální blokaci a znovu prověřte indexaci.';
+ if(key.includes('propojení stránky'))return 'Ověřte odkaz přímo v HTML v hlavní navigaci, patičce a relevantních stránkách. Potvrzení vyžaduje úplné procházení HTML; výsledek textové čtečky sám o sobě neprokazuje osiření.';
  if(key.includes('sitemap'))return item.ok?'Udržujte sitemap aktuální a uveďte její adresu v robots.txt.':'Vytvořte dostupnou XML sitemap a přidejte její adresu do robots.txt.';
  if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele; jinak není nutný.';
  if(key.includes('spf politika all'))return item.points===null?'Potvrďte u správce e-mailu, že méně restriktivní SPF politika odpovídá všem vašim odesílatelům. Nepřepínejte na -all bez ověření všech legitimních zdrojů pošty.':item.points===0?'Po ověření všech legitimních odesílatelů odstraňte +all; pro přísné odmítání nastavte -all až ve chvíli, kdy jsou všichni odesílatelé správně uvedeni.':'Ověřte, že SPF obsahuje všechny legitimní odesílatele a na konci používá zvolenou politiku all.';
@@ -281,7 +282,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.57';
+ const ruleVersion='2026-10-31.58';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -843,7 +844,7 @@ form.addEventListener('submit',async event=>{
   for(const item of pages){try{const u=new URL(item.url);u.hash='';item.inboundLinks=inbound.get(u.href.replace(/\/$/,''))??0}catch{item.inboundLinks=null}}
   for(const item of pages.filter(page=>page.raw&&page.type!=='Úvodní stránka')){
    const key=item.url.replace(/\/$/,'');
-   if(item.links&&inbound.has(key)&&inbound.get(key)===0)findings.push({area:'Technické SEO',name:'Odkaz na stránku ve vzorku',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'Z dalších kontrolovaných URL nebyl v textovém výstupu rozpoznán interní odkaz na tuto stránku. Může být propojena z jiné, neprověřené části webu.',evidence:'Prověřeno '+pages.filter(page=>page.raw).length+' URL; příchozích odkazů mezi nimi: 0.',impact:'Návštěvníci i vyhledávače mohou mít obtížnější cestu k této stránce, pokud není propojena jinde.',confidence:'Nízká — omezený vzorek URL',effort:'Nízká'});
+   if(item.links&&inbound.has(key)&&inbound.get(key)===0)findings.push({area:'Technické SEO',name:'Propojení stránky v omezeném vzorku',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'Informační',detail:'Ve veřejném textovém výstupu nebyl mezi prověřenými URL rozpoznán příchozí interní odkaz. Textová čtečka mohla vynechat navigaci nebo patičku; tento výsledek sám nepotvrzuje osiřelou stránku.',evidence:'Prověřeno '+pages.filter(page=>page.raw).length+' URL; v jejich textových výstupech rozpoznáno 0 příchozích odkazů.',impact:'Pokud kontrola celého HTML potvrdí, že na stránku nevede žádný interní odkaz, může být hůře dostupná návštěvníkům. Sitemap může vyhledávačům stále pomoci URL objevit.',confidence:'Nízká — textový výstup a omezený vzorek URL',effort:'Nízká'});
   }
   const contactRegistry=extractPublicContacts(pages);
   const emailSet=new Set(contactRegistry.flatMap(item=>item.emails));

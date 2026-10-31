@@ -109,7 +109,7 @@ form.addEventListener('submit',async event=>{
  const url=normalize(document.querySelector('#domain').value);
  out.style.display='block';
  if(!url){out.innerHTML='<h2>Zkontrolujte adresu</h2><p class="result-summary">Zadejte platnou veřejnou doménu, například firma.cz.</p>';return}
- out.innerHTML='<h2>Kontroluji '+esc(url.hostname)+'…</h2><p class="result-summary">Načítám základní veřejné signály.</p>';
+ out.innerHTML='<h2>Kontroluji '+esc(url.hostname)+'…</h2><p class="result-summary">Načítám homepage, sitemapu a veřejné DNS údaje.</p>';
  out.scrollIntoView({behavior:'smooth',block:'center'});
  try{
   const pagePromise=fetchReadablePage(url,'/');
@@ -128,6 +128,23 @@ form.addEventListener('submit',async event=>{
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
   const sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
   const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||/sitemap/i.test(robots));
+  const rootUrl=url.origin+'/';
+  const discoveredUrls=getSitemapUrls(sitemap,url.hostname);
+  const candidateUrls=[...new Set([rootUrl,...discoveredUrls])].slice(0,6);
+  out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
+  out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
+  const pageResults=await Promise.allSettled(candidateUrls.map(candidate=>{
+   const target=new URL(candidate);
+   if(target.href===rootUrl)return Promise.resolve(page);
+   return fetchReadablePage(target,target.pathname+target.search);
+  }));
+  const pages=pageResults.map((result,index)=>{
+   const target=new URL(candidateUrls[index]);
+   if(result.status!=='fulfilled')return{url:target.href,type:pageType(target.pathname),title:'',h1:'',state:'Nelze načíst',raw:null};
+   const parsed=parsePageText(result.value,target);
+   return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:parsed.h1s.join(' · '),state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed};
+  });
+  const crawlMeta={scanned:pages.filter(item=>item.raw).length,note:discoveredUrls.length>5?'Zobrazeno prvních 6 URL včetně homepage.':'Rozsah vychází z homepage a dostupné sitemapy; nejde o úplný procházeč webu.'};
   const findings=[
    {area:'SEO a obsah',name:'Titulek stránky',ok:!!title,points:title?100:40,detail:title?'Načtený titulek: '+title:'Titulek nebyl ve veřejném textovém výstupu nalezen; ověřte HTML stránky.'},
    {area:'SEO a obsah',name:'Meta description',ok:!!descriptionLine,points:descriptionLine?100:45,detail:descriptionLine?'Meta description byla ve výstupu rozpoznána.':'Meta description se nepodařilo potvrdit; ověřte vlastní popis stránky.'},
@@ -135,6 +152,22 @@ form.addEventListener('submit',async event=>{
    {area:'Technické SEO',name:'Pravidla robots.txt',ok:robotsRules,points:robotsKnown?(robotsRules?100:45):null,detail:robotsKnown?(robotsRules?'Soubor robots.txt je dostupný a obsahuje pravidla User-agent.':'Soubor se načetl, ale pravidla User-agent nebyla rozpoznána. Ověřte, zda roboty omylem neblokujete.'):'robots.txt se nepodařilo spolehlivě načíst.'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown?(sitemapFound?100:45):null,detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml nebyla rozpoznána XML sitemap; ověřte adresu sitemap a její dostupnost.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
+  for(const pageItem of pages){
+   if(!pageItem.raw){
+    findings.push({area:'SEO a obsah',name:'Načtení stránky',url:pageItem.url,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejný textový zdroj stránku nenačetl; nelze z toho samotného usuzovat na chybu serveru.',confidence:'Nízká'});
+    continue;
+   }
+   if(pageItem.url===rootUrl)continue;
+   const parsed=pageItem.parsed;
+   const titleOk=!!parsed.title;
+   const description=parsed.raw.split('\n').find(line=>line.toLowerCase().startsWith('description:'))||'';
+   const h1Count=parsed.h1s.length;
+   findings.push(
+    {area:'SEO a obsah',name:'Titulek podstránky',url:pageItem.url,ok:titleOk,points:titleOk?(parsed.title.length>65?80:100):35,severity:titleOk?'Nízká':'Střední',detail:titleOk?'Nalezen titulek ('+parsed.title.length+' znaků): '+parsed.title:'Titulek nebyl ve výstupu rozpoznán.',evidence:titleOk?parsed.title:'Veřejný textový výstup neobsahuje rozpoznaný řádek Title.',confidence:'Střední — textový výstup veřejné čtečky'},
+    {area:'SEO a obsah',name:'Meta description podstránky',url:pageItem.url,ok:!!description,points:description?(description.length>170?80:100):40,severity:description?'Nízká':'Střední',detail:description?'Meta description byla rozpoznána ('+description.length+' znaků).':'Meta description nebyla ve výstupu rozpoznána.',evidence:description.trim()||'Veřejný textový výstup neobsahuje rozpoznaný řádek Description.',confidence:'Střední — textový výstup veřejné čtečky'},
+    {area:'SEO a obsah',name:'Hlavní nadpis podstránky',url:pageItem.url,ok:h1Count===1,points:h1Count===1?100:h1Count===0?40:70,severity:h1Count===1?'Nízká':'Střední',detail:h1Count===1?'Byl rozpoznán jeden H1.':h1Count===0?'H1 nebyl rozpoznán.':'Bylo rozpoznáno '+h1Count+' nadpisů H1.',evidence:parsed.h1s.join(' | ')||'Veřejný textový výstup neobsahuje rozpoznaný řádek H1.',confidence:'Střední — textový výstup veřejné čtečky'}
+   );
+  }
   const dnsOk=dnsResults.slice(0,5).every(result=>result.status==='fulfilled');
   if(dnsOk){
    const [mx,txt,dmarc,a,aaaa,caa]=dnsResults.map(result=>result.status==='fulfilled'?result.value:null);
@@ -160,7 +193,7 @@ form.addEventListener('submit',async event=>{
   for(const [area] of areaDefs){
    if(!findings.some(item=>item.area===area))findings.push({area,name:'Kontrola oblasti: '+area,ok:false,points:null,detail:'Tato oblast zatím nemá napojené spolehlivé měření. Není zahrnuta do celkového procenta.'});
   }
-  renderReport(url.hostname,findings);
+  renderReport(url.hostname,findings,pages,crawlMeta);
  }catch(error){
   out.innerHTML='<h2>Kontrolu se nepodařilo dokončit</h2><p class="result-summary">'+esc(error.message||'Zdroj neodpověděl.')+'</p><p class="audit-disclaimer">Některé weby blokují externí čtečky nebo vyžadují JavaScript. Neznamená to automaticky, že web nefunguje.</p>';
  }

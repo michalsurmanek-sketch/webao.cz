@@ -46,6 +46,7 @@ function advice(item){
  if(key.includes('description'))return item.ok?'Zkontrolujte, že popis odpovídá aktuálnímu obsahu a hlavnímu cíli stránky.':'Doplňte stručný popis stránky s jasným přínosem pro návštěvníka.';
  if(key.includes('nadpis h1'))return item.ok?'Ověřte, že H1 jasně pojmenovává hlavní téma stránky.':'Přidejte jeden srozumitelný hlavní nadpis H1.';
  if(key.includes('robots.txt'))return item.ok?'Pravidelně ověřujte, že robots.txt neblokuje důležité veřejné stránky.':'Zkontrolujte pravidla User-agent a povolte indexaci stránek, které mají být ve vyhledávačích.';
+ if(key.includes('blokování celého webu'))return 'Ověřte záměr pravidla Disallow: /. Pokud má být web veřejně dohledatelný, odstraňte globální blokaci a znovu prověřte indexaci.';
  if(key.includes('sitemap'))return item.ok?'Udržujte sitemap aktuální a uveďte její adresu v robots.txt.':'Vytvořte dostupnou XML sitemap a přidejte její adresu do robots.txt.';
  if(key.includes('mx'))return item.ok?'Ověřte, že MX záznamy odpovídají vašemu poskytovateli e-mailu.':'Pokud na doméně přijímáte e-mail, nastavte MX záznam podle e-mailového poskytovatele; jinak není nutný.';
  if(key.includes('spf'))return item.ok?'Zkontrolujte, že SPF povoluje všechny oprávněné odesílatele a neobsahuje více SPF záznamů.':item.points===0?'Sjednoťte nastavení do jediného SPF TXT záznamu.':'Pokud z domény odesíláte e-mail, nastavte jeden SPF TXT záznam pro používané odesílací služby.';
@@ -140,6 +141,18 @@ function getSitemapUrls(text,host){
  for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(u.hostname===host&&!/\.xml$/i.test(u.pathname)&&!found.includes(u.href))found.push(u.href)}catch{}}
  return found;
 }
+function robotsBlocksAll(text){
+ const lines=text.split(/\r?\n/).map(line=>line.split('#')[0].trim()).filter(Boolean);
+ let isWildcard=false,groupRules=[];
+ const groups=[];
+ for(const line of lines){
+  const match=line.match(/^user-agent\s*:\s*(.+)$/i);
+  if(match){if(isWildcard)groups.push(groupRules);isWildcard=match[1].trim()==='*';groupRules=[];continue}
+  if(isWildcard&&/^(disallow|allow)\s*:/i.test(line))groupRules.push(line);
+ }
+ if(isWildcard)groups.push(groupRules);
+ return groups.some(rules=>rules.some(rule=>/^disallow\s*:\s*\/$/i.test(rule)));
+}
 function pageType(path){
  const p=path.toLowerCase();
  if(p==='/'||p==='')return'Úvodní stránka';
@@ -173,6 +186,7 @@ form.addEventListener('submit',async event=>{
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsKnown=robotsResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(robots);
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
+  const robotsBlocksSite=robotsKnown&&robotsBlocksAll(robots);
   let sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
   const declaredSitemaps=getSitemapLocations(robots,url.hostname);
   if(!sitemapKnown&&declaredSitemaps.length){
@@ -207,6 +221,7 @@ form.addEventListener('submit',async event=>{
    {area:'SEO a obsah',name:'Meta description',ok:!!descriptionLine,points:descriptionLine?100:45,detail:descriptionLine?'Meta description byla ve výstupu rozpoznána.':'Meta description se nepodařilo potvrdit; ověřte vlastní popis stránky.'},
    {area:'SEO a obsah',name:'Hlavní nadpis H1',ok:hasH1,points:hasH1?100:50,detail:hasH1?'Ve výstupu byl rozpoznán hlavní nadpis H1.':'H1 nebyl ve výstupu rozpoznán; ověřte strukturu nadpisů.'},
    {area:'Technické SEO',name:'Pravidla robots.txt',ok:robotsRules,points:robotsKnown?(robotsRules?100:45):null,detail:robotsKnown?(robotsRules?'Soubor robots.txt je dostupný a obsahuje pravidla User-agent.':'Soubor se načetl, ale pravidla User-agent nebyla rozpoznána. Ověřte, zda roboty omylem neblokujete.'):'robots.txt se nepodařilo spolehlivě načíst.'},
+   {area:'Technické SEO',name:'Blokování celého webu v robots.txt',ok:!robotsBlocksSite,points:robotsKnown?(robotsBlocksSite?20:100):null,severity:robotsBlocksSite?'Kritická':'Nízká',detail:robotsBlocksSite?'Bylo rozpoznáno pravidlo Disallow: / ve skupině pro všechny roboty (*). Může blokovat procházení webu.':'V pravidlech pro všechny roboty nebylo rozpoznáno globální Disallow: /. Kontrola neověřuje všechny kombinace pravidel pro jednotlivé roboty.',evidence:robotsBlocksSite?'robots.txt obsahuje User-agent: * a Disallow: /.':'Veřejný text robots.txt byl prohledán na globální blokaci.',confidence:'Střední — parser textového výstupu robots.txt'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown?(sitemapFound?100:45):null,detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml nebyla rozpoznána XML sitemap; ověřte adresu sitemap a její dostupnost.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
   for(const pageItem of pages){

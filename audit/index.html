@@ -133,7 +133,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.8';
+ const ruleVersion='2026-10-31.9';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -262,11 +262,12 @@ form.addEventListener('submit',async event=>{
   const dnsPromise=Promise.allSettled([queryDns(url.hostname,'MX'),queryDns(url.hostname,'TXT'),queryDns('_dmarc.'+url.hostname,'TXT'),queryDns(url.hostname,'A'),queryDns(url.hostname,'AAAA'),queryDns(url.hostname,'CAA'),queryDns(url.hostname,'NS'),queryDns(url.hostname,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+url.hostname,'TXT'))]);
   const [pageResult,dnsResults,rdapResult,competitorResults]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise]);
   const page=pageResult;
-  const lines=page.split('\n');
-  const titleLine=lines.find(line=>line.toLowerCase().startsWith('title:'));
-  const descriptionLine=lines.find(line=>line.toLowerCase().startsWith('description:'));
-  const hasH1=lines.some(line=>line.trim().toLowerCase().startsWith('h1:'));
-  const title=titleLine?titleLine.slice(titleLine.indexOf(':')+1).trim():'';
+  const homeParsed=parsePageText(page,new URL(url.origin+'/'));
+  const title=homeParsed.title;
+  const titleLength=title.trim().length;
+  const descriptionLine=homeParsed.description;
+  const descriptionLength=descriptionLine.trim().length;
+  const hasH1=homeParsed.h1s.length===1;
   const [robotsResult,sitemapResult]=await Promise.allSettled([fetchReadablePage(url,'/robots.txt'),fetchReadablePage(url,'/sitemap.xml')]);
   const robots=robotsResult.status==='fulfilled'?robotsResult.value:'';
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
@@ -334,9 +335,9 @@ form.addEventListener('submit',async event=>{
   }
   crawlMeta.scanned=pages.filter(item=>item.raw).length;
   const findings=[
-   {area:'SEO a obsah',name:'Titulek stránky',ok:!!title,points:title?100:40,detail:title?'Načtený titulek: '+title:'Titulek nebyl ve veřejném textovém výstupu nalezen; ověřte HTML stránky.'},
-   {area:'SEO a obsah',name:'Meta description',ok:!!descriptionLine,points:descriptionLine?100:45,detail:descriptionLine?'Meta description byla ve výstupu rozpoznána.':'Meta description se nepodařilo potvrdit; ověřte vlastní popis stránky.'},
-   {area:'SEO a obsah',name:'Hlavní nadpis H1',ok:hasH1,points:hasH1?100:50,detail:hasH1?'Ve výstupu byl rozpoznán hlavní nadpis H1.':'H1 nebyl ve výstupu rozpoznán; ověřte strukturu nadpisů.'},
+   {area:'SEO a obsah',name:'Titulek stránky',url:url.origin+'/',ok:titleLength>=15&&titleLength<=65,points:title?(titleLength<15?65:titleLength>65?80:100):40,severity:!title?'Střední':titleLength<15?'Střední':'Nízká',detail:title?'Načtený titulek ('+titleLength+' znaků): '+title:'Titulek nebyl ve veřejném textovém výstupu nalezen; ověřte HTML stránky.',evidence:title||'Veřejný textový výstup neobsahuje rozpoznaný řádek Title.',confidence:'Střední — textový výstup veřejné čtečky'},
+   {area:'SEO a obsah',name:'Meta description',url:url.origin+'/',ok:descriptionLength>=70&&descriptionLength<=170,points:descriptionLine?(descriptionLength<70||descriptionLength>170?80:100):45,severity:!descriptionLine?'Střední':'Nízká',detail:descriptionLine?'Meta description byla rozpoznána ('+descriptionLength+' znaků).':'Meta description se nepodařilo potvrdit; ověřte vlastní popis stránky.',evidence:descriptionLine||'Veřejný textový výstup neobsahuje rozpoznaný řádek Description.',confidence:'Střední — textový výstup veřejné čtečky'},
+   {area:'SEO a obsah',name:'Hlavní nadpis H1',url:url.origin+'/',ok:hasH1,points:hasH1?100:50,severity:hasH1?'Nízká':'Střední',detail:hasH1?'Byl rozpoznán právě jeden H1.':'Nebyl rozpoznán právě jeden H1; ověřte strukturu nadpisů.',evidence:homeParsed.h1s.join(' | ')||'Veřejný textový výstup neobsahuje rozpoznaný řádek H1.',confidence:'Střední — textový výstup veřejné čtečky'},
    {area:'Technické SEO',name:'Pravidla robots.txt',ok:robotsRules,points:robotsKnown?(robotsRules?100:45):null,detail:robotsKnown?(robotsRules?'Soubor robots.txt je dostupný a obsahuje pravidla User-agent.':'Soubor se načetl, ale pravidla User-agent nebyla rozpoznána. Ověřte, zda roboty omylem neblokujete.'):'robots.txt se nepodařilo spolehlivě načíst.'},
    {area:'Technické SEO',name:'Blokování celého webu v robots.txt',ok:!robotsBlocksSite,points:robotsKnown?(robotsBlocksSite?20:100):null,severity:robotsBlocksSite?'Kritická':'Nízká',detail:robotsBlocksSite?'Bylo rozpoznáno pravidlo Disallow: / ve skupině pro všechny roboty (*). Může blokovat procházení webu.':'V pravidlech pro všechny roboty nebylo rozpoznáno globální Disallow: /. Kontrola neověřuje všechny kombinace pravidel pro jednotlivé roboty.',evidence:robotsBlocksSite?'robots.txt obsahuje User-agent: * a Disallow: /.':'Veřejný text robots.txt byl prohledán na globální blokaci.',confidence:'Střední — parser textového výstupu robots.txt'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown?(sitemapFound?100:45):null,detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml nebyla rozpoznána XML sitemap; ověřte adresu sitemap a její dostupnost.'):'Sitemap se nepodařilo spolehlivě načíst.'}

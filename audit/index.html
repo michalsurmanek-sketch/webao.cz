@@ -151,7 +151,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const priorityHtml='<h3 style="margin-top:28px">Co opravit jako první</h3>'+(priorityFindings.length?'<div class="finding-list">'+priorityFindings.map((item,index)=>'<div class="finding warn"><span class="state">PRIORITA '+(index+1)+'</span><span class="severity">'+esc(item.severity||(item.points<50?'Závažná':'Střední'))+'</span><strong>'+esc(item.name)+'</strong>'+(item.url?'<p><b>Stránka:</b> <a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></p>':'')+'<p>'+esc(item.detail)+'</p><p><b>Řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Pracnost:</b> '+esc(item.effort||(item.points<50?'Střední':'Nízká'))+'</p></div>').join('')+'</div>':'<p>Mezi změřenými kontrolami nebyl zjištěn nález se sníženým skóre.</p>');
  const pageRows=pages.map(page=>'<tr><td><a href="'+esc(page.url)+'" target="_blank" rel="noopener">'+esc(page.url)+'</a></td><td>'+esc(page.type)+'</td><td>'+esc(page.title||'Titulek nebyl rozpoznán')+'</td><td>'+esc(page.h1||'—')+'</td><td>'+esc(page.links===undefined?'Nezjištěno':String(page.links.length))+'</td><td>'+esc(page.state)+'</td></tr>').join('');
  const competitorHtml=competitors.length?'<h3 style="margin-top:28px">Srovnání veřejné nabídky</h3><p class="audit-disclaimer">Srovnání vychází pouze z rozpoznaného textu úvodních stránek. Neříká nic o návštěvnosti, pozicích ani obchodních výsledcích.</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Web</th><th>Titulek</th><th>Hlavní sdělení</th><th>Cena</th><th>Kontakt</th><th>Důvěra</th><th>Stav</th></tr></thead><tbody>'+competitors.map(item=>'<tr><td><a href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></td><td>'+esc(item.title||'Nerozpoznáno')+'</td><td>'+esc(item.headline||'Nerozpoznáno')+'</td><td>'+esc(item.price?'Signál nalezen':'Nerozpoznáno ve vzorku')+'</td><td>'+esc(item.contact?'Signál nalezen':'Nerozpoznáno ve vzorku')+'</td><td>'+esc(item.trust?'Signál nalezen':'Nerozpoznáno ve vzorku')+'</td><td>'+esc(item.status)+'</td></tr>').join('')+'</tbody></table></div>':'';
- const pagesHtml='<h3 style="margin-top:28px">Inventář prověřených stránek</h3><p class="audit-disclaimer">'+esc(crawlMeta.scanned||0)+' stránek načteno z veřejných zdrojů; limit této kontroly je '+esc(crawlMeta.limit||6)+' URL. '+(crawlMeta.excludedPaths&&crawlMeta.excludedPaths.length?'Vynechané cesty: '+esc(crawlMeta.excludedPaths.join(', '))+'. ':'')+esc(crawlMeta.note||'')</p>'+(pages.length?'<div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>URL</th><th>Typ</th><th>Titulek</th><th>H1</th><th>Odkazy ve vzorku</th><th>Stav</th></tr></thead><tbody>'+pageRows+'</tbody></table></div>':'<p>Žádné podstránky se nepodařilo získat.</p>');
+ const pagesHtml='<h3 style="margin-top:28px">Inventář prověřených stránek</h3><p class="audit-disclaimer">Úspěšně načteno '+esc(crawlMeta.scanned||0)+' URL. V sitemapách rozpoznáno '+esc(crawlMeta.discovered||0)+' URL; vybráno '+esc(crawlMeta.selected||0)+' z limitu '+esc(crawlMeta.limit||6)+', vynecháno limitem '+esc(crawlMeta.omitted||0)+'. Zpracované sitemap soubory: '+esc(crawlMeta.sitemapFiles||0)+'. '+(crawlMeta.excludedPaths&&crawlMeta.excludedPaths.length?'Vynechané cesty: '+esc(crawlMeta.excludedPaths.join(', '))+'. ':'')+esc(crawlMeta.note||'')</p>'+(pages.length?'<div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>URL</th><th>Typ</th><th>Titulek</th><th>H1</th><th>Odkazy ve vzorku</th><th>Stav</th></tr></thead><tbody>'+pageRows+'</tbody></table></div>':'<p>Žádné podstránky se nepodařilo získat.</p>');
  const measured=findings.filter(item=>item.points!==null).length;
  out.innerHTML='<div class="print-only">WEBAO Audit · '+esc(host)+' · '+new Date().toLocaleString('cs-CZ')+'</div><h2>Výsledek auditu: '+esc(host)+'</h2>'+brandHtml+'<div class="score-head"><div class="score-big">'+(score===null?'—':score+'<small>%</small>')+'</div><div class="score-explain"><strong>Známka '+grade+'</strong><br>Vážený průměr změřených oblastí. Oblasti bez dat do skóre nevstupují.<br><small>Změřeno '+measured+' kontrol; pokryto '+scored.length+' z '+areaDefs.length+' oblastí.</small><br><small>Skóre je předběžné a vychází pouze z oblastí s dostupnými daty.</small></div></div><div class="report-actions"><button type="button" onclick="window.print()">Stáhnout / uložit PDF</button><button type="button" onclick="downloadAuditCsv()">Exportovat CSV</button></div><h3>Skóre oblastí</h3>'+areaHtml+priorityHtml+historyHtml+competitorHtml+pagesHtml+'<h3 style="margin-top:28px">Detailní nálezy a doporučení</h3><div class="finding-list">'+findingHtml+'</div>'+buildDetektiv(pages)+'<p class="audit-disclaimer">Procento je vážená úspěšnost automatických kontrol, které se podařilo změřit. Nejde o garanci bezpečnosti, souladu s právem ani pozic ve vyhledávání. Nezměřené oblasti se do skóre nezapočítávají. Doména a URL se předávají externím službám Jina Reader pro čtení veřejného webu, Google Public DNS pro DNS dotazy a RDAP registru pro registrační údaje. Audit nepřihlašuje do administrace a neodesílá formuláře.</p>';
 }
@@ -199,16 +199,17 @@ function parsePageText(text,url){
  const links=[...text.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map(match=>{try{const link=new URL(match[1]);link.hash='';return link.href}catch{return''}}).filter(href=>{try{return new URL(href).hostname===url.hostname}catch{return false}});
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links:[...new Set(links)],body:body.replace(/\s+/g,' ').trim(),raw:text};
 }
+function isSameSiteHost(candidate,host){return candidate===host||candidate.endsWith('.'+host)||host.endsWith('.'+candidate)}
 function getSitemapLocations(text,host){
  const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
  const found=[];
- for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if((u.hostname===host||u.hostname.endsWith('.'+host))&&/\.xml(?:$|\?)/i.test(u.pathname+u.search)&&!found.includes(u.href))found.push(u.href)}catch{}}
+ for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(isSameSiteHost(u.hostname,host)&&/\.xml(?:$|\?)/i.test(u.pathname+u.search)&&!found.includes(u.href))found.push(u.href)}catch{}}
  return found;
 }
 function getSitemapUrls(text,host){
  const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
  const found=[];
- for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(u.hostname===host&&!/\.xml$/i.test(u.pathname)&&!found.includes(u.href))found.push(u.href)}catch{}}
+ for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(isSameSiteHost(u.hostname,host)&&!/\.xml$/i.test(u.pathname)&&!found.includes(u.href))found.push(u.href)}catch{}}
  return found;
 }
 function robotsBlocksAll(text){
@@ -267,14 +268,30 @@ form.addEventListener('submit',async event=>{
   }
   const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);
   const rootUrl=url.origin+'/';
-  let discoveredUrls=getSitemapUrls(sitemap,url.hostname);
-  const sitemapIndexes=getSitemapLocations(sitemap,url.hostname).slice(0,2);
-  if(sitemapIndexes.length){
-   const nestedResults=await Promise.allSettled(sitemapIndexes.map(raw=>{const nested=new URL(raw);return fetchReadablePage(nested,nested.pathname+nested.search)}));
-   for(const nested of nestedResults)if(nested.status==='fulfilled')discoveredUrls.push(...getSitemapUrls(nested.value,url.hostname));
+  let sitemapSource=new URL('/sitemap.xml',url.origin).href;
+  if(!sitemapKnown&&declaredSitemaps.length){
+   try{const sitemapUrl=new URL(declaredSitemaps[0]);sitemap=sitemap||await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);sitemapKnown=true;sitemapSource=sitemapUrl.href}catch{}
   }
-  discoveredUrls=[...new Set(discoveredUrls)];
-  const candidateUrls=[...new Set([rootUrl,...discoveredUrls])].filter((candidate,index)=>index===0||!excludedPaths.some(path=>new URL(candidate).pathname.startsWith(path))).slice(0,pageLimit);
+  const sitemapTexts=sitemapKnown&&sitemap?[sitemap]:[];
+  const sitemapQueue=[...declaredSitemaps,...getSitemapLocations(sitemap,url.hostname)];
+  const seenSitemaps=new Set([new URL('/sitemap.xml',url.origin).href,sitemapSource]);
+  let sitemapFiles=sitemapTexts.length;
+  while(sitemapQueue.length&&sitemapFiles<8){
+   const batch=[];
+   while(sitemapQueue.length&&batch.length<3&&sitemapFiles+batch.length<8){
+    const raw=sitemapQueue.shift();
+    if(seenSitemaps.has(raw))continue;
+    seenSitemaps.add(raw);batch.push(raw);
+   }
+   if(!batch.length)break;
+   const nestedResults=await Promise.allSettled(batch.map(raw=>{const nested=new URL(raw);return fetchReadablePage(nested,nested.pathname+nested.search)}));
+   nestedResults.forEach(result=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname))}});
+  }
+  let discoveredUrls=[...new Set(sitemapTexts.flatMap(text=>getSitemapUrls(text,url.hostname)))];
+  const eligibleUrls=[...new Set([rootUrl,...discoveredUrls])].filter((candidate,index)=>index===0||!excludedPaths.some(path=>new URL(candidate).pathname.startsWith(path)));
+  const candidateUrls=eligibleUrls.slice(0,pageLimit);
+  const discoveredCount=discoveredUrls.length+(discoveredUrls.some(candidate=>new URL(candidate).href===rootUrl)?0:1);
+  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,selected:candidateUrls.length,omitted:Math.max(0,eligibleUrls.length-candidateUrls.length),sitemapFiles,note:'Rozsah vychází z homepage a veřejných sitemap. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
   out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
   const pageResults=await Promise.allSettled(candidateUrls.map(candidate=>{
@@ -301,7 +318,7 @@ form.addEventListener('submit',async event=>{
    const ownHome=ownPages.find(item=>item.type==='Úvodní stránka')||ownPages[0];
    competitors.unshift({url:'https://'+url.hostname,status:'Váš web',title:ownHome?.title||'',headline:ownHome?.h1||'',price:/\b(cena|ceník|cenik|kč|czk|od\s*\d+)\b/i.test(ownText),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(ownText),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(ownText)});
   }
-  const crawlMeta={scanned:pages.filter(item=>item.raw).length,limit:pageLimit,excludedPaths,note:discoveredUrls.length+1>pageLimit?'Zobrazen prvních '+pageLimit+' URL podle limitu včetně homepage.':'Rozsah vychází z homepage a dostupné sitemapy; nejde o úplný procházeč webu.'};
+  crawlMeta.scanned=pages.filter(item=>item.raw).length;
   const findings=[
    {area:'SEO a obsah',name:'Titulek stránky',ok:!!title,points:title?100:40,detail:title?'Načtený titulek: '+title:'Titulek nebyl ve veřejném textovém výstupu nalezen; ověřte HTML stránky.'},
    {area:'SEO a obsah',name:'Meta description',ok:!!descriptionLine,points:descriptionLine?100:45,detail:descriptionLine?'Meta description byla ve výstupu rozpoznána.':'Meta description se nepodařilo potvrdit; ověřte vlastní popis stránky.'},

@@ -88,8 +88,8 @@ function renderReport(host,findings,pages=[],crawlMeta={}){
   const impact=item.impact||(item.points===null?'Bez dostupného měření nelze dopad spolehlivě určit.':item.ok?'Kontrola nenašla v této oblasti známý problém; samo o sobě to nepotvrzuje úplnou správnost.':'Může zhoršit dohledatelnost, srozumitelnost nebo technickou spolehlivost této části webu.');
   return '<div class="finding '+(item.ok?'':'warn')+'"><span class="state">'+esc(status)+'</span><span class="severity">'+esc(severity)+'</span><strong>'+esc(item.name)+'</strong>'+((item.url||(pages[0]&&pages[0].url))?'<p><b>Stránka:</b> <a class="audit-link" href="'+esc(item.url||(pages[0]&&pages[0].url))+'" target="_blank" rel="noopener">'+esc(item.url||(pages[0]&&pages[0].url))+'</a></p>':'')+'<p>'+esc(item.detail)+'</p>'+'<p><b>Důkaz:</b> '+esc(item.evidence||item.detail||'Automatický signál uvedený výše.')+'</p>'+'<p><b>Možný dopad:</b> '+esc(impact)+'</p><p><b>Doporučené řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Jistota:</b> '+esc(item.confidence|| (item.points===null?'Nízká — kontrola neměla dostatek dat.':'Střední — automatický výsledek vyžaduje interpretaci.'))+' · <b>Pracnost:</b> '+esc(item.effort||(item.points===null?'Nelze odhadnout':item.points<50?'Střední':'Nízká'))+' · <b>Kontrolováno:</b> '+esc(reportDate)+'</p></div>';
  }).join('');
- const pageRows=pages.map(page=>'<tr><td><a href="'+esc(page.url)+'" target="_blank" rel="noopener">'+esc(page.url)+'</a></td><td>'+esc(page.type)+'</td><td>'+esc(page.title||'Titulek nebyl rozpoznán')+'</td><td>'+esc(page.h1||'—')+'</td><td>'+esc(page.state)+'</td></tr>').join('');
- const pagesHtml='<h3 style="margin-top:28px">Inventář prověřených stránek</h3><p class="audit-disclaimer">'+esc(crawlMeta.scanned||0)+' stránek načteno z veřejných zdrojů; limit této verze je 6 URL. '+esc(crawlMeta.note||'')</p>'+(pages.length?'<div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>URL</th><th>Typ</th><th>Titulek</th><th>H1</th><th>Stav</th></tr></thead><tbody>'+pageRows+'</tbody></table></div>':'<p>Žádné podstránky se nepodařilo získat.</p>');
+ const pageRows=pages.map(page=>'<tr><td><a href="'+esc(page.url)+'" target="_blank" rel="noopener">'+esc(page.url)+'</a></td><td>'+esc(page.type)+'</td><td>'+esc(page.title||'Titulek nebyl rozpoznán')+'</td><td>'+esc(page.h1||'—')+'</td><td>'+esc(page.links===undefined?'Nezjištěno':String(page.links.length))+'</td><td>'+esc(page.state)+'</td></tr>').join('');
+ const pagesHtml='<h3 style="margin-top:28px">Inventář prověřených stránek</h3><p class="audit-disclaimer">'+esc(crawlMeta.scanned||0)+' stránek načteno z veřejných zdrojů; limit této verze je 6 URL. '+esc(crawlMeta.note||'')</p>'+(pages.length?'<div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>URL</th><th>Typ</th><th>Titulek</th><th>H1</th><th>Odkazy ve vzorku</th><th>Stav</th></tr></thead><tbody>'+pageRows+'</tbody></table></div>':'<p>Žádné podstránky se nepodařilo získat.</p>');
  const measured=findings.filter(item=>item.points!==null).length;
  out.innerHTML='<div class="print-only">WEBAO Audit · '+esc(host)+' · '+new Date().toLocaleString('cs-CZ')+'</div><h2>Výsledek auditu: '+esc(host)+'</h2><div class="score-head"><div class="score-big">'+(score===null?'—':score+'<small>%</small>')+'</div><div class="score-explain"><strong>Známka '+grade+'</strong><br>Vážený průměr změřených oblastí. Oblasti bez dat do skóre nevstupují.<br><small>Změřeno '+measured+' kontrol; pokryto '+scored.length+' z '+areaDefs.length+' oblastí.</small><br><small>Skóre je předběžné a vychází pouze z oblastí s dostupnými daty.</small></div></div><div class="report-actions"><button type="button" onclick="window.print()">Stáhnout / uložit PDF</button></div><h3>Skóre oblastí</h3>'+areaHtml+pagesHtml+'<h3 style="margin-top:28px">Detailní nálezy a doporučení</h3><div class="finding-list">'+findingHtml+'</div>'+buildDetektiv(pages)+'<p class="audit-disclaimer">Procento je vážená úspěšnost automatických kontrol, které se podařilo změřit. Nejde o garanci bezpečnosti, souladu s právem ani pozic ve vyhledávání. Nezměřené oblasti se do skóre nezapočítávají. Stránka a DNS se dotazují přes externí veřejné služby; nepřihlašujeme se a neodesíláme formuláře.</p>';
 }
@@ -108,7 +108,8 @@ function parsePageText(text,url){
  const field=prefix=>{const line=lines.find(value=>value.toLowerCase().startsWith(prefix.toLowerCase()+':'));return line?line.slice(line.indexOf(':')+1).trim():''};
  const h1s=lines.filter(line=>line.trim().toLowerCase().startsWith('h1:')).map(line=>line.slice(line.indexOf(':')+1).trim()).filter(Boolean);
  const body=lines.filter(line=>!/^(title|url source|description|published time|modified time|site name|image|h1|h2|h3):/i.test(line.trim())).join(' ');
- return{url:url.href,title:field('Title'),description:field('Description'),h1s,body:body.replace(/\s+/g,' ').trim(),raw:text};
+ const links=[...text.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map(match=>{try{const link=new URL(match[1]);link.hash='';return link.href}catch{return''}}).filter(href=>{try{return new URL(href).hostname===url.hostname}catch{return false}});
+ return{url:url.href,title:field('Title'),description:field('Description'),h1s,links:[...new Set(links)],body:body.replace(/\s+/g,' ').trim(),raw:text};
 }
 function getSitemapLocations(text,host){
  const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
@@ -178,9 +179,9 @@ form.addEventListener('submit',async event=>{
   }));
   const pages=pageResults.map((result,index)=>{
    const target=new URL(candidateUrls[index]);
-   if(result.status!=='fulfilled')return{url:target.href,type:pageType(target.pathname),title:'',h1:'',state:'Nelze načíst',raw:null};
+   if(result.status!=='fulfilled')return{url:target.href,type:pageType(target.pathname),title:'',h1:'',state:'Nelze načíst',raw:null,links:[]};
    const parsed=parsePageText(result.value,target);
-   return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:parsed.h1s.join(' · '),state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed};
+   return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:parsed.h1s.join(' · '),state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links};
   });
   const crawlMeta={scanned:pages.filter(item=>item.raw).length,note:discoveredUrls.length>5?'Zobrazeno prvních 6 URL včetně homepage.':'Rozsah vychází z homepage a dostupné sitemapy; nejde o úplný procházeč webu.'};
   const findings=[
@@ -227,6 +228,22 @@ form.addEventListener('submit',async event=>{
    );
   }else{
    findings.push({area:'DNS a e-mail',name:'DNS záznamy',ok:false,points:null,detail:'Veřejný DNS resolver nebyl dostupný; DNS oblast nebylo možné vyhodnotit.'});
+  }
+  const titleGroups=new Map();
+  for(const item of pages.filter(page=>page.raw&&page.title)){
+   const key=item.title.trim().toLowerCase();
+   if(!titleGroups.has(key))titleGroups.set(key,[]);
+   titleGroups.get(key).push(item);
+  }
+  for(const duplicateGroup of titleGroups.values())if(duplicateGroup.length>1){
+   for(const item of duplicateGroup)findings.push({area:'SEO a obsah',name:'Duplicitní titulek ve vzorku',url:item.url,ok:false,points:55,severity:'Střední',detail:'Stejný titulek byl rozpoznán na '+duplicateGroup.length+' kontrolovaných URL.',evidence:duplicateGroup.map(page=>page.url+' — '+page.title).join(' | '),confidence:'Vysoká v rámci načteného textu'});
+  }
+  const sampledUrls=new Set(pages.map(page=>{try{const u=new URL(page.url);u.hash='';return u.href.replace(/\/$/,'')}catch{return page.url}}));
+  const inbound=new Map([...sampledUrls].map(href=>[href,0]));
+  for(const item of pages)for(const link of item.links||[]){try{const u=new URL(link);u.hash='';const key=u.href.replace(/\/$/,'');if(inbound.has(key))inbound.set(key,inbound.get(key)+1)}catch{}}
+  for(const item of pages.filter(page=>page.raw&&page.type!=='Úvodní stránka')){
+   const key=item.url.replace(/\/$/,'');
+   if(item.links&&inbound.has(key)&&inbound.get(key)===0)findings.push({area:'Technické SEO',name:'Odkaz na stránku ve vzorku',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'Z dalších kontrolovaných URL nebyl v textovém výstupu rozpoznán interní odkaz na tuto stránku. Může být propojena z jiné, neprověřené části webu.',evidence:'Prověřeno '+pages.filter(page=>page.raw).length+' URL; příchozích odkazů mezi nimi: 0.',impact:'Návštěvníci i vyhledávače mohou mít obtížnější cestu k této stránce, pokud není propojena jinde.',confidence:'Nízká — omezený vzorek URL',effort:'Nízká'});
   }
   for(const [area] of areaDefs){
    if(!findings.some(item=>item.area===area))findings.push({area,name:'Kontrola oblasti: '+area,ok:false,points:null,detail:'Tato oblast zatím nemá napojené spolehlivé měření. Není zahrnuta do celkového procenta.'});

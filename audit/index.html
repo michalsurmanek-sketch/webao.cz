@@ -81,6 +81,29 @@ async function queryDns(domain,type){
  if(!response.ok)throw new Error('DNS resolver není dostupný.');
  return await response.json();
 }
+function parsePageText(text,url){
+ const lines=text.split('\n');
+ const field=prefix=>{const line=lines.find(value=>value.toLowerCase().startsWith(prefix.toLowerCase()+':'));return line?line.slice(line.indexOf(':')+1).trim():''};
+ const h1s=lines.filter(line=>line.trim().toLowerCase().startsWith('h1:')).map(line=>line.slice(line.indexOf(':')+1).trim()).filter(Boolean);
+ const body=lines.filter(line=>!/^(title|url source|description|published time|modified time|site name|image|h1|h2|h3):/i.test(line.trim())).join(' ');
+ return{url:url.href,title:field('Title'),description:field('Description'),h1s,body:body.replace(/\s+/g,' ').trim(),raw:text};
+}
+function getSitemapUrls(text,host){
+ const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
+ const found=[];
+ for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(u.hostname===host&&!/\.xml$/i.test(u.pathname)&&!found.includes(u.href))found.push(u.href)}catch{}}
+ return found;
+}
+function pageType(path){
+ const p=path.toLowerCase();
+ if(p==='/'||p==='')return'Úvodní stránka';
+ if(/kontakt|contact/.test(p))return'Kontakt';
+ if(/produkt|product|kategorie|category|shop/.test(p))return'Produkt / kategorie';
+ if(/blog|clanek|článek|novinky|news|article/.test(p))return'Článek';
+ if(/sluzb|služb|service|realiz|reference/.test(p))return'Služba / realizace';
+ if(/obchodni-podminky|gdpr|privacy|cookies|reklamac/.test(p))return'Právní informace';
+ return'Podstránka';
+}
 form.addEventListener('submit',async event=>{
  event.preventDefault();
  const url=normalize(document.querySelector('#domain').value);

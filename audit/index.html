@@ -125,6 +125,12 @@ function downloadAuditCsv(){
   rows.push(['Nález',item.url||data.host,item.area,item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),item.effort||'',item.confidence||'',data.checkedAt,progress.status||'Nový',progress.owner||'',progress.note||'',data.coverage+' %',findingKind(item)]);
  }
  for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'H1: '+(page.h1||'')+'; slov ve výstupu: '+(page.wordCount??'nezjištěno')+'; obrázky: '+(page.imageCount??'nezjištěno')+'; bez alt: '+(page.missingAltCount??'nezjištěno')+'; odchozí interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno')+'; odchozí externí odkazy: '+(page.externalLinks? page.externalLinks.length:'nezjištěno')+'; příchozí interní odkazy mezi prověřenými URL: '+(page.inboundLinks??'nezjištěno'),'','','','','']);
+ const sampledPages=new Set(data.pages.filter(page=>page.raw).map(page=>{try{const u=new URL(page.url);u.hash='';return u.href.replace(/\/$/,'')}catch{return page.url}}));
+ const normalizeTarget=value=>{try{const u=new URL(value);u.hash='';return u.href.replace(/\/$/,'')}catch{return value}};
+ for(const page of data.pages.filter(item=>item.raw)){
+  for(const target of page.links||[])rows.push(['Odkaz',page.url,'Interní odkaz',sampledPages.has(normalizeTarget(target))?'CÍL VE VZORKU':'CÍL MIMO VZOREK','',target,'Odkaz rozpoznán z veřejného textového výstupu; cílový HTTP stav nebyl ověřen.','','','','Omezený vzorek',data.checkedAt,'','','',data.coverage+' %','Rozpoznáno ve výstupu']);
+  for(const target of page.externalLinks||[])rows.push(['Odkaz',page.url,'Externí odkaz','CÍL MIMO VZOREK','',target,'Externí odkaz rozpoznán z veřejného textového výstupu; cílový HTTP stav nebyl ověřen.','','','','Omezený vzorek',data.checkedAt,'','','',data.coverage+' %','Rozpoznáno ve výstupu']);
+ }
  for(const item of data.contacts||[])rows.push(['Kontakt',item.url,'Veřejné kontakty','ZACHYCENO','','E-mail: '+item.emails.join(', '),'Telefon: '+item.phones.join(', '),'','','','Textové rozpoznání',data.checkedAt]);
  for(const item of data.claims||[])rows.push(['Tvrzení',item.url,'Obchodní obsah','K PROVĚŘENÍ','',item.phrase,'Rozpoznáno ve veřejném textu','','Ověřit a doložit tvrzení','','Automatické rozpoznání',data.checkedAt]);
  for(const item of data.competitors||[])rows.push(['Srovnání',item.url,'Veřejná nabídka',item.status,'',item.title,'Hlavní sdělení: '+item.headline,'Cena: '+(item.price?'signál nalezen':'nerozpoznán')+'; kontakt: '+(item.contact?'signál nalezen':'nerozpoznán')+'; důvěra: '+(item.trust?'signál nalezen':'nerozpoznán'),'','','','']);
@@ -232,7 +238,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.24';
+ const ruleVersion='2026-10-31.25';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;

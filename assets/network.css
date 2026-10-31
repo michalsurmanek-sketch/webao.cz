@@ -101,3 +101,38 @@ footer{flex-wrap:wrap}.social-links{display:flex;gap:12px;flex-wrap:wrap;font-si
 .network .czech-map path{vector-effect:non-scaling-stroke}
 
 
+
+/* Footer redesign — native layout, one background asset, no overlay duplication */
+.webao-footer{background:#001b14 url('/assets/webao-footer-glow.svg') center bottom/cover no-repeat!important;padding:0 clamp(20px,4vw,65px)!important;border-top:1px solid #9cf45e80}
+.webao-footer::after{content:none!important}
+.webao-footer .footer-shell{width:min(1500px,100%);padding-bottom:0}
+.webao-footer .footer-main{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,70px);padding:65px 0 190px}
+.webao-footer .footer-main>*+*{border-left:1px solid #a9c7ac3d;padding-left:clamp(20px,3vw,55px)}
+.webao-footer .footer-logo img{width:145px;height:145px}
+.webao-footer .footer-brand p{max-width:320px;font-size:18px;line-height:1.65}
+.webao-footer .footer-column h3{font-size:14px!important;letter-spacing:2px;color:#f28c49}
+.webao-footer .footer-column{gap:24px}
+.webao-footer .footer-column a{display:flex;width:100%;justify-content:space-between;gap:12px;font-size:18px}
+.webao-footer .footer-column a::after{content:'›';color:#ff963d;font-size:25px;line-height:1}
+.webao-footer .footer-details{display:grid;grid-template-columns:1fr 1fr;padding:24px 0 32px;border-top:1px solid #a9c7ac42}
+.webao-footer .footer-contact-icon{border-color:#a4ff62;color:#a4ff62;box-shadow:0 0 12px #95ff4435}
+.webao-footer .footer-social a{border:1px solid #a4ff62;border-radius:50%;width:43px;height:43px;box-shadow:0 0 9px #95ff4433}
+.webao-footer .footer-bottom{padding:25px 0 40px;border-top:1px solid #a9c7ac50}
+.webao-footer .footer-signature{font-size:clamp(20px,2.4vw,32px);text-shadow:0 0 12px #9cff6666}
+@media(max-width:760px){
+.webao-footer{background-size:auto 100%!important;background-position:center bottom!important;padding:0 5%!important}
+.webao-footer .footer-main{grid-template-columns:1fr 1fr;gap:30px 16px;padding:38px 0 120px}
+.webao-footer .footer-main>*+*{border-left:0;padding-left:0}
+.webao-footer .footer-brand{grid-column:1/-1}
+.webao-footer .footer-logo img{width:105px;height:105px}
+.webao-footer .footer-brand p{font-size:15px;margin-top:14px}
+.webao-footer .footer-column{gap:16px}
+.webao-footer .footer-column h3{font-size:11px!important;letter-spacing:1px}
+.webao-footer .footer-column a{font-size:14px;overflow-wrap:anywhere}
+.webao-footer .footer-column a::after{font-size:19px}
+.webao-footer .footer-details{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:12px}
+.webao-footer .footer-contact-line{font-size:12px;overflow-wrap:anywhere}
+.webao-footer .footer-social a{width:29px;height:29px}
+.webao-footer .footer-bottom{padding:20px 0 32px}
+.webao-footer .footer-signature{font-size:18px}
+}

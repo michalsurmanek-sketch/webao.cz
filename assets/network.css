@@ -71,3 +71,11 @@ footer{flex-wrap:wrap}.social-links{display:flex;gap:12px;flex-wrap:wrap;font-si
   transform:scale(1.12);
 }
 .network .czech-map path{vector-effect:non-scaling-stroke}
+
+
+/* Footer social SVG icons: consistent geometry, spacing and interaction */
+.webao-footer .footer-social{display:flex;gap:12px;flex-wrap:wrap}
+.webao-footer .footer-social a{width:46px;height:46px;display:flex;align-items:center;justify-content:center;flex:0 0 46px;border:1px solid rgba(255,255,255,.22);border-radius:12px;background:rgba(255,255,255,.025);color:#f3f7f3;font-size:initial;font-weight:normal;transition:color .22s,border-color .22s,background .22s,transform .22s,box-shadow .22s}
+.webao-footer .footer-social a:hover,.webao-footer .footer-social a:focus-visible{color:#a7ef8a;border-color:#a7ef8a;background:rgba(167,239,138,.08);transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.22)}
+.webao-footer .footer-social svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media(prefers-reduced-motion:reduce){.webao-footer .footer-social a{transition:none}.webao-footer .footer-social a:hover{transform:none}}

@@ -106,10 +106,14 @@ function downloadAuditCsv(){
  const data=window.currentAuditData;
  if(!data)return;
  const safe=value=>{let text=String(value??'');if(/^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
- const rows=[['Typ','URL','Oblast','Stav','Závažnost','Název','Důkaz / detail','Dopad','Doporučené řešení','Pracnost','Jistota','Kontrolováno']];
+ const rows=[['Typ','URL','Oblast','Stav','Závažnost','Název','Důkaz / detail','Dopad','Doporučené řešení','Pracnost','Jistota','Kontrolováno','Stav nápravy','Řešitel','Poznámka']];
  rows.push(['Souhrn',data.host,'Celkové skóre','',data.grade||'',data.score===null?'Není dostupné':data.score+'%', 'Vážený průměr změřených oblastí', '', '', '', 'Metodika '+(data.ruleVersion||''),data.checkedAt]);
  for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',area.score===null?'Bez dostupných kontrol':'Skóre oblastí; zohledňuje jen provedené kontroly','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
- for(const item of data.findings)rows.push(['Nález',item.url||data.host,item.area,item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),item.effort||'',item.confidence||'',data.checkedAt]);
+ const csvWork=loadLocalFindingWork(data.host);
+ for(const item of data.findings){
+  const key=(item.url||data.host)+'|'+item.name,progress=csvWork[key]||{};
+  rows.push(['Nález',item.url||data.host,item.area,item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),item.effort||'',item.confidence||'',data.checkedAt,progress.status||'Nový',progress.owner||'',progress.note||'']);
+ }
  for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'H1: '+(page.h1||'')+'; slov ve výstupu: '+(page.wordCount??'nezjištěno')+'; obrázky: '+(page.imageCount??'nezjištěno')+'; bez alt: '+(page.missingAltCount??'nezjištěno')+'; interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno'),'','','','','']);
  for(const item of data.contacts||[])rows.push(['Kontakt',item.url,'Veřejné kontakty','ZACHYCENO','','E-mail: '+item.emails.join(', '),'Telefon: '+item.phones.join(', '),'','','','Textové rozpoznání',data.checkedAt]);
  for(const item of data.claims||[])rows.push(['Tvrzení',item.url,'Obchodní obsah','K PROVĚŘENÍ','',item.phrase,'Rozpoznáno ve veřejném textu','','Ověřit a doložit tvrzení','','Automatické rozpoznání',data.checkedAt]);
@@ -139,7 +143,11 @@ function saveLocalFindingWork(host,key,field,value){
 function renderFindingWorkControls(key,progress){
  const options=['Nový','V řešení','Opraveno','Ignorováno','Znovu ověřit'];
  const selected=progress.status||'Nový';
- return '<div class="finding-work-controls" data-work-key="'+esc(encodeURIComponent(key))+'"><label>Status nápravy<select data-work-field="status">'+options.map(value=>'<option value="'+esc(value)+'"'+(value===selected?' selected':'')+'>'+esc(value)+'</option>').join('')+'</select></label><label>Řešitel<input data-work-field="owner" type="text" maxlength="80" value="'+esc(progress.owner||'')+'" placeholder="Jméno nebo role"></label><label>Poznámka<textarea data-work-field="note" rows="2" maxlength="500" placeholder="Poznámka k opravě">'+esc(progress.note||'')+'</textarea></label><small>Uloženo pouze v tomto prohlížeči.</small>'+(progress.status||progress.owner||progress.note?'<p class="print-only-note"><b>Náprava:</b> '+esc(progress.status||'Nový')+(progress.owner?' · Řešitel: '+esc(progress.owner):'')+(progress.note?' · '+esc(progress.note):'')+'</p>':'')+'</div>';
+ return '<div class="finding-work-controls" data-work-key="'+esc(encodeURIComponent(key))+'"><label>Status nápravy<select data-work-field="status">'+options.map(value=>'<option value="'+esc(value)+'"'+(value===selected?' selected':'')+'>'+esc(value)+'</option>').join('')+'</select></label><label>Řešitel<input data-work-field="owner" type="text" maxlength="80" value="'+esc(progress.owner||'')+'" placeholder="Jméno nebo role"></label><label>Poznámka<textarea data-work-field="note" rows="2" maxlength="500" placeholder="Poznámka k opravě">'+esc(progress.note||'')+'</textarea></label><small>Uloženo pouze v tomto prohlížeči.</small></div>';
+}
+function renderFindingWorkNote(progress){
+ if(!(progress.status||progress.owner||progress.note))return '';
+ return '<p class="print-only-note"><b>Náprava:</b> '+esc(progress.status||'Nový')+(progress.owner?' · Řešitel: '+esc(progress.owner):'')+(progress.note?' · '+esc(progress.note):'')+'</p>';
 }
 function initFindingWorkControls(host){
  out.querySelectorAll('.finding-work-controls').forEach(container=>{
@@ -160,7 +168,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.12';
+ const ruleVersion='2026-10-31.13';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -178,7 +186,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
   const impact=item.impact||(item.points===null?'Bez dostupného měření nelze dopad spolehlivě určit.':item.ok?'Kontrola nenašla v této oblasti známý problém; samo o sobě to nepotvrzuje úplnou správnost.':'Může zhoršit dohledatelnost, srozumitelnost nebo technickou spolehlivost této části webu.');
   const workKey=(item.url||host)+'|'+item.name;
   const progress=findingProgress[workKey]||{};
-  return '<div class="finding '+(item.ok?'':'warn')+'"><span class="state">'+esc(status)+'</span><span class="severity">'+esc(severity)+'</span><strong>'+esc(item.name)+'</strong>'+((item.url||(pages[0]&&pages[0].url))?'<p><b>Stránka:</b> <a class="audit-link" href="'+esc(item.url||(pages[0]&&pages[0].url))+'" target="_blank" rel="noopener">'+esc(item.url||(pages[0]&&pages[0].url))+'</a></p>':'')+'<p>'+esc(item.detail)+'</p>'+'<p><b>Důkaz:</b> '+esc(item.evidence||item.detail||'Automatický signál uvedený výše.')+'</p>'+'<p><b>Možný dopad:</b> '+esc(impact)+'</p><p><b>Doporučené řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Jistota:</b> '+esc(item.confidence|| (item.points===null?'Nízká — kontrola neměla dostatek dat.':'Střední — automatický výsledek vyžaduje interpretaci.'))+' · <b>Pracnost:</b> '+esc(item.effort||(item.points===null?'Nelze odhadnout':item.points<50?'Střední':'Nízká'))+' · <b>Kontrolováno:</b> '+esc(reportDate)+'</p>'+renderFindingWorkControls(workKey,progress)+'</div>';
+  return '<div class="finding '+(item.ok?'':'warn')+'"><span class="state">'+esc(status)+'</span><span class="severity">'+esc(severity)+'</span><strong>'+esc(item.name)+'</strong>'+((item.url||(pages[0]&&pages[0].url))?'<p><b>Stránka:</b> <a class="audit-link" href="'+esc(item.url||(pages[0]&&pages[0].url))+'" target="_blank" rel="noopener">'+esc(item.url||(pages[0]&&pages[0].url))+'</a></p>':'')+'<p>'+esc(item.detail)+'</p>'+'<p><b>Důkaz:</b> '+esc(item.evidence||item.detail||'Automatický signál uvedený výše.')+'</p>'+'<p><b>Možný dopad:</b> '+esc(impact)+'</p><p><b>Doporučené řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Jistota:</b> '+esc(item.confidence|| (item.points===null?'Nízká — kontrola neměla dostatek dat.':'Střední — automatický výsledek vyžaduje interpretaci.'))+' · <b>Pracnost:</b> '+esc(item.effort||(item.points===null?'Nelze odhadnout':item.points<50?'Střední':'Nízká'))+' · <b>Kontrolováno:</b> '+esc(reportDate)+'</p>'+renderFindingWorkControls(workKey,progress)+renderFindingWorkNote(progress)+'</div>';
  }).join('');
  const priorityFindings=findings.filter(item=>item.points!==null&&item.points<100&&!item.ok).sort((a,b)=>a.points-b.points).slice(0,5);
  const priorityHtml='<h3 style="margin-top:28px">Co opravit jako první</h3>'+(priorityFindings.length?'<div class="finding-list">'+priorityFindings.map((item,index)=>'<div class="finding warn"><span class="state">PRIORITA '+(index+1)+'</span><span class="severity">'+esc(item.severity||(item.points<50?'Závažná':'Střední'))+'</span><strong>'+esc(item.name)+'</strong>'+(item.url?'<p><b>Stránka:</b> <a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></p>':'')+'<p>'+esc(item.detail)+'</p><p><b>Řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Pracnost:</b> '+esc(item.effort||(item.points<50?'Střední':'Nízká'))+'</p></div>').join('')+'</div>':'<p>Mezi změřenými kontrolami nebyl zjištěn nález se sníženým skóre.</p>');

@@ -110,6 +110,12 @@ function parsePageText(text,url){
  const body=lines.filter(line=>!/^(title|url source|description|published time|modified time|site name|image|h1|h2|h3):/i.test(line.trim())).join(' ');
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,body:body.replace(/\s+/g,' ').trim(),raw:text};
 }
+function getSitemapLocations(text,host){
+ const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
+ const found=[];
+ for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if((u.hostname===host||u.hostname.endsWith('.'+host))&&/\.xml(?:$|\?)/i.test(u.pathname+u.search)&&!found.includes(u.href))found.push(u.href)}catch{}}
+ return found;
+}
 function getSitemapUrls(text,host){
  const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
  const found=[];
@@ -145,13 +151,23 @@ form.addEventListener('submit',async event=>{
   const title=titleLine?titleLine.slice(titleLine.indexOf(':')+1).trim():'';
   const [robotsResult,sitemapResult]=await Promise.allSettled([fetchReadablePage(url,'/robots.txt'),fetchReadablePage(url,'/sitemap.xml')]);
   const robots=robotsResult.status==='fulfilled'?robotsResult.value:'';
-  const sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
+  let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsKnown=robotsResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(robots);
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
-  const sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
-  const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||/sitemap/i.test(robots));
+  let sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
+  const declaredSitemaps=getSitemapLocations(robots,url.hostname);
+  if(!sitemapKnown&&declaredSitemaps.length){
+   try{const sitemapUrl=new URL(declaredSitemaps[0]);sitemap=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);sitemapKnown=true}catch{}
+  }
+  const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);
   const rootUrl=url.origin+'/';
-  const discoveredUrls=getSitemapUrls(sitemap,url.hostname);
+  let discoveredUrls=getSitemapUrls(sitemap,url.hostname);
+  const sitemapIndexes=getSitemapLocations(sitemap,url.hostname).slice(0,2);
+  if(sitemapIndexes.length){
+   const nestedResults=await Promise.allSettled(sitemapIndexes.map(raw=>{const nested=new URL(raw);return fetchReadablePage(nested,nested.pathname+nested.search)}));
+   for(const nested of nestedResults)if(nested.status==='fulfilled')discoveredUrls.push(...getSitemapUrls(nested.value,url.hostname));
+  }
+  discoveredUrls=[...new Set(discoveredUrls)];
   const candidateUrls=[...new Set([rootUrl,...discoveredUrls])].slice(0,6);
   out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';

@@ -336,7 +336,8 @@ async function fetchTimed(url,options={},timeoutMs=12000){
  try{return await fetch(url,{...options,signal:controller.signal})}finally{clearTimeout(timer)}
 }
 async function fetchReadablePage(url,path='/'){
- const response=await fetchTimed('https://r.jina.ai/http://'+url.hostname+path,{headers:{Accept:'text/plain'}},12000);
+ const scheme=url.protocol==='http:'?'http://':'https://';
+ const response=await fetchTimed('https://r.jina.ai/'+scheme+url.hostname+path,{headers:{Accept:'text/plain'}},12000);
  if(!response.ok)throw new Error('Veřejný zdroj stránky neodpověděl.');
  return await response.text();
 }
@@ -434,16 +435,25 @@ function parsePageText(text,url){
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,wordCount,raw:text};
 }
 function isSameSiteHost(candidate,host){return candidate===host||candidate.endsWith('.'+host)||host.endsWith('.'+candidate)}
-function getSitemapLocations(text,host){
- const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
- const found=[];
- for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(isSameSiteHost(u.hostname,host)&&/\.xml(?:$|\?)/i.test(u.pathname+u.search)&&!found.includes(u.href))found.push(u.href)}catch{}}
+function sitemapUrlCandidates(text){
+ const source=String(text||''),candidates=[];
+ const add=raw=>{let value=String(raw||'').trim().replace(/[),.;]+$/,'');if(value&&!candidates.includes(value))candidates.push(value)};
+ for(const match of source.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/gi))add(match[1]);
+ for(const match of source.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g))add(match[1]);
+ if(!candidates.length)for(const match of source.matchAll(/(?:^|[\s"'<>])((?:https?):\/\/[^\s<>"')\]]+)/gm))add(match[1]);
+ return candidates;
+}
+function normalizeCrawlUrl(candidate,baseUrl){
+ try{const parsed=new URL(candidate,baseUrl);parsed.hash='';if(isSameSiteHost(parsed.hostname.toLowerCase(),baseUrl.hostname.toLowerCase()))parsed.protocol=baseUrl.protocol;return parsed.href}catch{return''}
+}
+function getSitemapLocations(text,host,protocol='https:'){
+ const baseUrl=new URL(protocol+'//'+host+'/'),found=[];
+ for(const raw of sitemapUrlCandidates(text)){const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;try{const u=new URL(normalized);if(isSameSiteHost(u.hostname,host)&&/\.xml(?:$|\?)/i.test(u.pathname+u.search)&&!found.includes(u.href))found.push(u.href)}catch{}}
  return found;
 }
-function getSitemapUrls(text,host){
- const matches=text.match(/https?:\/\/[^\s<>"')]+/g)||[];
- const found=[];
- for(const raw of matches){try{const u=new URL(raw.replace(/[),.;]+$/,''));if(isSameSiteHost(u.hostname,host)&&!/\.xml$/i.test(u.pathname)&&!found.includes(u.href))found.push(u.href)}catch{}}
+function getSitemapUrls(text,host,protocol='https:'){
+ const baseUrl=new URL(protocol+'//'+host+'/'),found=[];
+ for(const raw of sitemapUrlCandidates(text)){const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;try{const u=new URL(normalized);if(isSameSiteHost(u.hostname,host)&&!/\.xml$/i.test(u.pathname)&&!found.includes(u.href))found.push(u.href)}catch{}}
  return found;
 }
 function extractPublicContacts(pages){
@@ -537,7 +547,7 @@ form.addEventListener('submit',async event=>{
   const robotsBlocksSite=robotsKnown&&!robotsAllowsPath(robots,'/');
   let sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;
-  const declaredSitemaps=getSitemapLocations(robots,url.hostname).filter(raw=>{const target=new URL(raw);return robotsAllowsPath(robots,target.pathname+target.search)});
+  const declaredSitemaps=getSitemapLocations(robots,url.hostname,url.protocol).filter(raw=>{const target=new URL(raw);return robotsAllowsPath(robots,target.pathname+target.search)});
   const rootUrl=url.origin+'/';
   if(!sitemapKnown&&declaredSitemaps.length){
    try{const sitemapUrl=new URL(declaredSitemaps[0]);sitemap=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);sitemapKnown=true;sitemapSource=sitemapUrl.href}catch{}
@@ -545,7 +555,7 @@ form.addEventListener('submit',async event=>{
   const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);
   const sitemapTexts=sitemapKnown&&sitemap?[sitemap]:[];
   const sitemapSources=sitemapTexts.length?[sitemapSource]:[];
-  const sitemapQueue=[...declaredSitemaps,...getSitemapLocations(sitemap,url.hostname)];
+  const sitemapQueue=[...declaredSitemaps,...getSitemapLocations(sitemap,url.hostname,url.protocol)];
   const seenSitemaps=new Set([new URL('/sitemap.xml',url.origin).href,sitemapSource]);
   let sitemapFiles=sitemapTexts.length;
   let sitemapAttempts=1+(sitemapSource!==new URL('/sitemap.xml',url.origin).href?1:0);
@@ -559,10 +569,10 @@ form.addEventListener('submit',async event=>{
    if(!batch.length)continue;
    sitemapAttempts+=batch.length;
    const nestedResults=await Promise.allSettled(batch.map(raw=>{const nested=new URL(raw);return fetchReadablePage(nested,nested.pathname+nested.search)}));
-   nestedResults.forEach((result,index)=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapSources.push(batch[index]);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname))}});
+   nestedResults.forEach((result,index)=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapSources.push(batch[index]);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname,url.protocol))}});
   }
-  const sitemapEntries=sitemapTexts.flatMap((text,index)=>getSitemapUrls(text,url.hostname).map(candidate=>({url:candidate,source:sitemapSources[index]||sitemapSource,kind:'XML sitemap'})));
-  const linkEntries=(rootAllowed?(homeParsed.links||[]).filter(candidate=>candidate!==rootUrl):[]).map(candidate=>({url:candidate,source:rootUrl,kind:'Interní odkaz z homepage'}));
+  const sitemapEntries=sitemapTexts.flatMap((text,index)=>getSitemapUrls(text,url.hostname,url.protocol).map(candidate=>({url:candidate,source:sitemapSources[index]||sitemapSource,kind:'XML sitemap'})));
+  const linkEntries=(rootAllowed?[...new Set((homeParsed.links||[]).map(candidate=>normalizeCrawlUrl(candidate,url)).filter(candidate=>candidate&&candidate!==rootUrl))]:[]).map(candidate=>({url:candidate,source:rootUrl,kind:'Interní odkaz z homepage'}));
   const discoveredEntries=[...linkEntries,...sitemapEntries];
   const discoveredUrls=[...new Set(discoveredEntries.map(item=>item.url))];
   const sitemapDiscoveredCount=new Set(sitemapEntries.map(item=>item.url)).size;

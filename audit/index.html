@@ -203,10 +203,11 @@ function buildCoverageHtml(areas,findings){
  const rows=areas.map(area=>{
   const items=findings.filter(item=>item.area===area.name&&!item.name.startsWith('Kontrola oblasti:'));
   const measured=items.filter(item=>item.points!==null);
-  const observed=items.filter(item=>item.points===null);
-  const status=measured.length?'Částečně měřeno':observed.length?'Zachycené signály':'Neměřeno';
-  const tests=[...new Set([...measured.map(item=>item.name),...observed.map(item=>item.name)])].slice(0,8);
-  return '<tr><td><b>'+esc(area.name)+'</b></td><td>'+esc(status)+'</td><td>'+measured.length+' měřeno · '+observed.length+' signálů bez skóre</td><td>'+esc(tests.join('; ')||'V tomto běhu bez kontrol')+'</td><td>'+esc(coverageLimitations[area.name]||'Rozsah je omezený a nevystihuje úplný audit.')+'</td></tr>';
+  const unverified=items.filter(item=>findingKind(item)==='Nelze ověřit');
+  const observed=items.filter(item=>item.points===null&&findingKind(item)!=='Nelze ověřit');
+  const status=measured.length?'Částečně měřeno':observed.length?'Zachycené signály':unverified.length?'Nelze ověřit':'Neměřeno';
+  const tests=[...new Set(items.map(item=>item.name))].slice(0,8);
+  return '<tr><td><b>'+esc(area.name)+'</b></td><td>'+esc(status)+'</td><td>'+measured.length+' měřeno · '+observed.length+' signálů bez skóre · '+unverified.length+' neověřeno</td><td>'+esc(tests.join('; ')||'V tomto běhu bez kontrol')+'</td><td>'+esc(coverageLimitations[area.name]||'Rozsah je omezený a nevystihuje úplný audit.')+'</td></tr>';
  }).join('');
  return '<h3 style="margin-top:28px">Rozsah kontrol a jejich limity</h3><p class="audit-disclaimer">Tato tabulka odděluje provedené kontroly od oblastí, které aplikace zatím neumí měřit. „Částečně měřeno“ neznamená úplný audit dané oblasti.</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Oblast</th><th>Pokrytí v tomto běhu</th><th>Kontroly</th><th>Rozpoznané testy a signály</th><th>Co se neověřuje</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
@@ -219,7 +220,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.21';
+ const ruleVersion='2026-10-31.22';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;

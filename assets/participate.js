@@ -1,10 +1,11 @@
+import {projectLogo} from './project-brands.js?v=20261031-shared';
 import {BASE,KEY,ANON,request,escapeHTML as e,money} from './webao-api.js';
 const dialog=document.createElement('dialog');dialog.className='participate-dialog';dialog.setAttribute('aria-label','Podpořit projekt WEBAO');document.body.append(dialog);
 let lastTrigger,projects;
 async function openProject(slug,trigger){
  lastTrigger=trigger;dialog.innerHTML='<button class="dialog-close" aria-label="Zavřít">×</button><p role="status">Načítám projekt…</p>';dialog.showModal();
  try{
-  projects=await request('/rest/v1/webao_projects?select=*&order=sort_order');
+  projects=await request('/rest/v1/webao_projects?select=*&is_active=eq.true&order=sort_order');
   const p=projects.find(p=>p.slug===slug);if(!p)throw new Error('Projekt zatím nemá otevřenou možnost spolupráce.');
   dialog.innerHTML=`<button class="dialog-close" aria-label="Zavřít">×</button><p class="eyebrow">Staňte se součástí příběhu</p><h2>${e(p.name)}<span> může růst i s vámi.</span></h2><p class="participate-intro">${e(p.summary)}</p><div class="project-intent"><div><small>Kam projekt směřuje</small><p>${e(p.thesis||'Podrobnosti s vámi rádi probereme osobně.')}</p></div><div><small>Oblasti dalšího rozvoje</small><p>${e(p.use_of_funds||'Konkrétní rozsah dohodneme individuálně.')}</p></div></div><div class="project-state"><span>${e(p.stage)}</span>${p.funding_goal?`<span>Plán rozvoje: ${money(p.funding_goal)}</span>`:''}</div>${p.open_to_interest?`<form id="participate-form"><h3>Pojďme probrat možnosti</h3><p>Nezávazně nám napište, jak se chcete zapojit. Ozveme se s dalšími informacemi.</p><div class="interest-fields"><label>Jméno a příjmení *<input name="name" required minlength="2" maxlength="120" autocomplete="name"></label><label>E-mail *<input name="email" type="email" required maxlength="254" autocomplete="email"></label><label>Telefon<input name="phone" type="tel" maxlength="40" autocomplete="tel"></label><label>Firma<input name="company" maxlength="160" autocomplete="organization"></label><label>Jak se chcete zapojit? *<select name="interest_type"><option value="investment">Jednat o investici</option><option value="partnership">Obchodní partnerství</option><option value="expertise">Zkušenosti a odborná spolupráce</option></select></label><label>Orientační částka v Kč (nepovinné)<input name="amount" type="number" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="Nechávám otevřené"></label><label class="full-field">Co máte na mysli?<textarea name="message" maxlength="3000" rows="3" placeholder="Co vás na projektu zaujalo? Jakou spolupráci si představujete?"></textarea></label></div><label class="interest-honeypot" aria-hidden="true">Web<input name="website" tabindex="-1" autocomplete="off"></label><label class="privacy-check"><input name="privacy" type="checkbox" required> <span>Seznámil/a jsem se s <a href="/spoluprace-soukromi.html" target="_blank" rel="noopener">informacemi o zpracování osobních údajů</a>.</span></label><p class="interest-status" role="status" aria-live="polite"></p><button class="button" type="submit">Chci probrat spolupráci <b>→</b></button><small class="interest-note">Odeslání není závazkem investovat. Částka je orientační. Konkrétní podmínky, způsob financování a související rizika se řeší individuálně před případnou smlouvou.</small></form>`:'<p class="closed-interest">Tento projekt nyní nepřijímá nové zájemce. Napište nám na <a href="mailto:studio@webao.cz">studio@webao.cz</a>.</p>'}`;
   dialog.scrollTop=0;
@@ -19,13 +20,42 @@ document.addEventListener('click',ev=>{const button=ev.target.closest('[data-sup
 dialog.addEventListener('click',ev=>{if(ev.target===dialog||ev.target.closest('.dialog-close,.finish-interest'))dialog.close();});
 dialog.addEventListener('close',()=>lastTrigger?.focus());
 
-// New projects created by the administrator also appear in the public overview.
-request('/rest/v1/webao_projects?select=slug,name,summary&order=sort_order').then(rows=>{
- const list=document.getElementById('all-projects');if(!list)return;
+
+const cardGrid=document.querySelector('.cards');
+const initialCards=new Map(Array.from(cardGrid?.querySelectorAll('.project-card')||[]).map(card=>[card.querySelector('[data-support]')?.dataset.support,card.cloneNode(true)]));
+const networkLinks=Array.from(document.querySelectorAll('.network a[href]'));
+let lastProjectSignature='',syncing=false;
+const domainFor=p=>p.slug==='kurzy'?'kurzy.pro':p.slug+'.cz';
+function renderPublicProjects(rows){
+ const signature=JSON.stringify(rows);if(signature===lastProjectSignature)return;lastProjectSignature=signature;
+ const list=document.getElementById('all-projects');if(list)list.replaceChildren();
+ if(cardGrid)cardGrid.replaceChildren();
  for(const p of rows){
-  let item=list.querySelector('[data-support="'+p.slug+'"]')?.closest('.project-mini');
-  if(!item){item=document.createElement('div');item.className='project-mini';item.innerHTML='<a href="https://'+e(p.slug)+'.cz/" target="_blank" rel="noopener"><strong>'+e(p.name)+' <span>↗</span></strong><small>'+e(p.summary)+'</small></a><button type="button" data-support="'+e(p.slug)+'">Podpořit projekt ↗</button>';list.append(item);}
-  else{const small=item.querySelector('small');if(small)small.textContent=p.summary;}
+  const domain=domainFor(p),url='https://'+domain+'/';
+  let card=initialCards.get(p.slug)?.cloneNode(true);
+  if(!card){card=document.createElement('article');card.className='project-card';card.innerHTML='<div class="card-image project-image-fallback"></div><div class="card-content"><div class="brand"></div><span class="tag">'+e(p.category)+'</span><h3>'+e(p.name)+'</h3><p>'+e(p.summary)+'</p><div class="project-actions"><a class="button" href="'+e(url)+'" target="_blank" rel="noopener">Navštívit web <b>→</b></a><button class="button support-button" data-support="'+e(p.slug)+'" type="button">Podpořit projekt ↗</button></div></div>';}
+  card.dataset.project=p.slug;
+  const brand=card.querySelector('.brand');if(brand)brand.innerHTML=projectLogo(p);
+  const support=card.querySelector('[data-support]');if(support)support.hidden=!p.open_to_interest;
+  cardGrid?.append(card);
+  if(list){const item=document.createElement('div');item.className='project-mini';item.innerHTML='<a href="'+e(url)+'" target="_blank" rel="noopener"><strong>'+e(p.name)+' <span>↗</span></strong><small>'+e(p.summary)+'</small></a>'+(p.open_to_interest?'<button type="button" data-support="'+e(p.slug)+'">Podpořit projekt ↗</button>':'');list.append(item);}
  }
+ const activeDomains=new Set(rows.map(domainFor));
+ for(const link of networkLinks){let host='';try{host=new URL(link.getAttribute('href')).hostname.replace(/^www\./,'');}catch{}link.style.display=activeDomains.has(host)?'':'none';}
+ document.querySelector('.network')?.setAttribute('data-projects-ready','');
+ if(cardGrid){cardGrid.setAttribute('aria-busy','false');if(!rows.length)cardGrid.innerHTML='<p>Nové projekty právě připravujeme.</p>';}
  const counter=document.querySelector('.stats strong');if(counter)counter.textContent=rows.length;
-}).catch(()=>{});
+ const label=counter?.parentElement;if(label&&label.lastChild?.nodeType===3)label.lastChild.textContent='aktivních projektů';
+ if(dialog.open&&lastTrigger&&!rows.some(p=>p.slug===lastTrigger.dataset.support))dialog.close();
+}
+async function syncPublicProjects(){
+ if(syncing)return;syncing=true;
+ try{const rows=await request('/rest/v1/webao_projects?select=slug,name,summary,category,open_to_interest,stage&is_active=eq.true&order=sort_order');renderPublicProjects(rows);}
+ catch{if(!lastProjectSignature&&cardGrid){cardGrid.innerHTML='<p>Projekty se nepodařilo načíst. Obnovte prosím stránku.</p>';cardGrid.setAttribute('aria-busy','false');}}
+ finally{syncing=false;}
+}
+syncPublicProjects();
+window.addEventListener('storage',ev=>{if(ev.key==='webao-projects-changed')syncPublicProjects();});
+window.addEventListener('focus',syncPublicProjects);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPublicProjects();});
+setInterval(()=>{if(!document.hidden)syncPublicProjects();},15000);

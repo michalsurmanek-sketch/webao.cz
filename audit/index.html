@@ -271,7 +271,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.52';
+ const ruleVersion='2026-10-31.53';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -732,6 +732,7 @@ form.addEventListener('submit',async event=>{
     findings.push({area:'Rychlost a Core Web Vitals',name:'Terénní Core Web Vitals — '+device,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Pro vyhodnocení Core Web Vitals nejsou dostupné současně terénní p75 hodnoty LCP a CLS. PageSpeed může mít nedostatek vzorků pro URL i origin.',evidence:'Google PageSpeed Insights loadingExperience / originLoadingExperience',confidence:'Nelze určit bez dostatečných terénních dat'});
    }
    const categoryRefs=[];
+   if(strategy==='mobile'){
    const securityAuditSpecs=[
     {id:'is-on-https',name:'HTTPS a nezabezpečené zdroje',severity:'Závažná',action:'Zajistěte, aby stránka i její zdroje používaly HTTPS a aby HTTP požadavky byly odstraněny nebo bezpečně přesměrovány.'},
     {id:'no-vulnerable-libraries',name:'Známé zranitelnosti JavaScriptových knihoven',severity:'Závažná',action:'Ověřte označené knihovny a jejich verze; aktualizujte je na podporované opravené verze nebo odstraňte nepoužívané závislosti.'},
@@ -755,6 +756,7 @@ form.addEventListener('submit',async event=>{
     }else{
      findings.push({area:'Bezpečnost a HTTPS',name:spec.name+' — bez skórovaného výsledku ('+device+')',url:payload.id||url.origin+'/',points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:(audit.title||spec.name)+'. '+(detailParts.join(' ')||'Lighthouse neposkytl skórovaný výsledek této kontroly; nelze ji označit jako vyhovující ani jako potvrzenou chybu.'),evidence:'PageSpeed Insights / Lighthouse audit '+spec.id+' · '+(payload.id||url.origin+'/')+(warnings.length?' · '+warnings.join(' | '):''),confidence:'Nelze určit bez skórovaného výstupu; případné automatické varování je uvedeno výše.',action:spec.action});
     }
+   }
    }
    if(strategy==='mobile'){
     for(const auditId of ['viewport','tap-targets','font-size','content-width']){

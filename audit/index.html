@@ -125,6 +125,10 @@ function downloadAuditCsv(){
   rows.push(['Nález',item.url||data.host,item.area,item.state||(item.points===null?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),item.effort||'',item.confidence||'',data.checkedAt,progress.status||'Nový',progress.owner||'',progress.note||'',data.coverage+' %',findingKind(item)]);
  }
  for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'Zdroj: '+(page.sourceUrl||page.source||'nezjištěn')+'; H1: '+(page.h1||'')+'; slov ve výstupu: '+(page.wordCount??'nezjištěno')+'; obrázky: '+(page.imageCount??'nezjištěno')+'; bez alt: '+(page.missingAltCount??'nezjištěno')+'; odchozí interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno')+'; odchozí externí odkazy: '+(page.externalLinks? page.externalLinks.length:'nezjištěno')+'; příchozí interní odkazy mezi prověřenými URL: '+(page.inboundLinks??'nezjištěno'),'','','','','']);
+ const crawl=data.crawlMeta||{};
+ for(const item of crawl.excludedUrlExamples||[])rows.push(['URL neprověřena',item.url,'Rozsah auditu','VYNECHÁNO','','Vynecháno podle nastavené cesty','Zdroj: '+item.source+'; URL nebyla načtena.','','','','','', '', '', '',data.coverage+' %','','Vynecháno uživatelským filtrem']);
+ for(const item of crawl.omittedUrlExamples||[])rows.push(['URL neprověřena',item.url,'Rozsah auditu','VYNECHÁNO','','Mimo limit počtu stránek','Zdroj: '+item.source+'; URL nebyla načtena.','','','','','', '', '', '',data.coverage+' %','','Vynecháno limitem auditu']);
+ for(const [label,count,shown] of [['URL vynechané cestou',crawl.excludedUrlCount||0,(crawl.excludedUrlExamples||[]).length],['URL mimo limit',crawl.omittedByLimit||0,(crawl.omittedUrlExamples||[]).length]])if(count>shown)rows.push(['Souhrn rozsahu',data.host,'Rozsah auditu','ČÁSTEČNÝ','','Celkový počet '+label,String(count),'','','','','','','','',data.coverage+' %','','V exportu je vypsáno prvních '+shown+' URL.']);
  const sampledPages=new Set(data.pages.filter(page=>page.raw).map(page=>{try{const u=new URL(page.url);u.hash='';return u.href.replace(/\/$/,'')}catch{return page.url}}));
  const normalizeTarget=value=>{try{const u=new URL(value);u.hash='';return u.href.replace(/\/$/,'')}catch{return value}};
  for(const page of data.pages.filter(item=>item.raw)){
@@ -246,7 +250,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.28';
+ const ruleVersion='2026-10-31.29';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;

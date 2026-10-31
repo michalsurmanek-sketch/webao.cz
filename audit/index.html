@@ -156,7 +156,8 @@ form.addEventListener('submit',async event=>{
  out.scrollIntoView({behavior:'smooth',block:'center'});
  try{
   const pagePromise=fetchReadablePage(url,'/');
-  const dnsPromise=Promise.allSettled([queryDns(url.hostname,'MX'),queryDns(url.hostname,'TXT'),queryDns('_dmarc.'+url.hostname,'TXT'),queryDns(url.hostname,'A'),queryDns(url.hostname,'AAAA'),queryDns(url.hostname,'CAA')]);
+  const dkimSelectors=['google','selector1','selector2','default','k1','mail'];
+  const dnsPromise=Promise.allSettled([queryDns(url.hostname,'MX'),queryDns(url.hostname,'TXT'),queryDns('_dmarc.'+url.hostname,'TXT'),queryDns(url.hostname,'A'),queryDns(url.hostname,'AAAA'),queryDns(url.hostname,'CAA'),queryDns(url.hostname,'NS'),queryDns(url.hostname,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+url.hostname,'TXT'))]);
   const [pageResult,dnsResults]=await Promise.all([pagePromise,dnsPromise]);
   const page=pageResult;
   const lines=page.split('\n');
@@ -221,9 +222,10 @@ form.addEventListener('submit',async event=>{
     {area:'SEO a obsah',name:'Hlavní nadpis podstránky',url:pageItem.url,ok:h1Count===1,points:h1Count===1?100:h1Count===0?40:70,severity:h1Count===1?'Nízká':'Střední',detail:h1Count===1?'Byl rozpoznán jeden H1.':h1Count===0?'H1 nebyl rozpoznán.':'Bylo rozpoznáno '+h1Count+' nadpisů H1.',evidence:parsed.h1s.join(' | ')||'Veřejný textový výstup neobsahuje rozpoznaný řádek H1.',confidence:'Střední — textový výstup veřejné čtečky'}
    );
   }
-  const dnsOk=dnsResults.slice(0,5).every(result=>result.status==='fulfilled');
+  const dnsOk=dnsResults.slice(0,7).every(result=>result.status==='fulfilled');
   if(dnsOk){
-   const [mx,txt,dmarc,a,aaaa,caa]=dnsResults.map(result=>result.status==='fulfilled'?result.value:null);
+   const [mx,txt,dmarc,a,aaaa,caa,ns,cname]=dnsResults.slice(0,8).map(result=>result.status==='fulfilled'?result.value:null);
+   const dkimResults=dnsResults.slice(8);
    const answers=response=>response&&Array.isArray(response.Answer)?response.Answer:[];
    const txtValues=answers(txt).filter(record=>record.type===16).map(record=>(record.data||'').replace(/^"|"$/g,''));
    const mxRecords=answers(mx).filter(record=>record.type===15);
@@ -231,9 +233,15 @@ form.addEventListener('submit',async event=>{
    const dmarcRecord=answers(dmarc).map(record=>(record.data||'').replace(/^"|"$/g,'')).find(value=>/^v=dmarc1(?:\s|$)/i.test(value));
    const addressRecords=[...answers(a),...answers(aaaa)].filter(record=>record.type===1||record.type===28);
    const caaRecords=answers(caa).filter(record=>record.type===257);
+   const nsRecords=answers(ns).filter(record=>record.type===2);
+   const cnameRecords=answers(cname).filter(record=>record.type===5);
+   const dkimMatches=dkimResults.map((result,index)=>({selector:dkimSelectors[index],records:result.status==='fulfilled'?answers(result.value).filter(record=>record.type===16):[]})).filter(item=>item.records.length);
    const mxPresent=mxRecords.length>0;
    findings.push(
     {area:'DNS a e-mail',name:'DNS adresa webu (A / AAAA)',ok:addressRecords.length>0,points:addressRecords.length?100:25,detail:addressRecords.length?'Doména vrací '+addressRecords.length+' veřejných IPv4/IPv6 adres.':'Veřejný DNS dotaz nevrátil A ani AAAA adresu; ověřte DNS záznamy webu.'},
+    {area:'DNS a e-mail',name:'Nameservery (NS)',ok:nsRecords.length>0,points:nsRecords.length?100:30,detail:nsRecords.length?'Nalezeno '+nsRecords.length+' veřejných NS odpovědí: '+nsRecords.map(record=>record.data).join(', ')+'.':'Veřejný DNS dotaz nevrátil nameserverové záznamy; ověřte konfiguraci DNS.',evidence:nsRecords.map(record=>record.data).join(', ')||'DNS odpověď neobsahuje NS záznam.',confidence:'Vysoká — veřejná DNS odpověď'},
+    {area:'DNS a e-mail',name:'CNAME na kořenové doméně',ok:cnameRecords.length>0,points:null,state:cnameRecords.length?'INFORMATIVNÍ':'NEPOUŽITO',detail:cnameRecords.length?'Kořenová doména vrací CNAME: '+cnameRecords.map(record=>record.data).join(', ')+'.':'Kořenová doména nemá CNAME. U apex domén je běžné místo toho použít A/AAAA nebo aliasovou funkci DNS poskytovatele.',evidence:cnameRecords.map(record=>record.data).join(', ')||'DNS dotaz CNAME nevrátil záznam.',confidence:'Vysoká — veřejná DNS odpověď'},
+    {area:'DNS a e-mail',name:'DKIM (běžné selektory)',ok:dkimMatches.length>0,points:dkimMatches.length?100:null,state:dkimMatches.length?null:'NELZE POTVRDIT',detail:dkimMatches.length?'Nalezen TXT záznam pro selektor(y): '+dkimMatches.map(item=>item.selector).join(', ')+'.':'U běžných selektorů google, selector1, selector2, default, k1 a mail nebyl nalezen DKIM TXT záznam. Správný selektor může být vlastní; bez něj nelze DKIM vyloučit.',evidence:dkimMatches.map(item=>item.selector+': '+item.records.map(record=>record.data).join(' ')).join(' | ')||'Dotaz na 6 běžných selektorů v _domainkey nevrátil TXT záznam.',confidence:dkimMatches.length?'Vysoká pro nalezený selektor':'Nízká — selektor může mít jiný název'},
     {area:'DNS a e-mail',name:'MX záznamy',ok:mxPresent,points:mxPresent?100:null,state:mxPresent?null:'INFORMATIVNÍ',detail:mxPresent?'Nalezeno '+mxRecords.length+' veřejných MX záznamů.':'MX záznam nebyl nalezen. To je důležité pouze v případě, že doména přijímá e-mail.'},
     {area:'DNS a e-mail',name:'SPF záznam',ok:spfRecords.length===1,points:spfRecords.length===1?100:spfRecords.length>1?0:null,state:spfRecords.length===0?'INFORMATIVNÍ':null,detail:spfRecords.length===1?'Nalezen jeden SPF TXT záznam.':spfRecords.length>1?'Nalezeno více SPF záznamů; SPF standardně vyžaduje jediný záznam.':'SPF nebyl nalezen. Je potřebný, pokud doména odesílá e-mail.'},
     {area:'DNS a e-mail',name:'DMARC záznam',ok:!!dmarcRecord,points:dmarcRecord?( /(?:^|;)\s*p=reject(?:;|$)/i.test(dmarcRecord)?100:/(?:^|;)\s*p=quarantine(?:;|$)/i.test(dmarcRecord)?90:75):null,state:dmarcRecord?null:'INFORMATIVNÍ',detail:dmarcRecord?'DMARC záznam nalezen; politika '+((dmarcRecord.match(/(?:^|;)\s*p=([^;]+)/i)||[])[1]||'není rozpoznána')+'.':'DMARC nebyl nalezen. Je vhodný pro doménu, která odesílá e-mail.'},

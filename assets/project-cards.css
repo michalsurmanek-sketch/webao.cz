@@ -57,7 +57,3 @@
  .website-card[data-accent="gold"] .project-actions .support-button{border-color:#c6b779;background:#c6b779;color:#2b2613}
  .website-card .project-actions .button:hover{filter:brightness(1.06);transform:translateY(-1px)}
 }
-
-/* Keep the original dark SLEVAO wordmark legible on the dark project card. */
-.website-card[data-project="slevao"] .project-full-svg{max-width:270px;height:66px;padding:4px 8px;box-sizing:border-box;border-radius:9px;background:#f1fbf8}
-@media(max-width:600px){.website-card[data-project="slevao"] .project-full-svg{max-width:175px;height:46px;padding:3px 6px;border-radius:7px}}

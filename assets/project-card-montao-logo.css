@@ -1,0 +1,5 @@
+/* Montao card logo matches the exact inline SVG and wordmark from montao.cz. */
+.website-card .project-montao-brand{display:flex;align-items:center;gap:9px;min-height:60px;color:#f5fff9;white-space:nowrap}
+.website-card .project-montao-brand img{display:block;flex:none;width:40px;height:44px;object-fit:contain}
+.website-card .project-montao-brand strong{font:800 clamp(22px,2vw,28px)/1 Manrope,Arial,sans-serif;letter-spacing:-.8px;color:#f5fff9}
+@media(max-width:850px){.website-card .project-montao-brand{min-height:46px;gap:7px}.website-card .project-montao-brand img{width:34px;height:38px}.website-card .project-montao-brand strong{font-size:21px}}

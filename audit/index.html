@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.88';
+ const ruleVersion='2026-11-01.89';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -407,9 +407,10 @@ function analyzeSpf(values){
  const validRecords=candidates.filter(value=>/^v=spf1(?:\s|$)/.test(value));
  if(validRecords.length!==1)return{candidates,validRecords,records:candidates,valid:false,errors:candidates.length>1?['Nalezeno více TXT hodnot začínajících na SPF.']:candidates.length===1?['SPF záznam nemá rozpoznanou verzi v=spf1.']:[],warnings:[],reason:candidates.length>1?'Nalezeno více TXT hodnot začínajících na SPF.':candidates.length===1?'TXT hodnota začíná na SPF, ale její verze není v=spf1.':'SPF záznam nebyl rozpoznán.'};
  const record=validRecords[0],tokens=record.split(/\s+/),versionValid=/^v=spf1$/.test(tokens[0]);
- const mechanisms=tokens.slice(1).filter(token=>!/^([a-z][a-z0-9_-]*)=/i.test(token));
- const all=mechanisms.map((token,index)=>({token,index,match:token.match(/^([+?~-]?)(all)$/i)})).filter(item=>item.match);
- const firstAll=all[0],hasAfterAll=!!firstAll&&mechanisms.slice(firstAll.index+1).length>0;
+ const mechanismTokens=tokens.slice(1).map((token,index)=>({token,index:index+1})).filter(item=>!/^([a-z][a-z0-9_-]*)=/i.test(item.token));
+ const mechanisms=mechanismTokens.map(item=>item.token);
+ const all=mechanismTokens.map(item=>({...item,match:item.token.match(/^([+?~-]?)(all)$/i)})).filter(item=>item.match);
+ const firstAll=all[0],hasAfterAll=!!firstAll&&mechanismTokens.some(item=>item.index>firstAll.index);
  const evaluatedTokens=tokens.slice(1,firstAll?firstAll.index+1:undefined);
  const lookupTerms=evaluatedTokens.filter(token=>/^(?:[+?~-])?(?:include:|exists:|a(?::|\/|$)|mx(?::|\/|$)|ptr(?::|$))/i.test(token)||/^redirect=/i.test(token));
  const errors=[],warnings=[];

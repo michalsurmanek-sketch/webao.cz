@@ -288,7 +288,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.67';
+ const ruleVersion='2026-11-01.68';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -870,6 +870,19 @@ form.addEventListener('submit',async event=>{
    }
    }
    if(strategy==='mobile'){
+    const privacyCookieAudits=Object.entries(audits).filter(([id,audit])=>/third.?party.*cookies?|cookies?.*third.?party/i.test(id+' '+(audit&&audit.title||'')));
+    for(const [auditId,audit] of privacyCookieAudits.slice(0,4)){
+     const mode=audit.scoreDisplayMode||'';
+     const measured=Number.isFinite(audit.score)&&!['manual','notApplicable','informative','error'].includes(mode);
+     const points=measured?Math.round(audit.score*100):null;
+     const details=audit.details||{};
+     const items=Array.isArray(details.items)?details.items:[];
+     const evidence=items.slice(0,6).map(item=>Object.entries(item).filter(([key,value])=>value!==null&&value!==undefined&&typeof value!=='object').map(([key,value])=>key+': '+value).join(', ')).filter(Boolean);
+     const passed=measured&&points>=90;
+     findings.push({area:'Cookies a soukromí',name:'Lighthouse — cookies třetích stran ('+device+')',url:payload.id||url.origin+'/',ok:passed,points,state:measured?undefined:'NELZE OVĚŘIT',severity:measured?(passed?'Nízká':'K prověření'):'Informační',detail:(audit.title||'Kontrola cookies třetích stran')+'. '+([audit.displayValue,audit.explanation,...evidence].filter(Boolean).join(' ')||'Lighthouse audit neposkytl další detail.')+' Tento signál zjišťuje chování cookies třetích stran; nekontroluje právní souhlas ani správnost lišty cookies.',evidence:'PageSpeed Insights / Lighthouse audit '+auditId+(evidence.length?' · '+arrayJoin(evidence,' | '):''),confidence:measured?'Vysoká pro zachycený laboratorní signál; neověřuje kompletní provoz webu ani souhlas uživatele.':'Lighthouse neposkytl skórovaný výsledek této kontroly.'});
+    }
+   }
+   if(strategy==='mobile'){
     for(const auditId of ['viewport','tap-targets','font-size','content-width']){
      const audit=audits[auditId];if(!audit||!Number.isFinite(audit.score))continue;
      const points=Math.round(audit.score*100);
@@ -880,7 +893,7 @@ form.addEventListener('submit',async event=>{
     const refs=categories[category]&&categories[category].auditRefs||[];
     for(const ref of refs){
      const audit=audits[ref.id];
-     if(['is-on-https','no-vulnerable-libraries','csp-xss'].includes(ref.id))continue;
+     if(['is-on-https','no-vulnerable-libraries','csp-xss'].includes(ref.id)||/third.?party.*cookies?|cookies?.*third.?party/i.test(ref.id))continue;
      if(!audit||!Number.isFinite(audit.score)||audit.score>=0.9||(ref.weight||0)<=0||['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode))continue;
      categoryRefs.push({category,area,label,ref,audit});
     }

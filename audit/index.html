@@ -279,14 +279,16 @@ function buildLinkGraphHtml(pages){
 }
 function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],branding={}){
  const areas=areaDefs.map(([name,weight])=>{
-  const checks=findings.filter(item=>item.area===name&&item.points!==null);
-  return {name,weight,score:checks.length?Math.round(checks.reduce((sum,item)=>sum+item.points,0)/checks.length):null}
+  const tests=findings.filter(item=>item.area===name&&!item.name.startsWith('Kontrola oblasti:'));
+  const checks=tests.filter(item=>item.points!==null);
+  const coverage=tests.length?checks.length/tests.length:0;
+  return {name,weight,tests:tests.length,measured:checks.length,coverage,effectiveWeight:weight*coverage,score:checks.length?Math.round(checks.reduce((sum,item)=>sum+item.points,0)/checks.length):null}
  });
- const scored=areas.filter(area=>area.score!==null);
- const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
- const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
+ const scored=areas.filter(area=>area.score!==null&&area.effectiveWeight>0);
+ const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
+ const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.63';
+ const ruleVersion='2026-11-01.64';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;

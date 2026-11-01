@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.95';
+ const ruleVersion='2026-11-01.96';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -574,7 +574,7 @@ form.addEventListener('submit',async event=>{
  const url=normalize(document.querySelector('#domain').value);
  const pageLimit=Number(document.querySelector('#pageLimit').value)||6;
  const excludedPaths=(document.querySelector('#excludedPaths').value||'').split(',').map(path=>path.trim()).filter(Boolean).map(path=>path.startsWith('/')?path:'/'+path);
- const competitorUrls=[...new Map((document.querySelector('#competitors').value||'').split(/[,;\s]+/).filter(Boolean).map(normalize).filter(candidate=>candidate&&candidate.hostname!==url?.hostname).map(candidate=>[candidate.hostname,candidate])).values()].slice(0,3);
+ const competitorUrls=[...new Map((document.querySelector('#competitors').value||'').split(/[,;\s]+/).filter(Boolean).map(normalize).filter(candidate=>candidate&&(!url||!isSameSiteHost(candidate.hostname,url.hostname))).map(candidate=>[candidate.hostname,candidate])).values()].slice(0,3);
  out.style.display='block';
  if(!url){out.innerHTML='<h2>Zkontrolujte adresu</h2><p class="result-summary">Zadejte platnou veřejnou doménu, například firma.cz.</p>';return}
  auditInProgress=true;

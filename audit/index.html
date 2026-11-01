@@ -606,13 +606,13 @@ form.addEventListener('submit',async event=>{
   const rootUrl=url.origin+'/';
   if(!sitemapKnown&&declaredSitemaps.length){
    for(const raw of declaredSitemaps.slice(0,3)){
-    try{const sitemapUrl=new URL(raw);const candidate=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);if(/<urlset|<sitemapindex|<loc[ >:]|https?:\\/\\//i.test(candidate)){sitemap=candidate;sitemapKnown=true;sitemapSource=sitemapUrl.href;break}}catch{}
+    try{const sitemapUrl=new URL(raw);const candidate=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);if(/<urlset|<sitemapindex|<loc/i.test(candidate)){sitemap=candidate;sitemapKnown=true;sitemapSource=sitemapUrl.href;break}}catch{}
    }
   }
   if(!sitemapKnown&&!declaredSitemaps.length){
    const sitemapCandidates=['/sitemap_index.xml','/wp-sitemap.xml','/sitemap-index.xml','/sitemap1.xml'];
    const results=await Promise.allSettled(sitemapCandidates.filter(path=>robotsAllowsPath(robots,path)).map(async path=>({path,text:await fetchReadablePage(url,path)})));
-   const found=results.find(result=>result.status==='fulfilled'&&/<urlset|<sitemapindex|<loc[ >:]|https?:\\/\\//i.test(result.value.text));
+   const found=results.find(result=>result.status==='fulfilled'&&/<urlset|<sitemapindex|<loc/i.test(result.value.text));
    if(found){sitemap=found.value.text;sitemapKnown=true;sitemapSource=new URL(found.value.path,url.origin).href}
   }
   const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);

@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.92';
+ const ruleVersion='2026-11-01.93';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -584,6 +584,7 @@ form.addEventListener('submit',async event=>{
  submitButton.textContent='Audit probíhá…';
  out.innerHTML='<h2>Kontroluji '+esc(url.hostname)+'…</h2><p class="result-summary">Načítám robots.txt. Následně prověřím veřejné stránky, DNS a výkon; nedostupný externí zdroj po časovém limitu označím jako neověřitelný.</p>';
  out.scrollIntoView({behavior:'smooth',block:'center'});
+ let waitingTimer=null;
  try{
   const robotsPrefetchResult=(await Promise.allSettled([fetchReadablePage(url,'/robots.txt')]))[0];
   const robots=robotsPrefetchResult.status==='fulfilled'?robotsPrefetchResult.value:'';
@@ -602,6 +603,8 @@ form.addEventListener('submit',async event=>{
   const dkimSelectors=['google','selector1','selector2','default','k1','mail'];
   const dnsPromise=Promise.allSettled([queryDns(dnsDomain,'MX'),queryDns(dnsDomain,'TXT'),queryDns('_dmarc.'+dnsDomain,'TXT'),queryDns(dnsDomain,'A'),queryDns(dnsDomain,'AAAA'),queryDns(dnsDomain,'CAA'),queryDns(dnsDomain,'NS'),queryDns(dnsDomain,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+dnsDomain,'TXT'))]);
   out.querySelector('.result-summary').textContent='Čekám na veřejné zdroje. PageSpeed má limit 45 s na pokus; ostatní služby mají vlastní časové limity. Výpadek jedné služby neukončí celý audit.';
+  const publicSourceWaitStart=Date.now();
+  waitingTimer=setInterval(()=>{const status=out.querySelector('.result-summary');if(status&&status.textContent.startsWith('Čekám na veřejné zdroje.'))status.textContent='Čekám na veřejné zdroje ('+Math.floor((Date.now()-publicSourceWaitStart)/1000)+' s). PageSpeed má limit 45 s na pokus; výpadek jedné služby neukončí celý audit.'},1000);
   const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults,httpVariantResults,observatoryResult]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise,httpVariantPromise,observatoryPromise]);
   const page=pageResult.status==='fulfilled'?pageResult.value:'';
   const homeParsed=parsePageText(page,new URL(url.origin+'/'));
@@ -1079,6 +1082,7 @@ form.addEventListener('submit',async event=>{
   console.error('WEBAO audit failed',error);
   out.innerHTML='<h2>Kontrolu se nepodařilo dokončit</h2><p class="result-summary">'+esc(error.message||'Zdroj neodpověděl.')+'</p><p class="audit-disclaimer">Některé weby blokují externí čtečky nebo vyžadují JavaScript. Neznamená to automaticky, že web nefunguje.</p>';
  }finally{
+  if(waitingTimer)clearInterval(waitingTimer);
   auditInProgress=false;
   submitButton.disabled=false;
   submitButton.removeAttribute('aria-busy');

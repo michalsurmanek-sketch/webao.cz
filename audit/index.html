@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.103';
+ const ruleVersion='2026-11-01.104';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -504,9 +504,19 @@ function normalizeCrawlUrl(candidate,baseUrl){
 }
 function getSitemapLocations(text,host,protocol='https:'){
  const source=String(text||'');
- if(/<urlset\b/i.test(source))return[];
+ if(/<urlset\\b/i.test(source))return[];
+ const sitemapIndex=/<sitemapindex\\b/i.test(source);
+ const declared=[...source.matchAll(/^\\s*sitemap\\s*:\\s*(https?:\\/\\/[^\\s<]+)/gim)].map(match=>match[1]);
+ const candidates=sitemapIndex?sitemapUrlCandidates(source):declared.length?declared:sitemapUrlCandidates(source);
  const baseUrl=new URL(protocol+'//'+host+'/'),found=[];
- for(const raw of sitemapUrlCandidates(source)){const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;try{const u=new URL(normalized);if(isSameSiteHost(u.hostname,host)&&/\.xml(?:$|\?)/i.test(u.pathname+u.search)&&!found.includes(u.href))found.push(u.href)}catch{}}
+ for(const raw of candidates){
+  const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;
+  try{
+   const u=new URL(normalized),sameHost=isSameSiteHost(u.hostname,host);
+   const looksLikeSitemap=/\\.xml(?:$|\\?)/i.test(u.pathname+u.search);
+   if(sameHost&&(sitemapIndex||declared.includes(raw)||looksLikeSitemap)&&!found.includes(u.href))found.push(u.href);
+  }catch{}
+ }
  return found;
 }
 function getSitemapUrls(text,host,protocol='https:'){

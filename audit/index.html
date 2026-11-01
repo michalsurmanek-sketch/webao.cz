@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.111';
+ const ruleVersion='2026-11-01.112';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -453,6 +453,7 @@ async function queryHttpObservatory(host){
  if(!response.ok||payload.error)throw new Error(payload.message||payload.error||'MDN HTTP Observatory nevrátil výsledek ('+response.status+').');
  return payload;
 }
+function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit/i.test(String(error&&error.message||error||''))}
 async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
  const endpoint=new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed');
  endpoint.searchParams.set('url',pageUrl.href);
@@ -467,7 +468,7 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
    if(!response.ok)throw new Error(payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
    if(!payload.lighthouseResult)throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
    return payload;
-  }catch(error){lastError=error;if(attempt<maxAttempts)await new Promise(resolve=>setTimeout(resolve,1200));}
+  }catch(error){lastError=error;if(attempt<maxAttempts&&!isPageSpeedQuotaError(error))await new Promise(resolve=>setTimeout(resolve,1200));else break;}
  }
  throw new Error('PageSpeed '+strategy+': '+(lastError&&lastError.message?lastError.message:'požadavek selhal i po opakování.'));
 }
@@ -610,7 +611,11 @@ form.addEventListener('submit',async event=>{
   const pageSpeedPromise=pagePromise.then(homeResult=>Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed&&homeResult.status==='fulfilled'?queryPageSpeed(new URL(url.origin+'/'),strategy):Promise.reject(new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.')))));
   const baseHostname=url.hostname.replace(/^www\./i,'');
   const httpVariantUrls=[...new Set(['http://'+baseHostname+'/','http://www.'+baseHostname+'/'])];
-  const httpVariantPromise=Promise.all(httpVariantUrls.map(address=>rootAllowed?queryPageSpeed(new URL(address),'mobile',1).then(value=>({url:address,status:'fulfilled',value}),reason=>({url:address,status:'rejected',reason})):Promise.resolve({url:address,status:'rejected',reason:new Error('Kontrola vynechána podle robots.txt.')})));
+  const httpVariantPromise=pageSpeedPromise.then(pageSpeedResults=>{
+   const quotaFailure=pageSpeedResults.find(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason));
+   if(quotaFailure)return httpVariantUrls.map(address=>({url:address,status:'rejected',reason:new Error('Kontrola HTTP varianty byla vynechána, protože Google PageSpeed dosáhl denní kvóty.')}));
+   return Promise.all(httpVariantUrls.map(address=>rootAllowed?queryPageSpeed(new URL(address),'mobile',1).then(value=>({url:address,status:'fulfilled',value}),reason=>({url:address,status:'rejected',reason})):Promise.resolve({url:address,status:'rejected',reason:new Error('Kontrola vynechána podle robots.txt.')})));
+  });
   const observatoryRequested=document.querySelector('#external-observatory').checked;
   const observatoryPromise=observatoryRequested?queryHttpObservatory(baseHostname).then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'skipped'});
   const competitorPromise=Promise.allSettled(competitorUrls.map(candidate=>fetchRobotsAwarePage(candidate,'/')));
@@ -839,7 +844,7 @@ form.addEventListener('submit',async event=>{
     const redirectedToHttps=finalProtocol==='https:';
     findings.push({area:'Bezpečnost a HTTPS',name:'HTTP varianta končí na HTTPS — '+new URL(httpVariantResult.url).hostname,url:httpVariantResult.url,ok:redirectedToHttps,points:finalAddress?redirectedToHttps?100:0:null,state:finalAddress?undefined:'NELZE OVĚŘIT',severity:finalAddress?(redirectedToHttps?'Nízká':'Vysoká'):'Informační',detail:finalAddress?(redirectedToHttps?'Požadavek na HTTP variantu skončil na zabezpečené HTTPS adrese.':'PageSpeed načetl HTTP variantu a výsledná adresa zůstala bez HTTPS.'):'PageSpeed neposkytl konečnou adresu po přesměrování.',evidence:'Vstup: '+httpVariantResult.url+' · konečná adresa: '+(finalAddress||'nezjištěna'),confidence:finalAddress?'Vysoká pro konečnou adresu vrácenou Lighthouse; nekontroluje všechny subdomény.':'Nelze ověřit bez konečné adresy PageSpeed.',action:'Nastavte trvalé přesměrování všech HTTP požadavků na odpovídající HTTPS adresu a ověřte obě varianty www.',impact:redirectedToHttps?'Návštěvníci končí na šifrované variantě při zadání adresy bez https.':'Návštěvníci mohou skončit na nešifrované stránce, což ohrožuje důvěrnost přenosu.'});
    }else{
-    findings.push({area:'Bezpečnost a HTTPS',name:'HTTP varianta přesměrování — '+new URL(httpVariantResult.url).hostname,url:httpVariantResult.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'PageSpeed nedokázal určit konečnou adresu HTTP požadavku: '+(httpVariantResult.reason?.message||'chyba měření'),evidence:'Google PageSpeed Insights · vstup '+httpVariantResult.url,confidence:'Nelze určit bez výsledku měření.'});
+    findings.push({area:'Bezpečnost a HTTPS',name:'HTTP varianta přesměrování — '+new URL(httpVariantResult.url).hostname,url:httpVariantResult.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:isPageSpeedQuotaError(httpVariantResult.reason)?'HTTP přesměrování nebylo ověřeno, protože Google PageSpeed dosáhl denní kvóty. Nebyl odeslán další požadavek, aby se kvóta zbytečně nespotřebovala.':'PageSpeed nedokázal určit konečnou adresu HTTP požadavku: '+(httpVariantResult.reason?.message||'chyba měření'),evidence:'Google PageSpeed Insights · vstup '+httpVariantResult.url,confidence:'Nelze určit bez výsledku měření.'});
    }
   }
   if(rdapResult.status==='fulfilled'){

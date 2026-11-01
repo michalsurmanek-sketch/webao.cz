@@ -27,6 +27,8 @@
 </main><footer class="audit-footer"><a href="/">WEBAO</a> · <a href="/#kontakt">Kontakt</a> · <a href="/pravni.html">Právní informace</a><br><br>Audit je orientační technická kontrola veřejných údajů, nikoli právní nebo bezpečnostní posudek.</footer>
 <script>
 let auditInProgress=false;
+let pageSpeedChecksCompleted=0;
+function trackPageSpeed(promise){return promise.finally(()=>{pageSpeedChecksCompleted++;});}
 const form=document.querySelector('#audit-form');
 const out=document.querySelector('#result');
 const areaDefs=[['SEO a obsah',25],['Technické SEO',20],['Bezpečnost a HTTPS',15],['Rychlost a Core Web Vitals',15],['Přístupnost',10],['Mobilní použitelnost',5],['DNS a e-mail',5],['Cookies a soukromí',5],['Lighthouse — nejlepší postupy',0],['AI roboti a vyhledávače',0]];
@@ -609,13 +611,13 @@ form.addEventListener('submit',async event=>{
   const rootAllowed=!robotsKnown||robotsAllowsPath(robots,'/');
   out.querySelector('.result-summary').textContent='Robots.txt je načteno nebo nedostupné. Spouštím souběžnou kontrolu homepage, DNS, registru domény a PageSpeed.';
   const pagePromise=rootAllowed?fetchReadablePage(url,'/').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'fulfilled',value:''});
-  const pageSpeedPromise=pagePromise.then(homeResult=>Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed&&homeResult.status==='fulfilled'?queryPageSpeed(new URL(url.origin+'/'),strategy):Promise.reject(new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.')))));
+  const pageSpeedPromise=pagePromise.then(homeResult=>Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed&&homeResult.status==='fulfilled'?trackPageSpeed(queryPageSpeed(new URL(url.origin+'/'),strategy)):trackPageSpeed(Promise.reject(new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.'))))));
   const baseHostname=url.hostname.replace(/^www\./i,'');
   const httpVariantUrls=[...new Set(['http://'+baseHostname+'/','http://www.'+baseHostname+'/'])];
   const httpVariantPromise=pageSpeedPromise.then(pageSpeedResults=>{
    const quotaFailure=pageSpeedResults.find(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason));
    if(quotaFailure)return httpVariantUrls.map(address=>({url:address,status:'rejected',reason:new Error('Kontrola HTTP varianty byla vynechána, protože Google PageSpeed dosáhl denní kvóty.')}));
-   return Promise.all(httpVariantUrls.map(address=>rootAllowed?queryPageSpeed(new URL(address),'mobile',1).then(value=>({url:address,status:'fulfilled',value}),reason=>({url:address,status:'rejected',reason})):Promise.resolve({url:address,status:'rejected',reason:new Error('Kontrola vynechána podle robots.txt.')})));
+   return Promise.all(httpVariantUrls.map(address=>rootAllowed?trackPageSpeed(queryPageSpeed(new URL(address),'mobile',1)).then(value=>({url:address,status:'fulfilled',value}),reason=>({url:address,status:'rejected',reason})):Promise.resolve({url:address,status:'rejected',reason:new Error('Kontrola vynechána podle robots.txt.')})));
   });
   const observatoryRequested=document.querySelector('#external-observatory').checked;
   const observatoryPromise=observatoryRequested?queryHttpObservatory(baseHostname).then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'skipped'});
@@ -625,7 +627,7 @@ form.addEventListener('submit',async event=>{
   const dnsPromise=Promise.allSettled([queryDns(dnsDomain,'MX'),queryDns(dnsDomain,'TXT'),queryDns('_dmarc.'+dnsDomain,'TXT'),queryDns(dnsDomain,'A'),queryDns(dnsDomain,'AAAA'),queryDns(dnsDomain,'CAA'),queryDns(dnsDomain,'NS'),queryDns(dnsDomain,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+dnsDomain,'TXT'))]);
   out.querySelector('.result-summary').textContent='Čekám na veřejné zdroje. PageSpeed má limit 45 s na pokus; ostatní služby mají vlastní časové limity. Výpadek jedné služby neukončí celý audit.';
   const publicSourceWaitStart=Date.now();
-  waitingTimer=setInterval(()=>{const status=out.querySelector('.result-summary');if(status&&status.textContent.startsWith('Čekám na veřejné zdroje'))status.textContent='Čekám na veřejné zdroje ('+Math.floor((Date.now()-publicSourceWaitStart)/1000)+' s). PageSpeed má limit 45 s na pokus; výpadek jedné služby neukončí celý audit.'},1000);
+  waitingTimer=setInterval(()=>{const status=out.querySelector('.result-summary');if(status&&status.textContent.startsWith('Čekám na veřejné zdroje'))status.textContent='Čekám na veřejné zdroje ('+Math.floor((Date.now()-publicSourceWaitStart)/1000)+' s). PageSpeed: '+pageSpeedChecksCompleted+'/4 měření dokončeno; jedno může trvat až 45 s na pokus. Ostatní kontroly běží souběžně.'},1000);
   const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults,httpVariantResults,observatoryResult]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise,httpVariantPromise,observatoryPromise]);
   if(waitingTimer){clearInterval(waitingTimer);waitingTimer=null;}
   const page=pageResult.status==='fulfilled'?pageResult.value:'';

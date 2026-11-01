@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.80';
+ const ruleVersion='2026-11-01.81';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -692,6 +692,7 @@ form.addEventListener('submit',async event=>{
    return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:arrayJoin(parsed.h1s,' · '),source,sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null};
   });
   const crawlDiscovered=new Set([...candidateUrls,...discoveredUrls]);
+  const deepLinkedUrls=new Set();
   const failedPageUrls=new Set(pages.filter(page=>page.loadError).map(page=>page.url));
   while(candidateUrls.length<pageLimit){
    const next=[];
@@ -699,12 +700,14 @@ form.addEventListener('submit',async event=>{
     if(!page.raw||!Array.isArray(page.links))continue;
     for(const raw of page.links){
      const candidate=normalizeCrawlUrl(raw,url);
-     if(!candidate||candidate===rootUrl||crawlDiscovered.has(candidate)||failedPageUrls.has(candidate))continue;
+     if(!candidate||candidate===rootUrl)continue;
      const target=new URL(candidate);
      if(isExcluded(candidate)||!robotsAllowsPath(robots,target.pathname+target.search))continue;
+     deepLinkedUrls.add(candidate);
+     const kinds=new Set(sourceKindByUrl.get(candidate)||[]);kinds.add('Interní odkaz z prověřené stránky');sourceKindByUrl.set(candidate,[...kinds]);
+     if(crawlDiscovered.has(candidate)||failedPageUrls.has(candidate))continue;
      crawlDiscovered.add(candidate);
      sitemapSourceByUrl.set(candidate,page.url);
-     sourceKindByUrl.set(candidate,'Interní odkaz z prověřené stránky');
      next.push(candidate);
     }
    }
@@ -727,10 +730,11 @@ form.addEventListener('submit',async event=>{
   crawlMeta.scanned=pages.filter(page=>page.raw).length;
   crawlMeta.selected=candidateUrls.length;
   crawlMeta.discovered=crawlDiscovered.size;
-  crawlMeta.sitemapAndLinkCount=sitemapAndLinkCount;
+  const allLinkedUrls=new Set([...linkUrls,...deepLinkedUrls]);
+  crawlMeta.sitemapAndLinkCount=[...sitemapUrls].filter(candidate=>allLinkedUrls.has(candidate)).length;
   crawlMeta.omittedByLimit=Math.max(0,crawlMeta.discovered-candidateUrls.length);
   crawlMeta.omitted=crawlMeta.omittedByLimit;
-  crawlMeta.linkDiscovered=[...sourceKindByUrl.values()].filter(kinds=>kinds.includes('Interní odkaz z homepage')||kinds.includes('Interní odkaz z prověřené stránky')).length;
+  crawlMeta.linkDiscovered=allLinkedUrls.size;
   crawlMeta.note=(crawlMeta.note||'')+' Crawl také sleduje rozpoznané interní odkazy z každé načtené stránky až do nastaveného limitu; výsledek stále není důkazem úplného indexu webu.'; if(crawlMeta.sitemapFailures.length)crawlMeta.note+=' Selhalo načtení '+crawlMeta.sitemapFailures.length+' sitemap souborů; jejich URL nebylo možné zahrnout.';
   for(const page of pages.filter(item=>item.loadError&&item.state!=='Vynecháno podle robots.txt')){
    findings.push({area:'Technické SEO',name:'Veřejná čtečka stránku neověřila',url:page.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Externí textová čtečka stránku nenačetla: '+page.loadError+' Tento výsledek nepotvrzuje, že stránka vrací chybu; může jít o blokaci nebo výpadek čtečky.',evidence:'URL: '+page.url+' · Zdroj objevení: '+(page.source||'neznámý'),impact:'Obsah, metadata a odkazy této stránky se do auditu nezapočítaly.',confidence:'Nelze určit stav stránky jen podle selhání textové čtečky.',action:'Ověřte URL v běžném prohlížeči a zopakujte audit. Pokud stránka funguje, čtečka nebo ochrana hostingu může blokovat auditní požadavek.'});

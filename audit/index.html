@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.84';
+ const ruleVersion='2026-11-01.85';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -590,7 +590,7 @@ form.addEventListener('submit',async event=>{
   const rootAllowed=!robotsKnown||robotsAllowsPath(robots,'/');
   out.querySelector('.result-summary').textContent='Robots.txt je načteno nebo nedostupné. Spouštím souběžnou kontrolu homepage, DNS, registru domény a PageSpeed.';
   const pagePromise=rootAllowed?fetchReadablePage(url,'/').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'fulfilled',value:''});
-  const pageSpeedPromise=Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed&&pageResult.status==='fulfilled'?queryPageSpeed(new URL(url.origin+'/'),strategy):Promise.reject(new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.'))));
+  const pageSpeedPromise=pagePromise.then(homeResult=>Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed&&homeResult.status==='fulfilled'?queryPageSpeed(new URL(url.origin+'/'),strategy):Promise.reject(new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.')))));
   const baseHostname=url.hostname.replace(/^www\./i,'');
   const httpVariantUrls=[...new Set(['http://'+baseHostname+'/','http://www.'+baseHostname+'/'])];
   const httpVariantPromise=Promise.all(httpVariantUrls.map(address=>rootAllowed?queryPageSpeed(new URL(address),'mobile',1).then(value=>({url:address,status:'fulfilled',value}),reason=>({url:address,status:'rejected',reason})):Promise.resolve({url:address,status:'rejected',reason:new Error('Kontrola vynechána podle robots.txt.')})));

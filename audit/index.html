@@ -288,7 +288,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.72';
+ const ruleVersion='2026-11-01.73';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -621,9 +621,10 @@ form.addEventListener('submit',async event=>{
     try{const sitemapUrl=new URL(raw);const candidate=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);if(/<urlset|<sitemapindex|<loc/i.test(candidate)){sitemap=candidate;sitemapKnown=true;sitemapSource=sitemapUrl.href;break}}catch{}
    }
   }
-  if(!sitemapKnown&&!declaredSitemaps.length){
+  if(!sitemapKnown){
    const sitemapCandidates=['/sitemap_index.xml','/wp-sitemap.xml','/sitemap-index.xml','/sitemap1.xml'];
-   const results=await Promise.allSettled(sitemapCandidates.filter(path=>robotsAllowsPath(robots,path)).map(async path=>({path,text:await fetchReadablePage(url,path)})));
+   const fallbackPaths=sitemapCandidates.filter(path=>robotsAllowsPath(robots,path)&&!declaredSitemaps.some(raw=>{try{return new URL(raw).pathname===path}catch{return false}}));
+   const results=await Promise.allSettled(fallbackPaths.map(async path=>({path,text:await fetchReadablePage(url,path)})));
    const found=results.find(result=>result.status==='fulfilled'&&/<urlset|<sitemapindex|<loc/i.test(result.value.text));
    if(found){sitemap=found.value.text;sitemapKnown=true;sitemapSource=new URL(found.value.path,url.origin).href}
   }

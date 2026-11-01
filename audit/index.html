@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.112';
+ const ruleVersion='2026-11-01.113';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -454,6 +454,7 @@ async function queryHttpObservatory(host){
  return payload;
 }
 function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit/i.test(String(error&&error.message||error||''))}
+function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Rychlost a Lighthouse skóre proto nejsou v tomto běhu ověřené. Zkuste audit znovu později.';return String(error&&error.message||error||'Příčina není známa.');}
 async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
  const endpoint=new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed');
  endpoint.searchParams.set('url',pageUrl.href);
@@ -928,7 +929,7 @@ form.addEventListener('submit',async event=>{
   pageSpeedResults.forEach((result,index)=>{
    const strategy=pageSpeedStrategies[index],device=strategy==='mobile'?'mobil':'desktop';
    if(result.status!=='fulfilled'){
-    findings.push({area:'Rychlost a Core Web Vitals',name:'PageSpeed Insights — '+device,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Google PageSpeed Insights neposkytl laboratorní měření. '+(result.reason&&result.reason.message?result.reason.message:'Příčina není známa.'),evidence:'Požadavek na veřejné API PageSpeed Insights selhal nebo vypršel časový limit.',confidence:'Nelze určit bez výsledku měření'});
+    findings.push({area:'Rychlost a Core Web Vitals',name:'PageSpeed Insights — '+device,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Google PageSpeed Insights neposkytl laboratorní měření. '+pageSpeedErrorMessage(result.reason),evidence:'Požadavek na veřejné API PageSpeed Insights selhal nebo vypršel časový limit.',confidence:'Nelze určit bez výsledku měření'});
     return;
    }
    const payload=result.value||{},lighthouse=payload.lighthouseResult||{},categories=lighthouse.categories||{},audits=lighthouse.audits||{};

@@ -288,7 +288,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.70';
+ const ruleVersion='2026-11-01.71';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -746,9 +746,9 @@ form.addEventListener('submit',async event=>{
   ];
   if(observatoryResult.status==='skipped'){
    findings.push({area:'Lighthouse — nejlepší postupy',name:'MDN HTTP Observatory — externí kontrola hlaviček',points:null,state:'NEPROVEDENO',severity:'Informační',detail:'Externí kontrola nebyla spuštěna. Služba může veřejně zpřístupnit výsledek skenu; audit ji spouští pouze po výslovném zaškrtnutí.',evidence:'Nebyl odeslán požadavek na MDN HTTP Observatory.',confidence:'Kontrola nebyla provedena.'});
-  }else if(observatoryResult.status==='fulfilled'){
+  }else if(observatoryResult.status==='fulfilled'&&!observatoryResult.value.error){
    const scan=observatoryResult.value;
-   findings.push({area:'Lighthouse — nejlepší postupy',name:'MDN HTTP Observatory — souhrn bezpečnostních hlaviček',points:null,state:'INFORMATIVNÍ',severity:'Informační',detail:'Nezávislý externí sken vrátil známku '+(scan.grade||'—')+' a skóre '+(Number.isFinite(scan.score)?scan.score:'—')+'. Testy: '+(scan.testsPassed??'—')+' vyhovělo z '+(scan.testsQuantity??'—')+'; nevyhovělo '+(scan.testsFailed??'—')+'. Výsledek je souhrnný signál externí služby a nevstupuje do skóre WEBAO.',evidence:(scan.details_url||'MDN HTTP Observatory')+(scan.scanned_at?' · sken '+scan.scanned_at:''),confidence:'Vysoká pro souhrn vrácený MDN; detailní nálezy jsou v reportu externí služby.'});
+   findings.push({area:'Lighthouse — nejlepší postupy',name:'MDN HTTP Observatory — souhrn bezpečnostních hlaviček',points:null,state:'INFORMATIVNÍ',severity:'Informační',detail:'Nezávislý externí sken vrátil známku '+(scan.grade||'—')+' a skóre '+(Number.isFinite(scan.score)?scan.score:'—')+'. Testy: '+(scan.tests_passed??'—')+' vyhovělo z '+(scan.tests_quantity??'—')+'; nevyhovělo '+(scan.tests_failed??'—')+'. Výsledek je souhrnný signál externí služby a nevstupuje do skóre WEBAO.',evidence:(scan.details_url||'MDN HTTP Observatory')+(scan.scanned_at?' · sken '+scan.scanned_at:''),confidence:'Vysoká pro souhrn vrácený MDN; detailní nálezy jsou v reportu externí služby.'});
   }else{
    findings.push({area:'Lighthouse — nejlepší postupy',name:'MDN HTTP Observatory — nelze ověřit',points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Externí služba neposkytla výsledek: '+(observatoryResult.reason?.message||'chyba požadavku'),evidence:'Požadavek na MDN HTTP Observatory selhal nebo vypršel časový limit.',confidence:'Nelze určit bez výsledku externí kontroly.'});
   }

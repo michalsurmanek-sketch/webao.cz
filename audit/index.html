@@ -288,7 +288,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.64';
+ const ruleVersion='2026-11-01.65';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -365,10 +365,20 @@ async function readTimedResponse(response,method,timeoutMs=12000){
  try{return await response[method]()}finally{if(timer)clearTimeout(timer);timedResponseControllers.delete(response)}
 }
 async function fetchReadablePage(url,path='/'){
- const scheme=url.protocol==='http:'?'http://':'https://';
- const response=await fetchTimed('https://r.jina.ai/'+scheme+url.hostname+path,{headers:{Accept:'text/plain'}},12000);
- if(!response.ok)throw new Error('Veřejný zdroj stránky neodpověděl.');
- return await readTimedResponse(response,'text',12000);
+ const preferred=url.protocol==='http:'?'http://':'https://';
+ const candidates=[preferred+(url.hostname+(path||'/'))];
+ if(url.protocol!=='http:')candidates.push('http://'+url.hostname+(path||'/'));
+ let lastError;
+ for(let attempt=0;attempt<candidates.length;attempt++){
+  try{
+   const response=await fetchTimed('https://r.jina.ai/'+candidates[attempt],{headers:{Accept:'text/plain'}},20000);
+   const text=await readTimedResponse(response,'text',20000);
+   if(!response.ok)throw new Error('Veřejný zdroj stránky neodpověděl ('+response.status+').');
+   if(!text.trim())throw new Error('Textová čtečka vrátila prázdnou odpověď.');
+   return text;
+  }catch(error){lastError=error}
+ }
+ throw new Error('Čtečka stránky: '+(lastError&&lastError.message?lastError.message:'zdroj neodpověděl.'));
 }
 async function fetchRobotsAwarePage(url,path='/'){
  const robots=await fetchReadablePage(url,'/robots.txt').catch(()=> '');
@@ -595,7 +605,15 @@ form.addEventListener('submit',async event=>{
   const declaredSitemaps=getSitemapLocations(robots,url.hostname,url.protocol).filter(raw=>{const target=new URL(raw);return robotsAllowsPath(robots,target.pathname+target.search)});
   const rootUrl=url.origin+'/';
   if(!sitemapKnown&&declaredSitemaps.length){
-   try{const sitemapUrl=new URL(declaredSitemaps[0]);sitemap=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);sitemapKnown=true;sitemapSource=sitemapUrl.href}catch{}
+   for(const raw of declaredSitemaps.slice(0,3)){
+    try{const sitemapUrl=new URL(raw);const candidate=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);if(/<urlset|<sitemapindex|<loc[ >:]|https?:\\/\\//i.test(candidate)){sitemap=candidate;sitemapKnown=true;sitemapSource=sitemapUrl.href;break}}catch{}
+   }
+  }
+  if(!sitemapKnown&&!declaredSitemaps.length){
+   const sitemapCandidates=['/sitemap_index.xml','/wp-sitemap.xml','/sitemap-index.xml','/sitemap1.xml'];
+   const results=await Promise.allSettled(sitemapCandidates.filter(path=>robotsAllowsPath(robots,path)).map(async path=>({path,text:await fetchReadablePage(url,path)})));
+   const found=results.find(result=>result.status==='fulfilled'&&/<urlset|<sitemapindex|<loc[ >:]|https?:\\/\\//i.test(result.value.text));
+   if(found){sitemap=found.value.text;sitemapKnown=true;sitemapSource=new URL(found.value.path,url.origin).href}
   }
   const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);
   const sitemapTexts=sitemapKnown&&sitemap?[sitemap]:[];

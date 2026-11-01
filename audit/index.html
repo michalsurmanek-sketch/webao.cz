@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.81';
+ const ruleVersion='2026-11-01.82';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -615,20 +615,22 @@ form.addEventListener('submit',async event=>{
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
   const robotsBlocksSite=robotsKnown&&!robotsAllowsPath(robots,'/');
-  let sitemapKnown=sitemapResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(sitemap);
+  const sitemapReadError=/(?:^|\b)(?:401|403|404|429|500|502|503|504)\b|not found|could not fetch|forbidden|access denied|rate.?limit|timed?\s?out|timeout|error fetching/i;
+  const isSitemapDocument=value=>/<(?:urlset|sitemapindex|loc)\b/i.test(String(value||''));
+  let sitemapKnown=sitemapResult.status==='fulfilled'&&!sitemapReadError.test(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;
   const declaredSitemaps=getSitemapLocations(robots,url.hostname,url.protocol).filter(raw=>{const target=new URL(raw);return robotsAllowsPath(robots,target.pathname+target.search)});
   const rootUrl=url.origin+'/';
   if(!sitemapKnown&&declaredSitemaps.length){
    for(const raw of declaredSitemaps.slice(0,3)){
-    try{const sitemapUrl=new URL(raw);const candidate=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);if(/<urlset|<sitemapindex|<loc/i.test(candidate)){sitemap=candidate;sitemapKnown=true;sitemapSource=sitemapUrl.href;break}}catch{}
+    try{const sitemapUrl=new URL(raw);const candidate=await fetchReadablePage(sitemapUrl,sitemapUrl.pathname+sitemapUrl.search);if(isSitemapDocument(candidate)){sitemap=candidate;sitemapKnown=true;sitemapSource=sitemapUrl.href;break}}catch{}
    }
   }
   if(!sitemapKnown){
    const sitemapCandidates=['/sitemap_index.xml','/wp-sitemap.xml','/sitemap-index.xml','/sitemap1.xml'];
    const fallbackPaths=sitemapCandidates.filter(path=>robotsAllowsPath(robots,path)&&!declaredSitemaps.some(raw=>{try{return new URL(raw).pathname===path}catch{return false}}));
    const results=await Promise.allSettled(fallbackPaths.map(async path=>({path,text:await fetchReadablePage(url,path)})));
-   const found=results.find(result=>result.status==='fulfilled'&&/<urlset|<sitemapindex|<loc/i.test(result.value.text));
+   const found=results.find(result=>result.status==='fulfilled'&&isSitemapDocument(result.value.text));
    if(found){sitemap=found.value.text;sitemapKnown=true;sitemapSource=new URL(found.value.path,url.origin).href}
   }
   const sitemapFound=sitemapKnown&&(/<urlset|<sitemapindex|<loc[ >:]/i.test(sitemap)||declaredSitemaps.length>0);
@@ -636,7 +638,7 @@ form.addEventListener('submit',async event=>{
   const sitemapSources=sitemapTexts.length?[sitemapSource]:[];
   const sitemapQueue=[...declaredSitemaps,...getSitemapLocations(sitemap,url.hostname,url.protocol)];
   const sitemapFailures=[];
-  if(sitemapResult.status!=='fulfilled')sitemapFailures.push({url:new URL('/sitemap.xml',url.origin).href,reason:sitemapResult.reason&&sitemapResult.reason.message||'Sitemap se nepodařilo načíst.'});
+  if(!sitemapKnown)sitemapFailures.push({url:new URL('/sitemap.xml',url.origin).href,reason:sitemapResult.status!=='fulfilled'?(sitemapResult.reason&&sitemapResult.reason.message||'Sitemap se nepodařilo načíst.'):'Odpověď neobsahovala rozpoznatelnou sitemapu nebo čtečka vrátila chybu.'});
   const seenSitemaps=new Set([new URL('/sitemap.xml',url.origin).href,sitemapSource]);
   let sitemapFiles=sitemapTexts.length;
   let sitemapAttempts=1+(sitemapSource!==new URL('/sitemap.xml',url.origin).href?1:0);
@@ -650,7 +652,7 @@ form.addEventListener('submit',async event=>{
    if(!batch.length)continue;
    sitemapAttempts+=batch.length;
    const nestedResults=await Promise.allSettled(batch.map(raw=>{const nested=new URL(raw);return fetchReadablePage(nested,nested.pathname+nested.search)}));
-   nestedResults.forEach((result,index)=>{if(result.status==='fulfilled'){sitemapFiles++;sitemapTexts.push(result.value);sitemapSources.push(batch[index]);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname,url.protocol))}else sitemapFailures.push({url:batch[index],reason:result.reason&&result.reason.message||'Sitemap se nepodařilo načíst.'})});
+   nestedResults.forEach((result,index)=>{if(result.status==='fulfilled'&&isSitemapDocument(result.value)){sitemapFiles++;sitemapTexts.push(result.value);sitemapSources.push(batch[index]);sitemapQueue.push(...getSitemapLocations(result.value,url.hostname,url.protocol))}else sitemapFailures.push({url:batch[index],reason:result.status!=='fulfilled'?(result.reason&&result.reason.message||'Sitemap se nepodařilo načíst.'):'Odpověď neobsahovala rozpoznatelnou sitemapu.'})});
   }
   const sitemapEntries=sitemapTexts.flatMap((text,index)=>getSitemapUrls(text,url.hostname,url.protocol).map(candidate=>({url:candidate,source:sitemapSources[index]||sitemapSource,kind:'XML sitemap'})));
   const linkEntries=(rootAllowed&&pageResult.status==='fulfilled'?[...new Set((homeParsed.links||[]).map(candidate=>normalizeCrawlUrl(candidate,url)).filter(candidate=>candidate&&candidate!==rootUrl))]:[]).map(candidate=>({url:candidate,source:rootUrl,kind:'Interní odkaz z homepage'}));

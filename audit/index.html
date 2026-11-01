@@ -458,28 +458,15 @@ async function queryDns(domain,type){
 }
 function parsePageText(text,url){
  const lines=String(text||'').split('\n');
- const field=prefix=>{const escaped=prefix.replace(/[.*+?^${}()|[\]\\]/g,'\\function parsePageText(text,url){
- const lines=text.split('\n');
- const field=prefix=>{const line=lines.find(value=>value.toLowerCase().startsWith(prefix.toLowerCase()+':'));return line?line.slice(line.indexOf(':')+1).trim():''};
- const h1s=lines.filter(line=>line.trim().toLowerCase().startsWith('h1:')).map(line=>line.slice(line.indexOf(':')+1).trim()).filter(Boolean);
- const body=lines.filter(line=>!/^(title|url source|description|published time|modified time|site name|image|h1|h2|h3):/i.test(line.trim())).join(' ');
+ const field=prefix=>{const lower=prefix.toLowerCase();const line=lines.find(value=>value.trim().toLowerCase().startsWith(lower+':'));return line?line.slice(line.indexOf(':')+1).trim():''};
+ const h1s=lines.flatMap(line=>{const value=line.trim();const labeled=value.match(/^h1\s*:\s*(.+)$/i);if(labeled)return[labeled[1].trim()];const markdown=value.match(/^#\s+(.+?)\s*#*$/);return markdown?[markdown[1].trim()]:[]}).filter(Boolean);
+ const body=lines.filter(line=>!/^(title|url source|description|published time|modified time|site name|image|h1|h2|h3)\s*:/i.test(line.trim())&&!/^#\s/.test(line.trim())).join(' ');
  const cleanBody=body.replace(/\s+/g,' ').trim();
  const wordCount=(cleanBody.match(/[A-Za-zÀ-ž0-9]+/g)||[]).length;
  const images=[...text.matchAll(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:match[2]}));
  const imageUrls=new Set(images.map(image=>image.url));
  const markdownLinks=[...text.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].filter(match=>!imageUrls.has(match[1])).map(match=>{try{const link=new URL(match[1]);link.hash='';return link.href}catch{return''}}).filter(Boolean);
  const links=[...new Set(markdownLinks.filter(href=>{try{return new URL(href).hostname===url.hostname}catch{return false}}))];
- const externalLinks=[...new Set(markdownLinks.filter(href=>{try{return new URL(href).hostname!==url.hostname}catch{return false}}))];
- return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,wordCount,raw:text};
-}');const line=lines.find(value=>new RegExp('^\\s*'+escaped+'\\s*:', 'i').test(value));return line?line.slice(line.indexOf(':')+1).trim():''};
- const h1s=lines.flatMap(line=>{const value=line.trim();const labeled=value.match(/^h1\\s*:\\s*(.+)$/i);if(labeled)return[labeled[1].trim()];const markdown=value.match(/^#\\s+(.+?)\\s*#*$/);return markdown?[markdown[1].trim()]:[]}).filter(Boolean);
- const body=lines.filter(line=>!/^(title|url source|description|published time|modified time|site name|image|h1|h2|h3)\\s*:/i.test(line.trim())&&!/^#\\s/.test(line.trim())).join(' ');
- const cleanBody=body.replace(/\\s+/g,' ').trim();
- const wordCount=(cleanBody.match(/[A-Za-zÀ-ž0-9]+/g)||[]).length;
- const images=[...text.matchAll(/!\\[([^\\]]*)\\]\\((https?:\\/\\/[^)\\s]+)\\)/g)].map(match=>({alt:match[1].trim(),url:match[2]}));
- const imageUrls=new Set(images.map(image=>image.url));
- const markdownLinks=[...text.matchAll(/\\]\\((https?:\\/\\/[^)\\s]+)\\)/g)].filter(match=>!imageUrls.has(match[1])).map(match=>{try{const link=new URL(match[1]);link.hash='';return link.href}catch{return''}}).filter(Boolean);
- const links=[...new Set(markdownLinks.filter(href=>{try{return href.startsWith(url.origin+'/')||new URL(href).hostname===url.hostname}catch{return false}}))];
  const externalLinks=[...new Set(markdownLinks.filter(href=>{try{return new URL(href).hostname!==url.hostname}catch{return false}}))];
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,wordCount,raw:text};
 }

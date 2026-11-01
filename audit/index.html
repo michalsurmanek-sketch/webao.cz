@@ -582,13 +582,15 @@ form.addEventListener('submit',async event=>{
   out.querySelector('.result-summary').textContent='Robots.txt je načteno nebo nedostupné. Spouštím souběžnou kontrolu homepage, DNS, registru domény a PageSpeed.';
   const pagePromise=rootAllowed?fetchReadablePage(url,'/').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'fulfilled',value:''});
   const pageSpeedPromise=Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed?queryPageSpeed(new URL(url.origin+'/'),strategy):Promise.reject(new Error('Měření vynecháno podle robots.txt.'))));
-  const httpVariantPromise=rootAllowed?queryPageSpeed(new URL('http://'+url.hostname+'/'),'mobile',1).then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'rejected',reason:new Error('Kontrola vynechána podle robots.txt.')});
+  const baseHostname=url.hostname.replace(/^www\./i,'');
+  const httpVariantUrls=[...new Set(['http://'+baseHostname+'/','http://www.'+baseHostname+'/'])];
+  const httpVariantPromise=Promise.all(httpVariantUrls.map(address=>rootAllowed?queryPageSpeed(new URL(address),'mobile',1).then(value=>({url:address,status:'fulfilled',value}),reason=>({url:address,status:'rejected',reason})):Promise.resolve({url:address,status:'rejected',reason:new Error('Kontrola vynechána podle robots.txt.')})));
   const competitorPromise=Promise.allSettled(competitorUrls.map(candidate=>fetchRobotsAwarePage(candidate,'/')));
   const dnsDomain=url.hostname.replace(/^www\./i,'');
   const dkimSelectors=['google','selector1','selector2','default','k1','mail'];
   const dnsPromise=Promise.allSettled([queryDns(dnsDomain,'MX'),queryDns(dnsDomain,'TXT'),queryDns('_dmarc.'+dnsDomain,'TXT'),queryDns(dnsDomain,'A'),queryDns(dnsDomain,'AAAA'),queryDns(dnsDomain,'CAA'),queryDns(dnsDomain,'NS'),queryDns(dnsDomain,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+dnsDomain,'TXT'))]);
   out.querySelector('.result-summary').textContent='Čekám na veřejné zdroje. PageSpeed má limit 45 s na pokus; ostatní služby mají vlastní časové limity. Výpadek jedné služby neukončí celý audit.';
-  const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults,httpVariantResult]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise,httpVariantPromise]);
+  const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults,httpVariantResults]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise,httpVariantPromise]);
   const page=pageResult.status==='fulfilled'?pageResult.value:'';
   const homeParsed=parsePageText(page,new URL(url.origin+'/'));
   const title=homeParsed.title;
@@ -733,15 +735,17 @@ form.addEventListener('submit',async event=>{
    {area:'Technické SEO',name:'Přístup homepage podle robots.txt',ok:!robotsBlocksSite,points:robotsKnown?(robotsBlocksSite?20:100):null,severity:robotsBlocksSite?'Kritická':'Nízká',detail:robotsBlocksSite?'Pravidla robots.txt blokují načtení homepage pro auditní crawler. URL nebyla požadována.':'Homepage není podle rozpoznaných pravidel zakázána. Ostatní URL se filtrují samostatně podle pravidel.',evidence:robotsBlocksSite?'Použitelná pravidla robots.txt zakazují cestu /.':'Veřejný text robots.txt byl porovnán s cestou homepage a identifikátorem WEBAOAudit.',confidence:'Střední — parser textového výstupu robots.txt'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown&&sitemapFound?100:null,state:!sitemapKnown?'NELZE OVĚŘIT':sitemapFound?undefined:'DOPORUČENÍ',detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml ani v robots.txt nebyla sitemap rozpoznána. Její absence sama o sobě neprokazuje chybu; ověřte, zda ji web potřebuje a zda není na jiné adrese.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
-  if(httpVariantResult.status==='fulfilled'){
-   const lighthouse=httpVariantResult.value.lighthouseResult||{};
-   const finalAddress=lighthouse.finalDisplayedUrl||'';
-   let finalProtocol='';
-   try{finalProtocol=new URL(finalAddress).protocol}catch{}
-   const redirectedToHttps=finalProtocol==='https:';
-   findings.push({area:'Bezpečnost a HTTPS',name:'HTTP varianta končí na HTTPS',url:'http://'+url.hostname+'/',ok:redirectedToHttps,points:finalAddress?redirectedToHttps?100:0:null,state:finalAddress?undefined:'NELZE OVĚŘIT',severity:finalAddress?(redirectedToHttps?'Nízká':'Vysoká'):'Informační',detail:finalAddress?(redirectedToHttps?'Požadavek na HTTP variantu skončil na zabezpečené HTTPS adrese.':'PageSpeed načetl HTTP variantu a výsledná adresa zůstala bez HTTPS.'):'PageSpeed neposkytl konečnou adresu po přesměrování.',evidence:'Vstup: http://'+url.hostname+'/ · konečná adresa: '+(finalAddress||'nezjištěna'),confidence:finalAddress?'Vysoká pro konečnou adresu vrácenou Lighthouse; nekontroluje všechny subdomény.':'Nelze ověřit bez konečné adresy PageSpeed.',action:'Nastavte trvalé přesměrování všech HTTP požadavků na odpovídající HTTPS adresu a ověřte variantu www.',impact:redirectedToHttps?'Návštěvníci končí na šifrované variantě při zadání adresy bez https.':'Návštěvníci mohou skončit na nešifrované stránce, což ohrožuje důvěrnost přenosu.'});
-  }else{
-   findings.push({area:'Bezpečnost a HTTPS',name:'HTTP varianta přesměrování',url:'http://'+url.hostname+'/',points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'PageSpeed nedokázal určit konečnou adresu HTTP požadavku: '+(httpVariantResult.reason?.message||'chyba měření'),evidence:'Google PageSpeed Insights HTTP variant',confidence:'Nelze určit bez výsledku měření.'});
+  for(const httpVariantResult of httpVariantResults){
+   if(httpVariantResult.status==='fulfilled'){
+    const lighthouse=httpVariantResult.value.lighthouseResult||{};
+    const finalAddress=lighthouse.finalDisplayedUrl||'';
+    let finalProtocol='';
+    try{finalProtocol=new URL(finalAddress).protocol}catch{}
+    const redirectedToHttps=finalProtocol==='https:';
+    findings.push({area:'Bezpečnost a HTTPS',name:'HTTP varianta končí na HTTPS — '+new URL(httpVariantResult.url).hostname,url:httpVariantResult.url,ok:redirectedToHttps,points:finalAddress?redirectedToHttps?100:0:null,state:finalAddress?undefined:'NELZE OVĚŘIT',severity:finalAddress?(redirectedToHttps?'Nízká':'Vysoká'):'Informační',detail:finalAddress?(redirectedToHttps?'Požadavek na HTTP variantu skončil na zabezpečené HTTPS adrese.':'PageSpeed načetl HTTP variantu a výsledná adresa zůstala bez HTTPS.'):'PageSpeed neposkytl konečnou adresu po přesměrování.',evidence:'Vstup: '+httpVariantResult.url+' · konečná adresa: '+(finalAddress||'nezjištěna'),confidence:finalAddress?'Vysoká pro konečnou adresu vrácenou Lighthouse; nekontroluje všechny subdomény.':'Nelze ověřit bez konečné adresy PageSpeed.',action:'Nastavte trvalé přesměrování všech HTTP požadavků na odpovídající HTTPS adresu a ověřte obě varianty www.',impact:redirectedToHttps?'Návštěvníci končí na šifrované variantě při zadání adresy bez https.':'Návštěvníci mohou skončit na nešifrované stránce, což ohrožuje důvěrnost přenosu.'});
+   }else{
+    findings.push({area:'Bezpečnost a HTTPS',name:'HTTP varianta přesměrování — '+new URL(httpVariantResult.url).hostname,url:httpVariantResult.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'PageSpeed nedokázal určit konečnou adresu HTTP požadavku: '+(httpVariantResult.reason?.message||'chyba měření'),evidence:'Google PageSpeed Insights · vstup '+httpVariantResult.url,confidence:'Nelze určit bez výsledku měření.'});
+   }
   }
   if(rdapResult.status==='fulfilled'){
    const rdap=rdapResult.value;

@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.107';
+ const ruleVersion='2026-11-01.108';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -635,7 +635,6 @@ form.addEventListener('submit',async event=>{
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsRules=robotsKnown&&/user-agent\\s*:/i.test(robots);
   const robotsBlocksSite=robotsKnown&&!robotsAllowsPath(robots,'/');
-  const sitemapReadError=/(?:HTTP(?:[ /][0-9.]+)?\s+|status(?:\s+code)?\s*[:=]\s*|^\s*)(?:401|403|404|429|500|502|503|504)\b|could not fetch|forbidden|access denied|rate.?limit|timed?\s?out|timeout|error fetching/im;
   const isSitemapDocument=value=>/<(?:urlset|sitemapindex|loc)\b/i.test(String(value||''));
   let sitemapKnown=sitemapResult.status==='fulfilled'&&isSitemapDocument(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;

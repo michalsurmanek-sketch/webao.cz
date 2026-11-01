@@ -588,7 +588,7 @@ form.addEventListener('submit',async event=>{
   const dkimSelectors=['google','selector1','selector2','default','k1','mail'];
   const dnsPromise=Promise.allSettled([queryDns(dnsDomain,'MX'),queryDns(dnsDomain,'TXT'),queryDns('_dmarc.'+dnsDomain,'TXT'),queryDns(dnsDomain,'A'),queryDns(dnsDomain,'AAAA'),queryDns(dnsDomain,'CAA'),queryDns(dnsDomain,'NS'),queryDns(dnsDomain,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+dnsDomain,'TXT'))]);
   out.querySelector('.result-summary').textContent='Čekám na veřejné zdroje. PageSpeed má limit 45 s na pokus; ostatní služby mají vlastní časové limity. Výpadek jedné služby neukončí celý audit.';
-  const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise]);
+  const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults,httpVariantResult]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise,httpVariantPromise]);
   const page=pageResult.status==='fulfilled'?pageResult.value:'';
   const homeParsed=parsePageText(page,new URL(url.origin+'/'));
   const title=homeParsed.title;

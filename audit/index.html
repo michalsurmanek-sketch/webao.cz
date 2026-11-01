@@ -131,7 +131,7 @@ function findingKind(item){
  if(item.state==='K PROVĚŘENÍ')return'K ruční kontrole';
  if(item.state==='ALT ROZPOZNÁN'||item.state==='ROZPOZNÁNO'||item.state==='ZACHYCENO')return'Rozpoznáno ve výstupu';
  if(item.state==='INFORMATIVNÍ'||item.state==='NEPOUŽITO')return'Informace';
- if(item.points!==null)return'Měřený signál';
+ if(Number.isFinite(item.points))return'Měřený signál';
  return'Nelze ověřit';
 }
 function printAuditReport(){
@@ -248,7 +248,7 @@ const coverageLimitations={
 function buildCoverageHtml(areas,findings){
  const rows=areas.map(area=>{
   const items=findings.filter(item=>item.area===area.name&&!item.name.startsWith('Kontrola oblasti:'));
-  const measured=items.filter(item=>item.points!==null);
+  const measured=items.filter(item=>Number.isFinite(item.points));
   const unverified=items.filter(item=>findingKind(item)==='Nelze ověřit');
   const observed=items.filter(item=>item.points===null&&findingKind(item)!=='Nelze ověřit');
   const status=measured.length?'Částečně měřeno':observed.length?'Zachycené signály':unverified.length?'Nelze ověřit':'Neměřeno';
@@ -281,7 +281,7 @@ function buildLinkGraphHtml(pages){
 function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],branding={}){
  const areas=areaDefs.map(([name,weight])=>{
   const tests=findings.filter(item=>item.area===name&&!item.name.startsWith('Kontrola oblasti:'));
-  const checks=tests.filter(item=>item.points!==null);
+  const checks=tests.filter(item=>Number.isFinite(item.points));
   const coverage=tests.length?checks.length/tests.length:0;
   return {name,weight,tests:tests.length,measured:checks.length,coverage,effectiveWeight:weight*coverage,score:checks.length?Math.round(checks.reduce((sum,item)=>sum+item.points,0)/checks.length):null}
  });
@@ -289,14 +289,14 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.85';
- const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
+ const ruleVersion='2026-11-01.86';
+ const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
  const historyRows=history.slice(0,6).map(entry=>'<tr><td>'+esc(entry.checkedAt)+'</td><td>'+esc(entry.score===null?'—':entry.score+'%')+'</td><td>'+esc(entry.grade||'—')+'</td><td>'+esc(entry.measured||0)+'</td><td>'+esc(entry.ruleVersion||'starší běh')+'</td></tr>').join('');
  const historyHtml='<h3 style="margin-top:28px">Vývoj skóre</h3><p class="audit-disclaimer">Historie je uložená pouze v tomto prohlížeči. Není synchronizovaná mezi zařízeními a při smazání dat prohlížeče zmizí.'+(delta===null?'':' Poslední změna: '+(delta>0?'+':'')+delta+' bodů oproti předchozímu auditu.')+'</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Kontrolováno</th><th>Skóre</th><th>Známka</th><th>Měřené kontroly</th><th>Verze pravidel</th></tr></thead><tbody>'+historyRows+'</tbody></table></div><button type="button" class="history-clear" onclick="clearLocalAuditHistory(\''+esc(host)+'\')">Smazat místní historii této domény</button>';
  const grade=score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F';
- const areaHtml=areas.map(area=>{const areaDelta=previous&&area.score!==null&&previous.areas&&previous.areas[area.name]!==null&&previous.areas[area.name]!==undefined?area.score-previous.areas[area.name]:null;const total=findings.filter(item=>item.area===area.name).length;const used=findings.filter(item=>item.area===area.name&&item.points!==null).length;return '<div class="area-score"><span>'+esc(area.name)+'<small style="display:block;color:#91a99a;font-size:11px;margin-top:4px">Váha '+area.weight+' % · '+used+' z '+total+' kontrol tvoří skóre'+(areaDelta===null?'':' · změna '+(areaDelta>0?'+':'')+areaDelta+' b.')+'</small></span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>'}).join('');
+ const areaHtml=areas.map(area=>{const areaDelta=previous&&area.score!==null&&previous.areas&&previous.areas[area.name]!==null&&previous.areas[area.name]!==undefined?area.score-previous.areas[area.name]:null;const total=findings.filter(item=>item.area===area.name).length;const used=findings.filter(item=>item.area===area.name&&Number.isFinite(item.points)).length;return '<div class="area-score"><span>'+esc(area.name)+'<small style="display:block;color:#91a99a;font-size:11px;margin-top:4px">Váha '+area.weight+' % · '+used+' z '+total+' kontrol tvoří skóre'+(areaDelta===null?'':' · změna '+(areaDelta>0?'+':'')+areaDelta+' b.')+'</small></span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>'}).join('');
  const reportDate=checkedAt;
  const brandHtml=(branding.company||branding.logo||branding.notes||branding.logoNote||branding.email||branding.phone)?'<div class="report-brand">'+(branding.logo?'<img src="'+esc(branding.logo)+'" alt="Logo firmy">':'')+'<div>'+(branding.company?'<strong>'+esc(branding.company)+'</strong>':'')+(branding.email?'<p><b>E-mail:</b> '+esc(branding.email)+'</p>':'')+(branding.phone?'<p><b>Telefon:</b> '+esc(branding.phone)+'</p>':'')+(branding.notes?'<p>'+esc(branding.notes)+'</p>':'')+(branding.logoNote?'<p>'+esc(branding.logoNote)+'</p>':'')+'</div></div>':'';
  window.currentAuditData={host,findings,pages,competitors,branding,checkedAt:reportDate,areas,score,grade,ruleVersion,coverage:totalWeight,crawlMeta};
@@ -310,7 +310,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
   return '<div class="finding '+(item.ok?'':'warn')+'" data-finding-card data-area="'+esc(item.area)+'" data-severity="'+esc(severity)+'" data-work-status="'+esc(progress.status||'Nový')+'" data-finding-kind="'+esc(findingKind(item))+'"><span class="state">'+esc(status)+'</span><span class="severity">'+esc(severity)+'</span><span class="kind">'+esc(findingKind(item))+'</span><strong>'+esc(item.name)+'</strong>'+((item.url||(pages[0]&&pages[0].url))?'<p><b>Stránka:</b> <a class="audit-link" href="'+esc(item.url||(pages[0]&&pages[0].url))+'" target="_blank" rel="noopener">'+esc(item.url||(pages[0]&&pages[0].url))+'</a></p>':'')+'<p>'+esc(item.detail)+'</p>'+'<p><b>Důkaz:</b> '+esc(item.evidence||item.detail||'Automatický signál uvedený výše.')+(item.detailsUrl?' · <a class="audit-link" href="'+esc(item.detailsUrl)+'" target="_blank" rel="noopener">Otevřít podrobný report MDN →</a>':'')+'</p>'+'<p><b>Možný dopad:</b> '+esc(impact)+'</p><p><b>Doporučené řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Jistota:</b> '+esc(item.confidence|| (item.points===null?'Nízká — kontrola neměla dostatek dat.':'Střední — automatický výsledek vyžaduje interpretaci.'))+' · <b>Pracnost:</b> '+esc(estimateEffort(item))+' · <b>Kontrolováno:</b> '+esc(reportDate)+'</p>'+renderFindingWorkControls(workKey,progress)+renderFindingWorkNote(progress)+'</div>';
  }).join('');
  const priorityBuckets=new Map();
- for(const item of findings.filter(item=>(item.points!==null&&item.points<100&&!item.ok)||item.priorityPoints!==undefined)) {
+ for(const item of findings.filter(item=>(Number.isFinite(item.points)&&item.points<100&&!item.ok)||item.priorityPoints!==undefined)) {
   const key=[item.area,item.name,item.detail].join('|');
   if(!priorityBuckets.has(key))priorityBuckets.set(key,[]);
   priorityBuckets.get(key).push(item);
@@ -324,7 +324,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const sitemapFailureHtml=(crawlMeta.sitemapFailures||[]).length?'<h4>Soubory sitemap, které se nepodařilo načíst</h4><ul>'+crawlMeta.sitemapFailures.map(item=>'<li><a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a> — '+esc(item.reason)+'</li>').join('')+'</ul>':'');
  const pagesHtml='<h3 style="margin-top:28px">Inventář stránek a stav kontroly</h3><p class="audit-disclaimer">Odkazy jsou rozpoznány z veřejného textového výstupu a omezeného vzorku. Jejich cílové HTTP kódy, přesměrování ani funkčnost se tímto nepotvrzují. Úspěšně načteno '+esc(crawlMeta.scanned||0)+' URL. V sitemapách rozpoznáno '+esc(crawlMeta.sitemapDiscovered||0)+' URL a interními odkazy '+esc(crawlMeta.linkDiscovered||0)+' URL; z obou zdrojů současně '+esc(crawlMeta.sitemapAndLinkCount||0)+' URL. Celkem '+esc(crawlMeta.discovered||0)+' unikátních URL; vybráno '+esc(crawlMeta.selected||0)+' z limitu '+esc(crawlMeta.limit||6)+', vynecháno limitem '+esc(crawlMeta.omitted||0)+'. Zpracované sitemap soubory: '+esc(crawlMeta.sitemapFiles||0)+'. '+(crawlMeta.excludedPaths&&crawlMeta.excludedPaths.length?'Vynechané cesty: '+esc(arrayJoin(crawlMeta.excludedPaths,', '))+'. ':'')+' URL vynecháno podle cest: '+esc(crawlMeta.excludedUrlCount||0)+'. '+esc(crawlMeta.note||'')+'</p>'+sitemapFailureHtml+(pages.length?'<div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>URL</th><th>Zdroj URL</th><th>Typ</th><th>Titulek</th><th>H1</th><th>Slova ve výstupu</th><th>Obrázky / chybí alt</th><th>Odchozí interní</th><th>Odchozí externí</th><th>Příchozí interní ve vzorku</th><th>Stav</th></tr></thead><tbody>'+pageRows+'</tbody></table></div>':'<p>Žádné podstránky se nepodařilo získat.</p>');
  const screenshotHtml=(window.currentAuditScreenshots||[]).length?'<h3 style="margin-top:28px">Náhled homepage z PageSpeed Insights</h3><p class="audit-disclaimer">Snímky zachycují laboratorní vykreslení homepage při mobilní nebo desktopové emulaci. Nejsou screenshotem všech prověřených stránek ani testem na skutečném telefonu.</p><div class="psi-screenshots">'+window.currentAuditScreenshots.map(item=>'<figure><figcaption>'+esc(item.device==='mobile'?'Mobilní emulace':'Desktopová emulace')+' · '+esc(item.url)+'</figcaption><img class="psi-screenshot" src="'+esc(item.data)+'" alt="Laboratorní screenshot homepage — '+esc(item.device)+'"></figure>').join('')+'</div>':'';
- const measured=findings.filter(item=>item.points!==null).length;
+ const measured=findings.filter(item=>Number.isFinite(item.points)).length;
  const criticalCount=findings.filter(item=>item.severity==='Kritická').length;
  const severeCount=findings.filter(item=>item.severity==='Závažná').length;
  const mediumCount=findings.filter(item=>item.severity==='Střední').length;

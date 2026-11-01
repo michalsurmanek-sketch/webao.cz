@@ -286,7 +286,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=scored.reduce((sum,area)=>sum+area.weight,0);
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.weight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-10-31.61';
+ const ruleVersion='2026-11-01.62';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -561,7 +561,7 @@ form.addEventListener('submit',async event=>{
   const robotsKnown=robotsPrefetchResult.status==='fulfilled'&&!/404|not found|could not fetch/i.test(robots);
   const rootAllowed=!robotsKnown||robotsAllowsPath(robots,'/');
   out.querySelector('.result-summary').textContent='Robots.txt je načteno nebo nedostupné. Spouštím souběžnou kontrolu homepage, DNS, registru domény a PageSpeed.';
-  const pagePromise=rootAllowed?fetchReadablePage(url,'/'):Promise.resolve('');
+  const pagePromise=rootAllowed?fetchReadablePage(url,'/').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'fulfilled',value:''});
   const pageSpeedPromise=Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed?queryPageSpeed(new URL(url.origin+'/'),strategy):Promise.reject(new Error('Měření vynecháno podle robots.txt.'))));
   const competitorPromise=Promise.allSettled(competitorUrls.map(candidate=>fetchRobotsAwarePage(candidate,'/')));
   const dnsDomain=url.hostname.replace(/^www\./i,'');
@@ -569,7 +569,7 @@ form.addEventListener('submit',async event=>{
   const dnsPromise=Promise.allSettled([queryDns(dnsDomain,'MX'),queryDns(dnsDomain,'TXT'),queryDns('_dmarc.'+dnsDomain,'TXT'),queryDns(dnsDomain,'A'),queryDns(dnsDomain,'AAAA'),queryDns(dnsDomain,'CAA'),queryDns(dnsDomain,'NS'),queryDns(dnsDomain,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+dnsDomain,'TXT'))]);
   out.querySelector('.result-summary').textContent='Čekám na veřejné zdroje. PageSpeed má limit 25 s; ostatní služby mají vlastní časové limity. Výpadek jedné služby neukončí celý audit.';
   const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise]);
-  const page=pageResult;
+  const page=pageResult.status==='fulfilled'?pageResult.value:'';
   const homeParsed=parsePageText(page,new URL(url.origin+'/'));
   const title=homeParsed.title;
   const titleLength=title.trim().length;
@@ -627,7 +627,7 @@ form.addEventListener('submit',async event=>{
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
   const pageResults=await mapLimit(candidateUrls,2,candidate=>{
    const target=new URL(candidate);
-   if(target.href===rootUrl)return Promise.resolve(page);
+   if(target.href===rootUrl)return pageResult.status==='fulfilled'?Promise.resolve(page):Promise.reject(pageResult.reason);
    return fetchReadablePage(target,target.pathname+target.search);
   },(completed,total)=>{
    out.querySelector('.result-summary').textContent='Načteno '+completed+' z '+total+' URL. Stránky mimo limit a zakázané pravidly robots.txt budou vypsány v reportu.';

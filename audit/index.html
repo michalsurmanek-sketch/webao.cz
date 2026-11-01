@@ -616,7 +616,7 @@ form.addEventListener('submit',async event=>{
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsRules=robotsKnown&&/user-agent\\s*:/i.test(robots);
   const robotsBlocksSite=robotsKnown&&!robotsAllowsPath(robots,'/');
-  const sitemapReadError=/(?:^|\b)(?:401|403|404|429|500|502|503|504)\b|not found|could not fetch|forbidden|access denied|rate.?limit|timed?\\s?out|timeout|error fetching/i;
+  const sitemapReadError=/(?:^|\b)(?:401|403|404|429|500|502|503|504)\b|not found|could not fetch|forbidden|access denied|rate.?limit|timed?\s?out|timeout|error fetching/i;
   const isSitemapDocument=value=>/<(?:urlset|sitemapindex|loc)\b/i.test(String(value||''));
   let sitemapKnown=sitemapResult.status==='fulfilled'&&!sitemapReadError.test(sitemap)&&isSitemapDocument(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;

@@ -288,7 +288,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.65';
+ const ruleVersion='2026-11-01.66';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -668,7 +668,6 @@ form.addEventListener('submit',async event=>{
    return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:arrayJoin(parsed.h1s,' · '),source,sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null};
   });
   const crawlDiscovered=new Set([...candidateUrls,...discoveredUrls]);
-  const crawlRequested=new Set(candidateUrls);
   while(candidateUrls.length<pageLimit){
    const next=[];
    for(const page of pages){
@@ -692,7 +691,6 @@ form.addEventListener('submit',async event=>{
    results.forEach((result,index)=>{
     const candidate=batch[index],target=new URL(candidate),sourceUrl=sitemapSourceByUrl.get(candidate)||'';
     candidateUrls.push(candidate);
-    crawlRequested.add(candidate);
     if(result.status!=='fulfilled'){
      pages.push({url:candidate,type:pageType(target.pathname),title:'',h1:'',source:'Interní odkaz z prověřené stránky',sourceUrl,state:'Textová čtečka stránku nenačetla',loadError:result.reason?.message||'Čtečka nevrátila veřejný textový obsah.',raw:null,links:null,externalLinks:null,inboundLinks:null});
      return;
@@ -706,6 +704,7 @@ form.addEventListener('submit',async event=>{
   crawlMeta.discovered=crawlDiscovered.size;
   crawlMeta.omittedByLimit=Math.max(0,crawlMeta.discovered-candidateUrls.length);
   crawlMeta.omitted=crawlMeta.omittedByLimit;
+  crawlMeta.linkDiscovered=[...sourceKindByUrl.values()].filter(kind=>kind==='Interní odkaz z homepage'||kind==='Interní odkaz z prověřené stránky').length;
   crawlMeta.note=(crawlMeta.note||'')+' Crawl také sleduje rozpoznané interní odkazy z každé načtené stránky až do nastaveného limitu; výsledek stále není důkazem úplného indexu webu.';
   if(!rootAllowed)pages.unshift({url:rootUrl,type:'Úvodní stránka',title:'',h1:'',source:'Homepage',sourceUrl:'',state:'Vynecháno podle robots.txt',loadError:'Stránka nebyla načtena, protože přístup zakazují pravidla robots.txt.',raw:null,links:null,externalLinks:null,inboundLinks:null});
   const competitors=competitorResults.map((result,index)=>{

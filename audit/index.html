@@ -288,7 +288,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.69';
+ const ruleVersion='2026-11-01.70';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>item.points!==null).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -830,6 +830,19 @@ form.addEventListener('submit',async event=>{
     return;
    }
    const payload=result.value||{},lighthouse=payload.lighthouseResult||{},categories=lighthouse.categories||{},audits=lighthouse.audits||{};
+   if(strategy==='mobile'){
+    for(const [auditId,findingName] of [['document-title','Titulek stránky'],['meta-description','Meta description']]){
+     const audit=audits[auditId];
+     const existing=findings.find(item=>item.area==='SEO a obsah'&&item.name===findingName&&item.points===null);
+     if(!audit||!existing||!Number.isFinite(audit.score)||['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode))continue;
+     const points=Math.round(audit.score*100),passed=points>=90;
+     existing.ok=passed;existing.points=points;existing.state=undefined;
+     existing.severity=passed?'Nízká':'Střední';
+     existing.detail=(audit.title||findingName)+'. '+(audit.displayValue|| (passed?'Lighthouse rozpoznal tento prvek.':'Lighthouse nenašel tento prvek.'))+' Textová čtečka jej nerozpoznala; report používá mobilní Lighthouse výsledek. Automatická kontrola potvrzuje pouze přítomnost, ne kvalitu textu.';
+     existing.evidence='PageSpeed Insights / Lighthouse audit '+auditId+' · '+(payload.id||url.origin+'/')+(audit.displayValue?' · '+audit.displayValue:'');
+     existing.confidence='Vysoká pro přítomnost prvku v tomto Lighthouse běhu; neposuzuje jeho obsahovou kvalitu.';
+    }
+   }
    const screenshotAudit=audits['final-screenshot']&&audits['final-screenshot'].details;
    const screenshotData=screenshotAudit&&screenshotAudit.data||lighthouse.fullPageScreenshot&&lighthouse.fullPageScreenshot.screenshot&&lighthouse.fullPageScreenshot.screenshot.data||'';
    const normalizedScreenshot=screenshotData?(screenshotData.startsWith('data:image/')?screenshotData:'data:image/jpeg;base64,'+screenshotData):'';
@@ -865,7 +878,8 @@ form.addEventListener('submit',async event=>{
    const securityAuditSpecs=[
     {id:'is-on-https',name:'HTTPS a nezabezpečené zdroje',severity:'Závažná',action:'Zajistěte, aby stránka i její zdroje používaly HTTPS a aby HTTP požadavky byly odstraněny nebo bezpečně přesměrovány.'},
     {id:'no-vulnerable-libraries',name:'Známé zranitelnosti JavaScriptových knihoven',severity:'Závažná',action:'Ověřte označené knihovny a jejich verze; aktualizujte je na podporované opravené verze nebo odstraňte nepoužívané závislosti.'},
-    {id:'csp-xss',name:'Content Security Policy (CSP)',severity:'Střední',action:'Nechte správce posoudit CSP podle doporučení Lighthouse. Změny nejprve ověřte v režimu report-only, protože příliš přísná politika může blokovat funkce webu.'}
+    {id:'csp-xss',name:'Content Security Policy (CSP)',severity:'Střední',action:'Nechte správce posoudit CSP podle doporučení Lighthouse. Změny nejprve ověřte v režimu report-only, protože příliš přísná politika může blokovat funkce webu.'},
+    {id:'external-anchors-use-rel-noopener',name:'Ochrana odchozích odkazů otevřených v nové kartě',severity:'Střední',action:'U odkazů s target="_blank" nastavte rel="noopener"; podle potřeby i rel="noreferrer". Ověřte, že všechny zjištěné odkazy odpovídají záměru webu.'}
    ];
    for(const spec of securityAuditSpecs){
     const audit=audits[spec.id];

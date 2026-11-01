@@ -289,7 +289,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-01.98';
+ const ruleVersion='2026-11-01.99';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const delta=previous&&previous.score!==null&&score!==null?score-previous.score:null;
@@ -890,7 +890,9 @@ form.addEventListener('submit',async event=>{
     {area:'DNS a e-mail',name:'CAA záznamy',ok:caaRecords.length>0,points:null,state:'INFORMATIVNÍ',detail:caaRecords.length?'Nalezeny CAA záznamy určující povolené vydavatele certifikátů.':'CAA záznam nebyl nalezen. Je volitelný; jeho absence sama o sobě neznamená problém.'}
    );
   }else{
-   findings.push({area:'DNS a e-mail',name:'DNS záznamy',ok:false,points:null,detail:'Veřejný DNS resolver nebyl dostupný; DNS oblast nebylo možné vyhodnotit.'});
+   const dnsQueryNames=['MX','TXT','DMARC TXT','A','AAAA','CAA','NS','CNAME'];
+   const dnsFailures=dnsResults.slice(0,8).map((result,index)=>result.status!=='fulfilled'?dnsQueryNames[index]+': '+(result.reason&&result.reason.message||'dotaz selhal'):result.value&&[0,3].includes(result.value.Status)?'':dnsQueryNames[index]+': DNS status '+(result.value&&result.value.Status!==undefined?result.value.Status:'neznámý')).filter(Boolean);
+   findings.push({area:'DNS a e-mail',name:'DNS záznamy',ok:false,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Veřejný DNS resolver neposkytl pro všechny základní dotazy jednoznačnou odpověď. Chybějící DNS záznamy proto nelze spolehlivě potvrdit.',evidence:arrayJoin(dnsFailures,' · ')||'Odpovědi Google Public DNS nebyly kompletní.',confidence:'Nelze určit bez úspěšných DNS odpovědí.'});
   }
   const pageSpeedRecommendations=[],pageSpeedScreenshots=[];
   const pageSpeedStrategies=['mobile','desktop'];

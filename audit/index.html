@@ -504,7 +504,7 @@ function sitemapUrlCandidates(text){
  return candidates;
 }
 function normalizeCrawlUrl(candidate,baseUrl){
- try{const parsed=new URL(candidate,baseUrl);parsed.hash='';if(isSameSiteHost(parsed.hostname.toLowerCase(),baseUrl.hostname.toLowerCase()))parsed.protocol=baseUrl.protocol;return parsed.href}catch{return''}
+ try{const parsed=new URL(candidate,baseUrl);parsed.hash='';if(isSameSiteHost(parsed.hostname.toLowerCase(),baseUrl.hostname.toLowerCase()))parsed.protocol=baseUrl.protocol;if(parsed.pathname.toLowerCase().startsWith('/cdn-cgi/'))return'';return parsed.href}catch{return''}
 }
 function getSitemapLocations(text,host,protocol='https:'){
  const source=String(text||'');

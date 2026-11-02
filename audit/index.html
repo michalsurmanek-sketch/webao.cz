@@ -526,8 +526,11 @@ function getSitemapLocations(text,host,protocol='https:'){
 function getSitemapUrls(text,host,protocol='https:'){
  const source=String(text||'');
  if(/<sitemapindex\b/i.test(source))return[];
+ const candidates=sitemapUrlCandidates(source);
+ const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source);
+ if(readerSitemap&&candidates.length&&candidates.every(raw=>{try{return /\.xml(?:$|\?)/i.test(new URL(raw).pathname+new URL(raw).search)}catch{return false}}))return[];
  const baseUrl=new URL(protocol+'//'+host+'/'),found=[];
- for(const raw of sitemapUrlCandidates(source)){const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;try{const u=new URL(normalized);if(isSameSiteHost(u.hostname,host)&&!found.includes(u.href))found.push(u.href)}catch{}}
+ for(const raw of candidates){const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;try{const u=new URL(normalized);if(isSameSiteHost(u.hostname,host)&&!found.includes(u.href))found.push(u.href)}catch{}}
  return found;
 }
 function extractPublicContacts(pages){
@@ -643,7 +646,11 @@ form.addEventListener('submit',async event=>{
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsRules=robotsKnown&&/user-agent\\s*:/i.test(robots);
   const robotsBlocksSite=robotsKnown&&!robotsAllowsPath(robots,'/');
-  const isSitemapDocument=value=>/<(?:urlset|sitemapindex|loc)\b/i.test(String(value||''));
+  const isSitemapDocument=value=>{
+    const source=String(value||'');
+    if(/<(?:urlset|sitemapindex|loc)\b/i.test(source))return true;
+    return /^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source)&&sitemapUrlCandidates(source).length>0;
+   };
   let sitemapKnown=sitemapResult.status==='fulfilled'&&isSitemapDocument(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;
   const rootSitemapUrl=new URL('/sitemap.xml',url.origin).href;

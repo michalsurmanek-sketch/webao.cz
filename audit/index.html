@@ -890,7 +890,7 @@ form.addEventListener('submit',async event=>{
     continue;
    }
    const parsed=pageItem.parsed;
-   const placeholderPattern=/\\b(?:lorem\\s+ipsum|todo|tbd|xxx+|doplň\\s+(?:název|jméno|adresu|datum|údaje|telefon|e-?mail)|\\[doplnit\\]|\\{\\{[^}]+\\}\\}|example\\.com)\\b/giu;
+   const placeholderPattern=/\b(?:lorem\s+ipsum|todo|tbd|xxx+|doplň\s+(?:název|jméno|adresu|datum|údaje|telefon|e-?mail)|\[doplnit\]|\{\{[^}]+\}\}|example\.com)\b/giu;
    const placeholderMatches=[...parsed.body.matchAll(placeholderPattern)].map(match=>match[0]);
    if(placeholderMatches.length){
     const examples=[...new Set(placeholderMatches.map(value=>value.trim()))].slice(0,5);

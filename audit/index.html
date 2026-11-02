@@ -614,7 +614,22 @@ form.addEventListener('submit',async event=>{
   const rootAllowed=!robotsKnown||robotsAllowsPath(robots,'/');
   out.querySelector('.result-summary').textContent='Robots.txt je načteno nebo nedostupné. Spouštím souběžnou kontrolu homepage, DNS, registru domény a PageSpeed.';
   const pagePromise=rootAllowed?fetchReadablePage(url,'/').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'fulfilled',value:''});
-  const pageSpeedPromise=pagePromise.then(homeResult=>Promise.allSettled(['mobile','desktop'].map(strategy=>rootAllowed&&homeResult.status==='fulfilled'?trackPageSpeed(queryPageSpeed(new URL(url.origin+'/'),strategy)):trackPageSpeed(Promise.reject(new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.'))))));
+  const pageSpeedPromise=pagePromise.then(async homeResult=>{
+   const results=[];
+   for(const strategy of ['mobile','desktop']){
+    if(!rootAllowed||homeResult.status!=='fulfilled'){
+     results.push({status:'rejected',reason:new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.')});
+     continue;
+    }
+    if(results.some(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason))){
+     results.push({status:'rejected',reason:new Error('Měření '+strategy+' vynecháno, protože předchozí požadavek PageSpeed potvrdil vyčerpanou denní kvótu.')});
+     continue;
+    }
+    try{results.push({status:'fulfilled',value:await trackPageSpeed(queryPageSpeed(new URL(url.origin+'/'),strategy))});}
+    catch(reason){results.push({status:'rejected',reason});}
+   }
+   return results;
+  });
   const baseHostname=url.hostname.replace(/^www\./i,'');
   const httpVariantUrls=[...new Set(['http://'+baseHostname+'/','http://www.'+baseHostname+'/'])];
   const httpVariantPromise=pageSpeedPromise.then(pageSpeedResults=>{

@@ -291,7 +291,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-02.116';
+ const ruleVersion='2026-11-02.117';
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const sameRuleVersion=!!(previous&&previous.ruleVersion===ruleVersion);
@@ -890,6 +890,12 @@ form.addEventListener('submit',async event=>{
     continue;
    }
    const parsed=pageItem.parsed;
+   const placeholderPattern=/\\b(?:lorem\\s+ipsum|todo|tbd|xxx+|doplň\\s+(?:název|jméno|adresu|datum|údaje|telefon|e-?mail)|\\[doplnit\\]|\\{\\{[^}]+\\}\\}|example\\.com)\\b/giu;
+   const placeholderMatches=[...parsed.body.matchAll(placeholderPattern)].map(match=>match[0]);
+   if(placeholderMatches.length){
+    const examples=[...new Set(placeholderMatches.map(value=>value.trim()))].slice(0,5);
+    findings.push({area:'SEO a obsah',name:'Nedoplněný zástupný text',url:pageItem.url,ok:false,points:0,state:'K PROVĚŘENÍ',severity:'Střední',detail:'Ve veřejném textovém výstupu bylo rozpoznáno '+placeholderMatches.length+' možných zástupných textů. Ověřte je přímo na stránce.',evidence:examples.join(' · '),impact:'Nedokončený text může působit jako chyba a snižovat důvěryhodnost stránky.',action:'Nahraďte zástupné údaje skutečným obsahem nebo odstraňte nevyplněné části šablony.',confidence:'Střední — automatické rozpoznání ve veřejném textovém výstupu; výskyt je nutné potvrdit na stránce.',effort:'Nízká'});
+   }
    const imagesWithoutAlt=parsed.images.filter(image=>!image.alt);
    if(parsed.images.length)findings.push({area:'Přístupnost',name:'Alternativní texty obrázků',url:pageItem.url,ok:parsed.images.length>0&&imagesWithoutAlt.length===0,points:parsed.images.length?imagesWithoutAlt.length?0:100:null,state:imagesWithoutAlt.length?'K PROVĚŘENÍ':parsed.images.length?'ALT ROZPOZNÁN':'NELZE OVĚŘIT',severity:imagesWithoutAlt.length?'Střední':parsed.images.length?'Nízká':'Informační',detail:imagesWithoutAlt.length?'U '+imagesWithoutAlt.length+' z '+parsed.images.length+' obrázků nebyl v textovém výstupu rozpoznán alt.':'U '+parsed.images.length+' obrázků byl v textovém výstupu rozpoznán alt.',evidence:parsed.images.slice(0,5).map(image=>(image.alt||'(prázdný alt)')+' — '+image.url).join(' | ')||'Čtečka v tomto výstupu nerozpoznala žádné obrázky.',impact:imagesWithoutAlt.length?'Lidé používající čtečky obrazovky nemusí zjistit, co obrázek sděluje. U dekorativních obrázků má být prázdný alt záměrný.':'Jde pouze o signál textové čtečky pro rozpoznané obrázky, ne o potvrzení přístupnosti celé stránky.',confidence:'Střední — vychází z Markdownu externí čtečky; některé obrázky nebo atributy mohou být vynechány.',effort:imagesWithoutAlt.length?'Nízká':'Nelze určit'});
    if(pageItem.url===rootUrl)continue;

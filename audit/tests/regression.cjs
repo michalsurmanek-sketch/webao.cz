@@ -250,6 +250,16 @@ assert.match(c.stripMarkdownInlineCode('before ``code ` inner`` after'),/^before
 const escaped='\\`[real](/real)\\`';assert.equal(c.stripMarkdownInlineCode(escaped),escaped);assert.equal(c.parsePageText(escaped,new URL('https://example.cz/')).links.length,1);
 console.log('PASS: inline code examples do not create crawl links or image findings; unmatched backticks preserve actual text');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL,TextEncoder};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
+const base=new URL('https://example.cz/');
+for(const candidate of ['http://example.cz/a','https://www.example.cz/a','https://shop.example.cz/a','https://cz/a','https://outside.cz/a'])assert.equal(c.normalizeCrawlUrl(candidate,base),'');
+assert.equal(c.normalizeCrawlUrl('/a?x=1#part',base),'https://example.cz/a?x=1');assert.equal(c.normalizeCrawlUrl('http://example.cz/a',new URL('http://example.cz/')),'http://example.cz/a');
+const links=c.discoverPageLinks([{url:base.href,raw:'ok',links:['/allowed','https://shop.example.cz/private','http://example.cz/other']}],base,()=>false,'User-agent: *\nDisallow: /private');assert.equal(links.length,1);assert.equal(links[0].url,'https://example.cz/allowed');
+const xml='<urlset><loc>https://example.cz/a</loc><loc>https://shop.example.cz/private</loc><loc>http://example.cz/other</loc></urlset>';assert.deepEqual(Array.from(c.getSitemapUrls(xml,'example.cz')),['https://example.cz/a']);
+assert.equal(c.getSitemapLocations('Sitemap: https://shop.example.cz/sitemap.xml','example.cz').length,0);assert.equal(c.normalizeCrawlUrl('https://example.cz/a',new URL('https://shop.example.cz/')),'');
+console.log('PASS: crawls, sitemap discovery and link inventories stay on the audited origin without borrowing robots rules or rewriting protocols');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

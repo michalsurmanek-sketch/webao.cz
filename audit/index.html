@@ -179,11 +179,20 @@ function downloadAuditCsv(){
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
  const link=document.createElement('a');const objectUrl=URL.createObjectURL(blob);link.href=objectUrl;link.download='webao-audit-'+data.host+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
 }
+function auditComparisonScope(findings,pages){
+ // Keep duplicates: two scored checks with the same label still affect the average.
+ const checks=findings.filter(item=>Number.isFinite(item.points)).map(item=>[item.area,item.name,item.url||'']).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+ const urls=[...new Set(pages.filter(page=>page.raw).map(page=>page.url))].sort();
+ return JSON.stringify({checks,urls});
+}
+function comparableAuditRuns(previous,current){
+ return !!(previous&&previous.ruleVersion===current.ruleVersion&&typeof previous.comparisonScope==='string'&&previous.comparisonScope===current.comparisonScope);
+}
 function saveLocalAuditHistory(host,snapshot){
  const key='webao-audit-history:'+host;
  try{
   const old=JSON.parse(localStorage.getItem(key)||'[]');
-  const history=[snapshot,...(Array.isArray(old)?old:[])].slice(0,10);
+  const history=[snapshot,...(Array.isArray(old)?old.filter(entry=>entry&&typeof entry==='object'&&!Array.isArray(entry)&&typeof entry.checkedAt==='string'&&(entry.score===null||Number.isFinite(entry.score))):[])].slice(0,10);
   localStorage.setItem(key,JSON.stringify(history));
   return history;
  }catch{return[snapshot]}
@@ -291,15 +300,17 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-02.117';
- const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
+ const ruleVersion='2026-11-03.118';
+ const comparisonScope=auditComparisonScope(findings,pages);
+ const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
  const sameRuleVersion=!!(previous&&previous.ruleVersion===ruleVersion);
- const delta=sameRuleVersion&&previous.score!==null&&score!==null?score-previous.score:null;
+ const comparable=comparableAuditRuns(previous,{ruleVersion,comparisonScope});
+ const delta=comparable&&previous.score!==null&&score!==null?score-previous.score:null;
  const historyRows=history.slice(0,6).map(entry=>'<tr><td>'+esc(entry.checkedAt)+'</td><td>'+esc(entry.score===null?'—':entry.score+'%')+'</td><td>'+esc(entry.grade||'—')+'</td><td>'+esc(entry.measured||0)+'</td><td>'+esc(entry.ruleVersion||'starší běh')+'</td></tr>').join('');
- const historyHtml='<h3 style="margin-top:28px">Vývoj skóre</h3><p class="audit-disclaimer">Historie je uložená pouze v tomto prohlížeči. Není synchronizovaná mezi zařízeními a při smazání dat prohlížeče zmizí.'+(previous&&!sameRuleVersion?' Pravidla se od předchozího běhu změnila ('+esc(previous.ruleVersion||'starší verze')+' → '+esc(ruleVersion)+'); skóre proto nelze přímo porovnat.':delta===null?'':' Poslední změna: '+(delta>0?'+':'')+delta+' bodů oproti předchozímu auditu.')+'</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Kontrolováno</th><th>Skóre měřených kontrol</th><th>Známka</th><th>Měřené kontroly</th><th>Verze pravidel</th></tr></thead><tbody>'+historyRows+'</tbody></table></div><button type="button" class="history-clear" onclick="clearLocalAuditHistory(\''+esc(host)+'\')">Smazat místní historii této domény</button>';
+ const historyHtml='<h3 style="margin-top:28px">Vývoj skóre</h3><p class="audit-disclaimer">Historie je uložená pouze v tomto prohlížeči. Není synchronizovaná mezi zařízeními a při smazání dat prohlížeče zmizí.'+(previous&&!sameRuleVersion?' Pravidla se od předchozího běhu změnila ('+esc(previous.ruleVersion||'starší verze')+' → '+esc(ruleVersion)+'); skóre proto nelze přímo porovnat.':previous&&!comparable?' Rozsah změřených kontrol nebo vzorek stránek se liší, případně u staršího běhu chybí údaje o rozsahu; skóre proto nelze přímo porovnat.':delta===null?'':' Poslední změna: '+(delta>0?'+':'')+delta+' bodů oproti předchozímu auditu.')+'</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Kontrolováno</th><th>Skóre měřených kontrol</th><th>Známka</th><th>Měřené kontroly</th><th>Verze pravidel</th></tr></thead><tbody>'+historyRows+'</tbody></table></div><button type="button" class="history-clear" onclick="clearLocalAuditHistory(\''+esc(host)+'\')">Smazat místní historii této domény</button>';
  const grade=score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F';
- const areaHtml=areas.map(area=>{const areaDelta=sameRuleVersion&&area.score!==null&&previous.areas&&previous.areas[area.name]!==null&&previous.areas[area.name]!==undefined?area.score-previous.areas[area.name]:null;const total=findings.filter(item=>item.area===area.name).length;const used=findings.filter(item=>item.area===area.name&&Number.isFinite(item.points)).length;return '<div class="area-score"><span>'+esc(area.name)+'<small style="display:block;color:#91a99a;font-size:11px;margin-top:4px">Váha '+area.weight+' % · '+used+' z '+total+' kontrol tvoří skóre'+(areaDelta===null?'':' · změna '+(areaDelta>0?'+':'')+areaDelta+' b.')+'</small></span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>'}).join('');
+ const areaHtml=areas.map(area=>{const areaDelta=comparable&&area.score!==null&&previous.areas&&previous.areas[area.name]!==null&&previous.areas[area.name]!==undefined?area.score-previous.areas[area.name]:null;const total=findings.filter(item=>item.area===area.name).length;const used=findings.filter(item=>item.area===area.name&&Number.isFinite(item.points)).length;return '<div class="area-score"><span>'+esc(area.name)+'<small style="display:block;color:#91a99a;font-size:11px;margin-top:4px">Váha '+area.weight+' % · '+used+' z '+total+' kontrol tvoří skóre'+(areaDelta===null?'':' · změna '+(areaDelta>0?'+':'')+areaDelta+' b.')+'</small></span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>'}).join('');
  const reportDate=checkedAt;
  const brandHtml=(branding.company||branding.logo||branding.notes||branding.logoNote||branding.email||branding.phone)?'<div class="report-brand">'+(branding.logo?'<img src="'+esc(branding.logo)+'" alt="Logo firmy">':'')+'<div>'+(branding.company?'<strong>'+esc(branding.company)+'</strong>':'')+(branding.email?'<p><b>E-mail:</b> '+esc(branding.email)+'</p>':'')+(branding.phone?'<p><b>Telefon:</b> '+esc(branding.phone)+'</p>':'')+(branding.notes?'<p>'+esc(branding.notes)+'</p>':'')+(branding.logoNote?'<p>'+esc(branding.logoNote)+'</p>':'')+'</div></div>':'';
  window.currentAuditData={host,findings,pages,competitors,branding,checkedAt:reportDate,areas,score,grade,ruleVersion,coverage:totalWeight,crawlMeta};

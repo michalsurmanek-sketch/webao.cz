@@ -174,5 +174,11 @@ await (async()=>{let calls=0;c.fetchTimed=async()=>{calls++;return{ok:true}};c.r
 calls=0;c.readTimedResponse=async()=>({lighthouseResult:{runtimeError:{code:'NO_FCP'}}});c.isPageSpeedQuotaError=()=>false;await assert.rejects(()=>c.queryPageSpeed(new URL('https://example.cz/'),'mobile'),/NO_FCP/);assert.equal(calls,1);console.log('PASS: reader wrapper errors, article false positives and Lighthouse runtime failures');})();
 
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function advice('),s.indexOf('function buildDetektiv(')),c);
+for(const name of ['Meta description','Hlavní nadpis H1','Hlavní nadpis podstránky','Titulek stránky'])assert.match(c.advice({name,points:null}),/Nejprve ověřte/);
+assert.match(c.advice({name:'PageSpeed Insights — mobil',points:null}),/kvóty/);assert.match(c.advice({name:'HTTP varianta přesměrování',points:null}),/Konfiguraci měňte až/);assert.match(c.advice({name:'MDN HTTP Observatory',points:null}),/zaškrtněte/);assert.equal(c.advice({name:'Meta description',points:null,action:'Specific action'}),'Specific action');
+console.log('PASS: unverified results recommend verification before changes');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

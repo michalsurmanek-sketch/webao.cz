@@ -64,6 +64,9 @@ function advice(item){
  const key=item.name.toLowerCase();
  if(item.action)return item.action;
  if(!Number.isFinite(item.points)&&/titulek|description|nadpis/.test(key))return 'Nejprve ověřte příslušný prvek přímo ve zdrojovém HTML nebo v prohlížeči. Textová čtečka jeho přítomnost nepotvrdila; upravujte jej až po ověření skutečného stavu.';
+ if(!Number.isFinite(item.points)&&key.includes('robots.txt'))return 'Nejprve ověřte dostupnost a skutečná pravidla robots.txt. Konfiguraci neměňte na základě nedostupného nebo neúplného měření.';
+ if(!Number.isFinite(item.points)&&key.includes('sitemap'))return 'Ověřte skutečnou adresu a dostupnost sitemap. Výpadek čtečky nepotvrzuje, že sitemap chybí.';
+ if(key.includes('expirace domény'))return 'Ověřte datum expirace, automatické prodlužování a stav platby přímo u registrátora domény.';
  if(key.includes('pagespeed'))return 'Zopakujte měření po obnovení dostupnosti nebo kvóty PageSpeed Insights. Nedostupný výsledek sám o sobě neznamená pomalý nebo chybný web.';
  if(key.includes('http varianta'))return 'Ověřte přesměrování dané HTTP adresy a konečnou HTTPS adresu v prohlížeči nebo síťovém nástroji. Konfiguraci měňte až podle skutečného výsledku.';
  if(key.includes('mdn http observatory'))return 'Pokud chcete externí kontrolu hlaviček, zaškrtněte před novým během volbu MDN HTTP Observatory. Pokud již byla zapnuta a požadavek selhal, zkuste ji znovu později.';
@@ -362,7 +365,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.142';
+ const ruleVersion='2026-11-03.143';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -494,6 +497,19 @@ async function queryRdap(domain){
  const response=await fetchTimed(base+'domain/'+encodeURIComponent(domain),{headers:{Accept:'application/rdap+json, application/json'}},10000);
  if(!response.ok)throw new Error('Registr neposkytl veřejná data RDAP.');
  return await readTimedResponse(response,'json',10000);
+}
+function buildRdapExpiryFinding(rdap,url,now=Date.now()){
+ const events=rdap&&Array.isArray(rdap.events)?rdap.events:[];
+ const candidates=events.filter(event=>event&&['expiration','registrar expiration'].includes(event.eventAction));
+ const expiry=candidates.find(event=>{
+  if(typeof event.eventDate!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(event.eventDate))return false;
+  const calendar=new Date(event.eventDate.slice(0,10)+'T00:00:00Z');
+  return Number.isFinite(calendar.getTime())&&calendar.toISOString().slice(0,10)===event.eventDate.slice(0,10)&&Number.isFinite(Date.parse(event.eventDate));
+ });
+ const base={area:'Technické SEO',name:'Expirace domény',url:url.origin,effort:'Nízká'};
+ if(!expiry)return{...base,ok:false,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'RDAP registr odpověděl, ale neposkytl použitelné datum expirace. Neplatné nebo chybějící datum se nehodnotí jako platná registrace.',evidence:candidates.length?'Události expirace neobsahovaly platné datum a čas.':'Odpověď registru neobsahovala rozpoznanou událost expiration.',confidence:'Nelze určit bez platného data expirace.',action:'Ověřte datum expirace a stav prodloužení přímo u registrátora. Nedostupný údaj v RDAP není důkazem expirace.'};
+ const expiryDate=new Date(expiry.eventDate),daysLeft=Math.ceil((expiryDate.getTime()-now)/86400000);
+ return{...base,ok:daysLeft>90,points:daysLeft<=30?20:daysLeft<=90?65:100,severity:daysLeft<=30?'Kritická':daysLeft<=90?'Závažná':'Nízká',detail:'RDAP uvádí expiraci '+expiryDate.toLocaleDateString('cs-CZ')+' (přibližně '+daysLeft+' dní).',evidence:'Veřejná RDAP odpověď registru: '+expiry.eventDate,confidence:'Vysoká pro datum uvedené registrem; skutečný stav prodloužení ověřte u registrátora.',action:daysLeft<=90?'Ověřte prodloužení domény a jeho úhradu přímo u registrátora.':'Zkontrolujte automatické prodlužování a aktuální kontaktní údaje u registrátora.'};
 }
 function dnsResultAvailable(result){
  return !!(result&&result.status==='fulfilled'&&result.value&&[0,3].includes(result.value.Status));
@@ -1101,13 +1117,7 @@ form.addEventListener('submit',async event=>{
    }
   }
   if(rdapResult.status==='fulfilled'){
-   const rdap=rdapResult.value;
-   const expiry=(rdap.events||[]).find(item=>item.eventAction==='expiration'||item.eventAction==='registrar expiration');
-   if(expiry&&expiry.eventDate){
-    const expiryDate=new Date(expiry.eventDate);
-    const daysLeft=Math.ceil((expiryDate.getTime()-Date.now())/86400000);
-    findings.push({area:'Technické SEO',name:'Expirace domény',url:'https://'+url.hostname,ok:daysLeft>90,points:daysLeft<=30?20:daysLeft<=90?65:100,severity:daysLeft<=30?'Kritická':daysLeft<=90?'Závažná':'Nízká',detail:'RDAP uvádí expiraci '+expiryDate.toLocaleDateString('cs-CZ')+' (přibližně '+daysLeft+' dní).',evidence:'Veřejná RDAP odpověď registru: '+expiry.eventDate,confidence:'Vysoká — údaj z veřejného registru',effort:'Nízká'});
-   }else findings.push({area:'Technické SEO',name:'Expirace domény',url:'https://'+url.hostname,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'RDAP registr odpověděl, ale datum expirace nebylo v odpovědi rozpoznáno.',evidence:'Odpověď registru neobsahovala rozpoznanou událost expiration.',confidence:'Střední'});
+   findings.push(buildRdapExpiryFinding(rdapResult.value,url));
   }else{
    findings.push({area:'Technické SEO',name:'Expirace domény',url:'https://'+url.hostname,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejný RDAP registr nebo jeho odpověď nebyly dostupné. Neznamená to, že doména neexistuje.',evidence:rdapResult.reason&&rdapResult.reason.message||'RDAP služba neodpověděla.',confidence:'Nízká'});
   }
@@ -1124,7 +1134,7 @@ form.addEventListener('submit',async event=>{
     findings.push({area:'SEO a obsah',name:'Nedoplněný zástupný text',url:pageItem.url,ok:false,points:0,state:'K PROVĚŘENÍ',severity:'Střední',detail:'Ve veřejném textovém výstupu bylo rozpoznáno '+placeholderMatches.length+' možných zástupných textů. Ověřte je přímo na stránce.',evidence:examples.join(' · '),impact:'Nedokončený text může působit jako chyba a snižovat důvěryhodnost stránky.',action:'Nahraďte zástupné údaje skutečným obsahem nebo odstraňte nevyplněné části šablony.',confidence:'Střední — automatické rozpoznání ve veřejném textovém výstupu; výskyt je nutné potvrdit na stránce.',effort:'Nízká'});
    }
    const imagesWithoutAlt=parsed.images.filter(image=>!image.alt);
-   if(parsed.images.length)findings.push({area:'Přístupnost',name:'Alternativní texty obrázků',url:pageItem.url,ok:parsed.images.length>0&&imagesWithoutAlt.length===0,points:parsed.images.length?imagesWithoutAlt.length?0:100:null,state:imagesWithoutAlt.length?'K PROVĚŘENÍ':parsed.images.length?'ALT ROZPOZNÁN':'NELZE OVĚŘIT',severity:imagesWithoutAlt.length?'Střední':parsed.images.length?'Nízká':'Informační',detail:imagesWithoutAlt.length?'U '+imagesWithoutAlt.length+' z '+parsed.images.length+' obrázků nebyl v textovém výstupu rozpoznán alt.':'U '+parsed.images.length+' obrázků byl v textovém výstupu rozpoznán alt.',evidence:parsed.images.slice(0,5).map(image=>(image.alt||'(prázdný alt)')+' — '+image.url).join(' | ')||'Čtečka v tomto výstupu nerozpoznala žádné obrázky.',impact:imagesWithoutAlt.length?'Lidé používající čtečky obrazovky nemusí zjistit, co obrázek sděluje. U dekorativních obrázků má být prázdný alt záměrný.':'Jde pouze o signál textové čtečky pro rozpoznané obrázky, ne o potvrzení přístupnosti celé stránky.',confidence:'Střední — vychází z Markdownu externí čtečky; některé obrázky nebo atributy mohou být vynechány.',effort:imagesWithoutAlt.length?'Nízká':'Nelze určit'});
+   if(parsed.images.length)findings.push({area:'Přístupnost',name:'Alternativní texty obrázků',url:pageItem.url,ok:parsed.images.length>0&&imagesWithoutAlt.length===0,points:null,state:imagesWithoutAlt.length?'K PROVĚŘENÍ':parsed.images.length?'ALT ROZPOZNÁN':'NELZE OVĚŘIT',severity:imagesWithoutAlt.length?'Střední':parsed.images.length?'Nízká':'Informační',detail:imagesWithoutAlt.length?'U '+imagesWithoutAlt.length+' z '+parsed.images.length+' obrázků nebyl v textovém výstupu rozpoznán popis. Může jít o správně dekorativní obrázek nebo omezení čtečky; bez HTML a kontextu nejde potvrdit chybu přístupnosti.':'U '+parsed.images.length+' obrázků byl v textovém výstupu rozpoznán popis. Jeho přítomnost nepotvrzuje vhodnost ani úplnost alternativního textu.',evidence:parsed.images.slice(0,5).map(image=>(image.alt||'(prázdný alt)')+' — '+image.url).join(' | ')||'Čtečka v tomto výstupu nerozpoznala žádné obrázky.',impact:imagesWithoutAlt.length?'Lidé používající čtečky obrazovky nemusí zjistit, co obrázek sděluje. U dekorativních obrázků má být prázdný alt záměrný.':'Jde pouze o signál textové čtečky pro rozpoznané obrázky, ne o potvrzení přístupnosti celé stránky.',confidence:'Střední — vychází z Markdownu externí čtečky; některé obrázky nebo atributy mohou být vynechány.',effort:imagesWithoutAlt.length?'Nízká':'Nelze určit'});
    if(pageItem.url===rootUrl)continue;
    const titleOk=!!parsed.title;
    const titleLength=parsed.title.trim().length;

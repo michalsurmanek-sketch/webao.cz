@@ -170,7 +170,7 @@ assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503
 const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
 assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-agent: *\nDisallow: /private');
 assert.throws(()=>c.assertPageSpeedResult({}));assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'NO_FCP',message:'No paint'}}}),/NO_FCP/);assert(c.assertPageSpeedResult({lighthouseResult:{categories:{}}}));
-await (async()=>{let calls=0;c.fetchTimed=async()=>{calls++;return{ok:true}};c.readTimedResponse=async()=> 'Title: Missing\nWarning: Target URL returned error 404: Not found';await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/')),/404/);assert.equal(calls,2);
+await (async()=>{let calls=0;c.fetchTimed=async()=>{calls++;return{ok:true}};c.readTimedResponse=async()=> 'Title: Missing\nWarning: Target URL returned error 404: Not found';await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/')),/404/);assert.equal(calls,1);
 calls=0;c.readTimedResponse=async()=>({lighthouseResult:{runtimeError:{code:'NO_FCP'}}});c.isPageSpeedQuotaError=()=>false;await assert.rejects(()=>c.queryPageSpeed(new URL('https://example.cz/'),'mobile'),/NO_FCP/);assert.equal(calls,1);console.log('PASS: reader wrapper errors, article false positives and Lighthouse runtime failures');})();
 
 })();
@@ -231,5 +231,17 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 vm.runInContext('pageSpeedChecksCompleted=7',c);await submit({preventDefault(){}});assert.equal(c.window.currentAuditData,null);assert.equal(c.window.currentAuditScreenshots.length,0);assert.equal(c.window.currentAuditScenarios.length,0);assert.equal(vm.runInContext('pageSpeedChecksCompleted',c),0);assert.match(out.innerHTML,/Zkontrolujte adresu/);assert(!s.includes("'/4 měření dokončeno"));
 console.log('PASS: real submit handler resets counters and clears stale exports even for invalid input');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];let calls=[];
+const c={URL,fetchTimed:async target=>{calls.push(target);return{ok:true,status:200}},readTimedResponse:async()=> 'Title: real\nMarkdown Content:\n# Real'};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function assertReadableSource('),s.indexOf('function lighthouseScorePoints('))+s.slice(s.indexOf('async function fetchReadablePage('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function normalize('),s.indexOf('function arrayJoin(')),c);
+assert.equal(c.normalize('HTTPS://EXAMPLE.CZ/a').href,'https://example.cz/a');assert.equal(c.normalize('HTTP://EXAMPLE.CZ/a').href,'http://example.cz/a');
+await c.fetchReadablePage(new URL('https://example.cz/'),'/a?x=1&y=2');assert.equal(calls.pop(),'https://r.jina.ai/https://example.cz/a?x=1&y=2');
+await c.fetchReadablePage(new URL('http://example.cz/'),'/a');assert.equal(calls.pop(),'https://r.jina.ai/http://example.cz/a');
+for(const path of ['//outside.cz/a','https://outside.cz/a','http://example.cz/a'])await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),path),/požadovaný původ/);assert.equal(calls.length,0);
+c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
+calls=[];c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503}};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/'),/503/);assert.equal(calls.length,1);
+console.log('PASS: reader preserves requested origin, protocol and query without silent HTTP fallback; input schemes are case insensitive');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+

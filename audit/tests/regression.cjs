@@ -163,5 +163,16 @@ for(const candidate of ['ftp://example.cz/a','https://user:password@example.cz/a
 console.log('PASS: 3 unsupported crawl URL cases');
 
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function assertReadableSource('),s.indexOf('async function fetchReadablePage('))+s.slice(s.indexOf('async function fetchReadablePage('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
+assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReadableSource('Title: Missing\nWarning: Target URL returned error 404: Not found\nMarkdown Content:\nError'),/404/);
+assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503: unavailable'),/503/);
+const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
+assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-agent: *\nDisallow: /private');
+assert.throws(()=>c.assertPageSpeedResult({}));assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'NO_FCP',message:'No paint'}}}),/NO_FCP/);assert(c.assertPageSpeedResult({lighthouseResult:{categories:{}}}));
+await (async()=>{let calls=0;c.fetchTimed=async()=>{calls++;return{ok:true}};c.readTimedResponse=async()=> 'Title: Missing\nWarning: Target URL returned error 404: Not found';await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/')),/404/);assert.equal(calls,2);
+calls=0;c.readTimedResponse=async()=>({lighthouseResult:{runtimeError:{code:'NO_FCP'}}});c.isPageSpeedQuotaError=()=>false;await assert.rejects(()=>c.queryPageSpeed(new URL('https://example.cz/'),'mobile'),/NO_FCP/);assert.equal(calls,1);console.log('PASS: reader wrapper errors, article false positives and Lighthouse runtime failures');})();
+
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

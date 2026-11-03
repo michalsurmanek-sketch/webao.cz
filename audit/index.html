@@ -300,7 +300,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.118';
+ const ruleVersion='2026-11-03.119';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -507,16 +507,30 @@ function parsePageText(text,url){
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,wordCount,raw:text};
 }
 function isSameSiteHost(candidate,host){return candidate===host||candidate.endsWith('.'+host)||host.endsWith('.'+candidate)}
+function decodeSitemapLoc(value){
+ // Decode XML exactly once; query strings may contain literal entity-like text.
+ return String(value).replace(/&(#x[0-9a-f]+|#[0-9]+|amp|lt|gt|quot|apos);/gi,(entity,key)=>{
+  const named={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"};
+  if(Object.prototype.hasOwnProperty.call(named,key))return named[key];
+  if(key[0]!=='#')return entity;
+  const code=key[1].toLowerCase()==='x'?parseInt(key.slice(2),16):parseInt(key.slice(1),10);
+  return code>0&&code<=0x10ffff&&!(code>=0xd800&&code<=0xdfff)?String.fromCodePoint(code):entity;
+ });
+}
 function sitemapUrlCandidates(text){
  const source=String(text||''),candidates=[];
- const add=raw=>{let value=String(raw||'').trim().replace(/[),.;]+$/,'');if(value&&!candidates.includes(value))candidates.push(value)};
- for(const match of source.matchAll(/<loc>\s*(https?:\/\/[^<\s]+)\s*<\/loc>/gi))add(match[1]);
+ const add=raw=>{const value=String(raw||'').trim();if(value&&!candidates.includes(value))candidates.push(value)};
+ // XML loc values are authoritative. Do not mix links from reader annotations into XML.
+ for(const match of source.matchAll(/<loc\b[^>]*>\s*(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))\s*<\/loc\s*>/gi)){
+  add(match[1]!==undefined?match[1]:decodeSitemapLoc(match[2]));
+ }
+ if(candidates.length)return candidates;
  for(const match of source.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g))add(match[1]);
  if(!candidates.length)for(const match of source.matchAll(/(?:^|[\s"'<>])((?:https?):\/\/[^\s<>"')\]]+)/gm))add(match[1]);
  return candidates;
 }
 function normalizeCrawlUrl(candidate,baseUrl){
- try{const parsed=new URL(candidate,baseUrl);parsed.hash='';if(isSameSiteHost(parsed.hostname.toLowerCase(),baseUrl.hostname.toLowerCase()))parsed.protocol=baseUrl.protocol;if(parsed.pathname.toLowerCase().startsWith('/cdn-cgi/'))return'';return parsed.href}catch{return''}
+ try{const parsed=new URL(candidate,baseUrl);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password||parsed.port)return'';parsed.hash='';if(isSameSiteHost(parsed.hostname.toLowerCase(),baseUrl.hostname.toLowerCase()))parsed.protocol=baseUrl.protocol;if(parsed.pathname.toLowerCase().startsWith('/cdn-cgi/'))return'';return parsed.href}catch{return''}
 }
 function getSitemapLocations(text,host,protocol='https:'){
  const source=String(text||'');

@@ -180,5 +180,18 @@ for(const name of ['Meta description','Hlavní nadpis H1','Hlavní nadpis podstr
 assert.match(c.advice({name:'PageSpeed Insights — mobil',points:null}),/kvóty/);assert.match(c.advice({name:'HTTP varianta přesměrování',points:null}),/Konfiguraci měňte až/);assert.match(c.advice({name:'MDN HTTP Observatory',points:null}),/zaškrtněte/);assert.equal(c.advice({name:'Meta description',points:null,action:'Specific action'}),'Specific action');
 console.log('PASS: unverified results recommend verification before changes');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function auditLinkKey('),s.indexOf('function isPriorityFinding(')),c);c.esc=x=>String(x);c.arrayJoin=(value,separator)=>value.join(separator);
+const pages=[{url:'https://example.cz/a',title:'No slash',raw:'ok',links:['https://example.cz/a#self','https://example.cz/a/','https://example.cz/a/']},{url:'https://example.cz/a/',title:'Slash',raw:'ok',links:['https://example.cz/a/']},{url:'https://example.cz/failed',raw:null,links:['https://example.cz/a']}];
+assert.notEqual(c.auditLinkKey(pages[0].url),c.auditLinkKey(pages[1].url));assert.equal(c.auditLinkKey('https://example.cz'),c.auditLinkKey('https://example.cz/'));assert.equal(c.auditLinkKey(pages[0].url+'#x'),pages[0].url);
+const inbound=c.buildInboundLinks(pages);assert.equal(inbound.get(pages[0].url),0);assert.equal(inbound.get(pages[1].url),1);assert(!inbound.has('https://example.cz/failed'));const html=c.buildLinkGraphHtml(pages);assert(html.includes('Slash — https://example.cz/a/'));assert(html.includes('Odkazy stránky na sebe samu jsou vynechány'));
+console.log('PASS: distinct trailing-slash URLs, self-links, duplicate links and failed-page exclusion');
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function findingKind('),s.indexOf('function printAuditReport('))+s.slice(s.indexOf('function buildCoverageHtml('),s.indexOf('function buildSkippedUrlsHtml(')),c);c.esc=x=>String(x);c.arrayJoin=(a,sep)=>a.join(sep);c.coverageLimitations={};vm.runInContext('const coverageLimitations={}',c);
+assert.equal(c.findingKind({state:'NEPROVEDENO',points:null}),'Neprovedeno');assert.equal(c.findingKind({state:'NELZE OVĚŘIT',points:null}),'Nelze ověřit');
+const html=c.buildCoverageHtml([{name:'Test'}],[{area:'Test',name:'Optional scan',state:'NEPROVEDENO',points:null}]);assert(html.includes('0 signálů bez skóre'));assert(html.includes('0 neověřeno · 1 neprovedeno'));assert(html.includes('Neprovedeno'));
+console.log('PASS: skipped optional checks remain distinct from unavailable measurements');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

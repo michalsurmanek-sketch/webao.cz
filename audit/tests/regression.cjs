@@ -193,5 +193,16 @@ assert.equal(c.findingKind({state:'NEPROVEDENO',points:null}),'Neprovedeno');ass
 const html=c.buildCoverageHtml([{name:'Test'}],[{area:'Test',name:'Optional scan',state:'NEPROVEDENO',points:null}]);assert(html.includes('0 signálů bez skóre'));assert(html.includes('0 neověřeno · 1 neprovedeno'));assert(html.includes('Neprovedeno'));
 console.log('PASS: skipped optional checks remain distinct from unavailable measurements');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function parsePageText('),s.indexOf('function decodeSitemapLoc(')),c);
+const text='Title: Real title\nMarkdown Content:\nMain heading\n============\n\nDescription: article text, not metadata\n```md\n# Fake H1\n[Fake link](/fake)\n![Fake image](/fake.png)\nTODO\n```\n[Real link](/real)\n# Hash heading #\n## Subheading\n';const page=c.parsePageText(text,new URL('https://example.cz/'));
+assert.equal(page.title,'Real title');assert.equal(page.description,'');assert(page.body.includes('Description: article text'));assert.equal(page.h1s.length,2);assert.equal(page.h1s[0],'Main heading');assert.equal(page.h1s[1],'Hash heading');assert.equal(page.links.length,1);assert.equal(page.links[0],'https://example.cz/real');assert.equal(page.images.length,0);assert(!page.body.includes('TODO'));
+assert.equal(c.parsePageText('Title: A\rH1: Heading',new URL('https://example.cz/')).h1s[0],'Heading');assert.equal(c.stripMarkdownCode('~~~js\n# fake\n~~~\n# Real').trim(),'# Real');assert.equal(c.stripMarkdownCode('````\n```\n# fake\n````\n# Real').trim(),'# Real');
+console.log('PASS: Setext H1, metadata boundaries, CR lines and fenced-code false positives');
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];let removed='',errorCount=0;const section={innerHTML:'history',querySelector:()=>errorCount?{}:null,insertAdjacentHTML:()=>{errorCount++}};const c={out:{querySelector:()=>section},location:{reload(){throw Error('Unexpected reload')}},localStorage:{removeItem:key=>{removed=key}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function clearLocalAuditHistory('),s.indexOf('function loadLocalFindingWork(')),c);assert(c.clearLocalAuditHistory('example.cz'));assert.equal(removed,'webao-audit-history:example.cz');assert.match(section.innerHTML,/Aktuální report zůstává/);c.localStorage.removeItem=()=>{throw Error('blocked')};assert(!c.clearLocalAuditHistory('example.cz'));assert(!c.clearLocalAuditHistory('example.cz'));assert.equal(errorCount,1);
+console.log('PASS: clearing local history preserves the current report and reports failures');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

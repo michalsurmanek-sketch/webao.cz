@@ -25,6 +25,7 @@
 <section class="audit-section"><h2>Více než jen jedno číslo</h2><p>Každý nález má mít důkaz a srozumitelný další krok. Audit postupně rozšiřujeme o měření, která mají skutečnou vypovídací hodnotu.</p><div class="audit-grid"><article class="audit-card"><b>SEO a obsah</b><p>Titulky, popisy, nadpisy, indexace a základní technické signály, které vyhledávače čtou.</p></article><article class="audit-card"><b>Rychlost a mobil</b><p>Spouštíme laboratorní Lighthouse měření PageSpeed Insights pro mobil a desktop. Terénní metriky ukážeme jen tehdy, pokud je Google pro danou stránku nebo origin poskytne.</p></article><article class="audit-card"><b>Zabezpečení</b><p>Vybrané signály HTTPS, známých zranitelných JavaScriptových knihoven a CSP z automatického Lighthouse měření. Konfiguraci TLS a certifikační řetězec audit neověřuje. Bezpečnostní hlavičky lze navíc prověřit volitelným externím skenem MDN HTTP Observatory.</p></article><article class="audit-card"><b>E-mail a DNS</b><p>Kontrola veřejných DNS záznamů SPF, DMARC a základních doménových údajů.</p></article><article class="audit-card"><b>Přístupnost</b><p>Vybrané kontroly struktury, alternativních popisů a ovládání; automatika není právní posudek.</p></article><article class="audit-card"><b>Prioritní plán oprav</b><p>Vysvětlení dopadu a pořadí kroků, které může předat majitel webu správci nebo vývojáři.</p></article></div></section>
 <section class="audit-section"><h2>Kontrola bez falešných slibů</h2><p>Veřejný audit nedokáže ověřit vše. Nepřihlašuje se do administrace, neodesílá formuláře a neprovádí penetrační test. U každé kontroly rozlišujeme, co bylo změřeno a co vyžaduje další přístup.</p><p><a class="audit-link" href="/#kontakt">Chci pomoct s opravou webu →</a></p></section>
 </main><footer class="audit-footer"><a href="/">WEBAO</a> · <a href="/#kontakt">Kontakt</a> · <a href="/pravni.html">Právní informace</a><br><br>Audit je orientační technická kontrola veřejných údajů, nikoli právní nebo bezpečnostní posudek.</footer>
+<script src="/audit/psi-cache.js"></script>
 <script>
 let auditInProgress=false;
 let pageSpeedChecksCompleted=0;
@@ -655,6 +656,8 @@ async function queryHttpObservatory(host){
 function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit/i.test(String(error&&error.message||error||''))}
 function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Rychlost a Lighthouse skóre proto nejsou v tomto běhu ověřené. Zkuste audit znovu později.';return String(error&&error.message||error||'Příčina není známa.');}
 async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
+ const cache=window.WebaoPsiCache?.read(pageUrl.href,strategy);
+ if(cache)return assertPageSpeedResult(cache.payload);
  const endpoint=new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed');
  endpoint.searchParams.set('url',pageUrl.href);
  endpoint.searchParams.set('strategy',strategy);
@@ -666,7 +669,9 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
    const response=await fetchTimed(endpoint.href,{headers:{Accept:'application/json'}},45000);
    let payload={};try{payload=await readTimedResponse(response,'json',45000)}catch(error){throw new Error(error&&error.name==='AbortError'?'Požadavek PageSpeed překročil limit 45 sekund.':'Odpověď PageSpeed se nepodařilo přečíst.');}
    if(!response.ok)throw new Error(payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
-   return assertPageSpeedResult(payload);
+   const result=assertPageSpeedResult(payload);
+   window.WebaoPsiCache?.write(pageUrl.href,strategy,payload);
+   return result;
   }catch(error){lastError=error;if(attempt<maxAttempts&&error.retryable!==false&&!isPageSpeedQuotaError(error))await new Promise(resolve=>setTimeout(resolve,1200));else break;}
  }
  throw new Error('PageSpeed '+strategy+': '+(lastError&&lastError.message?lastError.message:'požadavek selhal i po opakování.'));

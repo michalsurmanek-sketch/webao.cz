@@ -288,6 +288,11 @@ assert.deepEqual(Array.from(c.findPlaceholderExamples('[doplnit] {{company}} TOD
 assert.equal(c.findPlaceholderExamples('`TODO` ``{{company}} ` nested`` \n~~~html\n[doplnit]\n~~~').length,0);assert.equal(c.findPlaceholderExamples('Methodology TODOlist example.company').length,0);assert.equal(c.findPlaceholderExamples('Please [doplnit] and then {{name}}.').length,2);
 console.log('PASS: placeholder detection handles bracketed template tokens and excludes code samples and partial words');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL,TextEncoder,console,document:{querySelector:()=>({})},window:{}};vm.createContext(c);vm.runInContext(s.slice(0,s.indexOf("form.addEventListener('submit'")),c);
+assert.equal(c.analyzeSpf(['v=spf1 all']).allQualifier,'+');assert.equal(c.analyzeSpf(['v=spf1 +all']).allQualifier,'+');assert.equal(c.analyzeSpf(['v=spf1 -all']).allQualifier,'-');assert.equal(c.analyzeSpf(['v=spf1 ~all']).allQualifier,'~');assert.equal(c.analyzeSpf(['v=spf1 ?all']).allQualifier,'?');assert.equal(c.analyzeSpf(['v=spf1 a']).allQualifier,'');assert.equal(c.analyzeSpf(['v=spf1 -all +all']).allQualifier,'-');
+const raw='Title: Contacts\nMarkdown Content:\n# Call 00420 777 888 999\ninfo@example.cz\n`fake@example.cz`\n```\nfake2@example.cz\n+420 111 222 333\n```\n[Call](tel:+420777888999)';const url=new URL('https://example.cz/');const parsed=c.parsePageText(raw,url);const contacts=c.extractPublicContacts([{url:url.href,raw,parsed}])[0];assert.equal(contacts.emails.length,1);assert.equal(contacts.emails[0],'info@example.cz');assert.equal(contacts.phones.length,1);assert.equal(contacts.phones[0],'+420 777 888 999');
+console.log('PASS: implicit SPF pass qualifier and real contacts without code-sample false positives');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
-

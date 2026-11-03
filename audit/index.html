@@ -362,7 +362,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.140';
+ const ruleVersion='2026-11-03.141';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -1043,9 +1043,6 @@ form.addEventListener('submit',async event=>{
   crawlMeta.omittedUrlExamples=omittedUrls.slice(0,100).map(candidate=>({url:candidate,source:arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'Interní odkaz z prověřené stránky'}));
   crawlMeta.linkDiscovered=allLinkedUrls.size;
   crawlMeta.note=(crawlMeta.note||'')+' Crawl také sleduje rozpoznané interní odkazy z každé načtené stránky až do nastaveného limitu; výsledek stále není důkazem úplného indexu webu.'; if(crawlMeta.sitemapFailures.length)crawlMeta.note+=' Selhalo načtení '+crawlMeta.sitemapFailures.length+' sitemap souborů; jejich URL nebylo možné zahrnout.';
-  for(const page of pages.filter(item=>item.loadError&&item.state!=='Vynecháno podle robots.txt')){
-   findings.push({area:'Technické SEO',name:'Veřejná čtečka stránku neověřila',url:page.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Externí textová čtečka stránku nenačetla: '+page.loadError+' Tento výsledek nepotvrzuje, že stránka vrací chybu; může jít o blokaci nebo výpadek čtečky.',evidence:'URL: '+page.url+' · Zdroj objevení: '+(page.source||'neznámý'),impact:'Obsah, metadata a odkazy této stránky se do auditu nezapočítaly.',confidence:'Nelze určit stav stránky jen podle selhání textové čtečky.',action:'Ověřte URL v běžném prohlížeči a zopakujte audit. Pokud stránka funguje, čtečka nebo ochrana hostingu může blokovat auditní požadavek.'});
-  }
   if(!rootAllowed)pages.unshift({url:rootUrl,type:'Úvodní stránka',title:'',h1:'',source:'Homepage',sourceUrl:'',state:'Vynecháno podle robots.txt',loadError:'Stránka nebyla načtena, protože přístup zakazují pravidla robots.txt.',raw:null,links:null,externalLinks:null,inboundLinks:null});
   const competitors=competitorResults.map((result,index)=>{
    const target=competitorUrls[index];
@@ -1069,6 +1066,9 @@ form.addEventListener('submit',async event=>{
    {area:'Technické SEO',name:'Přístup homepage podle robots.txt',ok:!robotsBlocksSite,points:robotsKnown?(robotsBlocksSite?20:100):null,severity:robotsBlocksSite?'Kritická':'Nízká',detail:robotsBlocksSite?'Pravidla robots.txt blokují načtení homepage pro auditní crawler. URL nebyla požadována.':'Homepage není podle rozpoznaných pravidel zakázána. Ostatní URL se filtrují samostatně podle pravidel.',evidence:robotsBlocksSite?'Použitelná pravidla robots.txt zakazují cestu /.':'Veřejný text robots.txt byl porovnán s cestou homepage a identifikátorem WEBAOAudit.',confidence:'Střední — parser textového výstupu robots.txt'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown&&sitemapFound?100:null,state:!sitemapKnown?'NELZE OVĚŘIT':sitemapFound?undefined:'DOPORUČENÍ',detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml ani v robots.txt nebyla sitemap rozpoznána. Její absence sama o sobě neprokazuje chybu; ověřte, zda ji web potřebuje a zda není na jiné adrese.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
+  for(const page of pages.filter(item=>item.loadError&&item.state!=='Vynecháno podle robots.txt')){
+   findings.push({area:'Technické SEO',name:'Veřejná čtečka stránku neověřila',url:page.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Externí textová čtečka stránku nenačetla: '+page.loadError+' Tento výsledek nepotvrzuje, že stránka vrací chybu; může jít o blokaci nebo výpadek čtečky.',evidence:'URL: '+page.url+' · Zdroj objevení: '+(page.source||'neznámý'),impact:'Obsah, metadata a odkazy této stránky se do auditu nezapočítaly.',confidence:'Nelze určit stav stránky jen podle selhání textové čtečky.',action:'Ověřte URL v běžném prohlížeči a zopakujte audit. Pokud stránka funguje, čtečka nebo ochrana hostingu může blokovat auditní požadavek.'});
+  }
   const crawlerGroups=[
    {name:'Klasické vyhledávače',bots:['Googlebot','bingbot','SeznamBot','Applebot','DuckDuckBot','Bravebot']},
    {name:'AI vyhledávání a odpovědi',bots:['OAI-SearchBot','ChatGPT-User','Claude-SearchBot','Claude-User','PerplexityBot','Perplexity-User','Amzn-SearchBot','Amzn-User']},

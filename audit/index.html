@@ -150,7 +150,7 @@ function downloadAuditCsv(){
  const data=window.currentAuditData;
  if(!data)return;
  const safe=value=>{let text=String(value??'');if(/^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
- const rows=[['Typ','URL','Oblast','Stav','Závažnost','Název','Důkaz / detail','Dopad','Doporučené řešení','Pracnost','Jistota','Kontrolováno','Stav nápravy','Řešitel','Poznámka','Pokrytí vážených oblastí','Typ zjištění']];
+ const rows=[['Typ','URL','Oblast','Stav','Závažnost','Název','Důkaz / detail','Dopad','Doporučené řešení','Pracnost','Jistota','Kontrolováno','Stav nápravy','Řešitel','Poznámka','Pokrytí vážených oblastí','Typ zjištění','Poznámka k rozsahu']];
  rows.push(['Souhrn',data.host,'Celkové skóre','',data.grade||'',data.score===null?'Není dostupné':data.score+'%','Skóre jen z měřených oblastí; pokrytí '+data.coverage+' %','','','','Metodika '+(data.ruleVersion||''),data.checkedAt,'','','',data.coverage+' %']);
  for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',area.score===null?'Bez dostupných kontrol':'Skóre oblastí; zohledňuje jen provedené kontroly','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
  const csvWork=loadLocalFindingWork(data.host);
@@ -160,7 +160,7 @@ function downloadAuditCsv(){
  }
  for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'Zdroj: '+(page.source||'nezjištěn')+(page.sourceUrl?' ('+page.sourceUrl+')':'')+'; H1: '+(page.h1||'')+'; slov ve výstupu: '+(page.wordCount??'nezjištěno')+'; obrázky: '+(page.imageCount??'nezjištěno')+'; bez alt: '+(page.missingAltCount??'nezjištěno')+'; odchozí interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno')+'; odchozí externí odkazy: '+(page.externalLinks? page.externalLinks.length:'nezjištěno')+'; příchozí interní odkazy mezi prověřenými URL: '+(page.inboundLinks??'nezjištěno'),'','','','','']);
  const crawl=data.crawlMeta||{};
- rows.push(['Souhrn rozsahu',data.host,'Rozsah auditu','ČÁSTEČNÝ','','Inventář URL','Sitemap: '+(crawl.sitemapDiscovered||0)+'; interní odkazy: '+(crawl.linkDiscovered||0)+'; obojí: '+(crawl.sitemapAndLinkCount||0)+'; celkem unikátních: '+(crawl.discovered||0)+'; načteno: '+(crawl.scanned||0)+'; vynecháno limitem: '+(crawl.omittedByLimit||0)+'; robots.txt: '+(crawl.robotsExcludedUrlCount||0)+'; nastavené cesty: '+(crawl.excludedUrlCount||0)+'; sitemap soubory: '+(crawl.sitemapFiles||0),'','','','','',data.checkedAt,'','','',data.coverage+' %','',crawl.note||'']);
+ rows.push(['Souhrn rozsahu',data.host,'Rozsah auditu','ČÁSTEČNÝ','','Inventář URL','Sitemap: '+(crawl.sitemapDiscovered||0)+'; interní odkazy: '+(crawl.linkDiscovered||0)+'; obojí: '+(crawl.sitemapAndLinkCount||0)+'; celkem unikátních: '+(crawl.discovered||0)+'; načteno: '+(crawl.scanned||0)+'; vynecháno limitem: '+(crawl.omittedByLimit||0)+'; robots.txt: '+(crawl.robotsExcludedUrlCount||0)+'; nastavené cesty: '+(crawl.excludedUrlCount||0)+'; sitemap soubory: '+(crawl.sitemapFiles||0),'','','','',data.checkedAt,'','','',data.coverage+' %','',crawl.note||'']);
  for(const item of crawl.sitemapFailures||[])rows.push(['Sitemap','', 'Rozsah auditu','NELZE OVĚŘIT','','Soubor sitemap se nepodařilo načíst',item.url+' · '+item.reason,'','','','Externí textová čtečka',data.checkedAt,'','','',data.coverage+' %','Neověřeno']);
  for(const item of crawl.excludedUrlExamples||[])rows.push(['URL neprověřena',item.url,'Rozsah auditu','VYNECHÁNO','','Vynecháno podle nastavené cesty','Zdroj: '+item.source+'; URL nebyla načtena.','','','','','', '', '', '',data.coverage+' %','','Vynecháno uživatelským filtrem']);
  for(const item of crawl.robotsExcludedUrlExamples||[])rows.push(['URL neprověřena',item.url,'Rozsah auditu','VYNECHÁNO','','Zakázáno podle robots.txt','Zdroj: '+item.source+'; URL nebyla načtena.','','','','','', '', '', '',data.coverage+' %','','Vynecháno pravidly robots.txt']);
@@ -175,7 +175,7 @@ function downloadAuditCsv(){
  for(const item of data.contacts||[])rows.push(['Kontakt',item.url,'Veřejné kontakty','ZACHYCENO','','E-mail: '+arrayJoin(item.emails,', '),'Telefon: '+arrayJoin(item.phones,', '),'','','','Textové rozpoznání',data.checkedAt]);
  for(const item of data.claims||[])rows.push(['Tvrzení',item.url,'Obchodní obsah','K PROVĚŘENÍ','',item.phrase,'Rozpoznáno ve veřejném textu','','Ověřit a doložit tvrzení','','Automatické rozpoznání',data.checkedAt]);
  for(const item of data.competitors||[])rows.push(['Srovnání',item.url,'Veřejná nabídka',item.status,'',item.title,'Hlavní sdělení: '+item.headline,'Cena: '+(item.price?'signál nalezen':'nerozpoznán')+'; kontakt: '+(item.contact?'signál nalezen':'nerozpoznán')+'; důvěra: '+(item.trust?'signál nalezen':'nerozpoznán'),'','','','']);
- const csv='\uFEFF'+rows.map(row=>row.map(safe).join(';')).join('\r\n');
+ const csv='\uFEFF'+rows.map(row=>Array.from({length:rows[0].length},(_,index)=>safe(row[index])).join(';')).join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
  const link=document.createElement('a');const objectUrl=URL.createObjectURL(blob);link.href=objectUrl;link.download='webao-audit-'+data.host+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
 }
@@ -204,10 +204,21 @@ function clearLocalAuditHistory(host){
  try{localStorage.removeItem('webao-audit-history:'+host);location.reload()}catch{}
 }
 function loadLocalFindingWork(host){
- try{const value=JSON.parse(localStorage.getItem('webao-finding-work:'+host)||'{}');return value&&typeof value==='object'?value:{}}catch{return{}}
+ try{
+  const value=JSON.parse(localStorage.getItem('webao-finding-work:'+host)||'{}');
+  if(!value||typeof value!=='object'||Array.isArray(value))return{};
+  const result={};
+  for(const [key,entry] of Object.entries(value)){
+   if(!entry||typeof entry!=='object'||Array.isArray(entry))continue;
+   const status=['Nový','V řešení','Opraveno','Ignorováno','Znovu ověřit'].includes(entry.status)?entry.status:'Nový';
+   Object.defineProperty(result,key,{value:{status,owner:typeof entry.owner==='string'?entry.owner.slice(0,80):'',note:typeof entry.note==='string'?entry.note.slice(0,500):''},enumerable:true,writable:true,configurable:true});
+  }
+  return result;
+ }catch{return{}}
 }
 function saveLocalFindingWork(host,key,field,value){
- try{const store=loadLocalFindingWork(host);store[key]={...(store[key]||{}),[field]:value};localStorage.setItem('webao-finding-work:'+host,JSON.stringify(store))}catch{}
+ if(!['status','owner','note'].includes(field))return false;
+ try{const store=loadLocalFindingWork(host);Object.defineProperty(store,key,{value:{...(store[key]||{}),[field]:value},enumerable:true,writable:true,configurable:true});localStorage.setItem('webao-finding-work:'+host,JSON.stringify(store));return true}catch{return false}
 }
 function renderFindingWorkControls(key,progress){
  const options=['Nový','V řešení','Opraveno','Ignorováno','Znovu ověřit'];
@@ -242,7 +253,20 @@ function initFindingWorkControls(host){
  out.querySelectorAll('.finding-work-controls').forEach(container=>{
   const key=decodeURIComponent(container.dataset.workKey||'');
   container.querySelectorAll('[data-work-field]').forEach(field=>{
-   const save=()=>{saveLocalFindingWork(host,key,field.dataset.workField,field.value);if(field.dataset.workField==='status'){const card=field.closest('[data-finding-card]');if(card)card.dataset.workStatus=field.value}};
+   const save=()=>{
+    const saved=saveLocalFindingWork(host,key,field.dataset.workField,field.value);
+    container.querySelector('small').textContent=saved?'Uloženo pouze v tomto prohlížeči.':'Změnu se nepodařilo uložit. Zkontrolujte dostupnost úložiště prohlížeče.';
+    const card=field.closest('[data-finding-card]');
+    if(card){
+     const progress={};container.querySelectorAll('[data-work-field]').forEach(control=>{progress[control.dataset.workField]=control.value});
+     card.querySelector('.print-only-note')?.remove();
+     card.insertAdjacentHTML('beforeend',renderFindingWorkNote(progress));
+     if(field.dataset.workField==='status'){
+      card.dataset.workStatus=field.value;
+      out.querySelector('[name="finding-status"]')?.dispatchEvent(new Event('change'));
+     }
+    }
+   };
    field.addEventListener(field.tagName==='TEXTAREA'||field.type==='text'?'input':'change',save);
    if(field.tagName==='TEXTAREA'||field.type==='text')field.addEventListener('change',save);
   });
@@ -306,7 +330,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.124';
+ const ruleVersion='2026-11-03.126';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -536,11 +560,15 @@ function parsePageText(text,url){
  const body=lines.filter(line=>!/^(title|url source|description|published time|modified time|site name|image|h1|h2|h3)\s*:/i.test(line.trim())&&!/^#\s/.test(line.trim())).join(' ');
  const cleanBody=body.replace(/\s+/g,' ').trim();
  const wordCount=(cleanBody.match(/[A-Za-zÀ-ž0-9]+/g)||[]).length;
- const images=[...text.matchAll(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:match[2]}));
- const imageUrls=new Set(images.map(image=>image.url));
- const markdownLinks=[...text.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].filter(match=>!imageUrls.has(match[1])).map(match=>{try{const link=new URL(match[1]);link.hash='';return link.href}catch{return''}}).filter(Boolean);
- const links=[...new Set(markdownLinks.filter(href=>{try{return new URL(href).hostname===url.hostname}catch{return false}}))];
- const externalLinks=[...new Set(markdownLinks.filter(href=>{try{return new URL(href).hostname!==url.hostname}catch{return false}}))];
+ const resolve=raw=>{
+  try{const target=new URL(raw,url);if(!['http:','https:'].includes(target.protocol)||target.username||target.password||target.port)return'';target.hash='';return target.href}catch{return''}
+ };
+ const images=[...String(text||'').matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:resolve(match[2])})).filter(image=>image.url);
+ // Remove image syntax, not every link sharing an image URL: linked images are navigable.
+ const withoutImages=String(text||'').replace(/!\[[^\]]*\]\([^)\s]+\)/g,'');
+ const markdownLinks=[...withoutImages.matchAll(/\]\(([^)\s]+)\)/g)].filter(match=>!match[1].startsWith('#')).map(match=>resolve(match[1])).filter(Boolean);
+ const links=[...new Set(markdownLinks.filter(href=>isSameSiteHost(new URL(href).hostname,url.hostname)))];
+ const externalLinks=[...new Set(markdownLinks.filter(href=>!isSameSiteHost(new URL(href).hostname,url.hostname)))];
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,wordCount,raw:text};
 }
 function isSameSiteHost(candidate,host){return candidate===host||candidate.endsWith('.'+host)||host.endsWith('.'+candidate)}

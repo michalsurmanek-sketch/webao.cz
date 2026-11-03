@@ -192,13 +192,12 @@ function comparableAuditRuns(previous,current){
  return !!(previous&&previous.ruleVersion===current.ruleVersion&&typeof previous.comparisonScope==='string'&&previous.comparisonScope===current.comparisonScope);
 }
 function saveLocalAuditHistory(host,snapshot){
- const key='webao-audit-history:'+host;
- try{
-  const old=JSON.parse(localStorage.getItem(key)||'[]');
-  const history=[snapshot,...(Array.isArray(old)?old.filter(entry=>entry&&typeof entry==='object'&&!Array.isArray(entry)&&typeof entry.checkedAt==='string'&&(entry.score===null||Number.isFinite(entry.score))):[])].slice(0,10);
-  localStorage.setItem(key,JSON.stringify(history));
-  return history;
- }catch{return[snapshot]}
+ const key='webao-audit-history:'+host;let old=[];
+ try{const stored=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(stored))old=stored.filter(entry=>entry&&typeof entry==='object'&&!Array.isArray(entry)&&typeof entry.checkedAt==='string'&&(entry.score===null||Number.isFinite(entry.score)));}catch{}
+ const history=[snapshot,...old].slice(0,10);
+ try{localStorage.setItem(key,JSON.stringify(history));}
+ catch{history.storageWarning='Tento běh se nepodařilo uložit do místní historie. Dříve načtené běhy jsou zobrazeny, ale nový běh po zavření stránky nemusí zůstat dostupný.';}
+ return history;
 }
 function clearLocalAuditHistory(host){
  try{localStorage.removeItem('webao-audit-history:'+host);location.reload()}catch{}
@@ -330,7 +329,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.126';
+ const ruleVersion='2026-11-03.128';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -338,7 +337,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const comparable=comparableAuditRuns(previous,{ruleVersion,comparisonScope});
  const delta=comparable&&previous.score!==null&&score!==null?score-previous.score:null;
  const historyRows=history.slice(0,6).map(entry=>'<tr><td>'+esc(entry.checkedAt)+'</td><td>'+esc(entry.score===null?'—':entry.score+'%')+'</td><td>'+esc(entry.grade||'—')+'</td><td>'+esc(entry.measured||0)+'</td><td>'+esc(Number.isFinite(entry.coverage)?entry.coverage+' %':'Neuloženo')+'</td><td>'+esc(entry.ruleVersion||'starší běh')+'</td></tr>').join('');
- const historyHtml='<h3 style="margin-top:28px">Vývoj skóre</h3><p class="audit-disclaimer">Historie je uložená pouze v tomto prohlížeči. Není synchronizovaná mezi zařízeními a při smazání dat prohlížeče zmizí.'+(previous&&!sameRuleVersion?' Pravidla se od předchozího běhu změnila ('+esc(previous.ruleVersion||'starší verze')+' → '+esc(ruleVersion)+'); skóre proto nelze přímo porovnat.':previous&&!comparable?' Rozsah změřených kontrol, podíl měření v oblastech nebo vzorek stránek se liší, případně u staršího běhu chybí údaje o rozsahu; skóre proto nelze přímo porovnat.':delta===null?'':' Poslední změna: '+(delta>0?'+':'')+delta+' bodů oproti předchozímu auditu.')+'</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Kontrolováno</th><th>Skóre měřených kontrol</th><th>Známka</th><th>Měřené kontroly</th><th>Pokrytí váhy kontrol</th><th>Verze pravidel</th></tr></thead><tbody>'+historyRows+'</tbody></table></div><button type="button" class="history-clear" onclick="clearLocalAuditHistory(\''+esc(host)+'\')">Smazat místní historii této domény</button>';
+ const historyHtml='<h3 style="margin-top:28px">Vývoj skóre</h3><p class="audit-disclaimer">Historie je uložená pouze v tomto prohlížeči. Není synchronizovaná mezi zařízeními a při smazání dat prohlížeče zmizí.'+(history.storageWarning?' '+esc(history.storageWarning):'')+(previous&&!sameRuleVersion?' Pravidla se od předchozího běhu změnila ('+esc(previous.ruleVersion||'starší verze')+' → '+esc(ruleVersion)+'); skóre proto nelze přímo porovnat.':previous&&!comparable?' Rozsah změřených kontrol, podíl měření v oblastech nebo vzorek stránek se liší, případně u staršího běhu chybí údaje o rozsahu; skóre proto nelze přímo porovnat.':delta===null?'':' Poslední změna: '+(delta>0?'+':'')+delta+' bodů oproti předchozímu auditu.')+'</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Kontrolováno</th><th>Skóre měřených kontrol</th><th>Známka</th><th>Měřené kontroly</th><th>Pokrytí váhy kontrol</th><th>Verze pravidel</th></tr></thead><tbody>'+historyRows+'</tbody></table></div><button type="button" class="history-clear" onclick="clearLocalAuditHistory(\''+esc(host)+'\')">Smazat místní historii této domény</button>';
  const grade=score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F';
  const areaHtml=areas.map(area=>{const areaDelta=comparable&&area.score!==null&&previous.areas&&previous.areas[area.name]!==null&&previous.areas[area.name]!==undefined?area.score-previous.areas[area.name]:null;const total=findings.filter(item=>item.area===area.name).length;const used=findings.filter(item=>item.area===area.name&&Number.isFinite(item.points)).length;return '<div class="area-score"><span>'+esc(area.name)+'<small style="display:block;color:#91a99a;font-size:11px;margin-top:4px">Váha '+area.weight+' % · '+used+' z '+total+' kontrol tvoří skóre'+(areaDelta===null?'':' · změna '+(areaDelta>0?'+':'')+areaDelta+' b.')+'</small></span><div class="bar"><i class="'+(area.score===null?'pending':'')+'" style="width:'+(area.score===null?0:area.score)+'%"></i></div><em>'+(area.score===null?'—':area.score+'%')+'</em></div>'}).join('');
  const reportDate=checkedAt;
@@ -362,7 +361,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const severityRank={'Kritická':0,'Závažná':1,'Střední':2,'Nízká':3,'K prověření':4,'Informační':5};
  const effortRank={'Nízká':0,'Střední':1,'Vysoká':2};
  const priorityFindings=[...priorityBuckets.values()].map(group=>({...group[0],affectedUrls:[...new Set(group.map(item=>item.url).filter(Boolean))],affectedCount:new Set(group.map(item=>item.url).filter(Boolean)).size})).sort((a,b)=>(severityRank[a.severity]??((a.priorityPoints??a.points)<50?1:2))-(severityRank[b.severity]??((b.priorityPoints??b.points)<50?1:2))||(a.points??a.priorityPoints??100)-(b.points??b.priorityPoints??100)||(effortRank[estimateEffort(a)]??1)-(effortRank[estimateEffort(b)]??1)).slice(0,5);
- const priorityHtml='<h3 style="margin-top:28px">Co opravit jako první</h3><p class="audit-disclaimer">Pořadí kombinuje závažnost, skóre a konkrétní nálezy vyžadující zásah; položka bez skóre nemusí ovlivňovat procento auditu. opakované stejné nálezy jsou seskupeny, aby seznam ukázal různé hlavní opravy. Pracnost je orientační podle typu zásahu; skutečný čas závisí na CMS, přístupech a rozsahu opravy. Nejde o odhad počtu ztracených zákazníků.</p>'+(priorityFindings.length?'<div class="finding-list">'+priorityFindings.map((item,index)=>'<div class="finding warn"><span class="state">PRIORITA '+(index+1)+'</span><span class="severity">'+esc(item.severity||(item.points<50?'Závažná':'Střední'))+'</span><strong>'+esc(item.name)+(item.affectedCount>1?' · '+item.affectedCount+' stránek':'')+'</strong>'+(item.url?'<p><b>Ukázková stránka:</b> <a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></p>':'')+(item.affectedUrls.length>1?'<p><b>Další zasažené stránky:</b> '+item.affectedUrls.slice(1,6).map(url=>'<a class="audit-link" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(url)+'</a>').join(' · ')+(item.affectedUrls.length>6?' · a další':'')+'</p>':'')+'<p>'+esc(item.detail)+'</p><p><b>Řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Pracnost:</b> '+esc(estimateEffort(item))+(item.confidence?' · <b>Jistota:</b> '+esc(item.confidence):'')+'</p></div>').join('')+'</div>':'<p>V dostupných výsledcích nebyl rozpoznán nález splňující pravidla priorit. Neověřené oblasti tím nejsou potvrzeny jako bezchybné.</p>');
+ const priorityHtml='<h3 style="margin-top:28px">Co opravit jako první</h3><p class="audit-disclaimer">Pořadí kombinuje závažnost, skóre a konkrétní nálezy vyžadující zásah; položka bez skóre nemusí ovlivňovat procento auditu. Opakované stejné nálezy jsou seskupeny, aby seznam ukázal různé hlavní opravy. Pracnost je orientační podle typu zásahu; skutečný čas závisí na CMS, přístupech a rozsahu opravy. Nejde o odhad počtu ztracených zákazníků.</p>'+(priorityFindings.length?'<div class="finding-list">'+priorityFindings.map((item,index)=>'<div class="finding warn"><span class="state">PRIORITA '+(index+1)+'</span><span class="severity">'+esc(item.severity||(item.points<50?'Závažná':'Střední'))+'</span><strong>'+esc(item.name)+(item.affectedCount>1?' · '+item.affectedCount+' stránek':'')+'</strong>'+(item.url?'<p><b>Ukázková stránka:</b> <a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></p>':'')+(item.affectedUrls.length>1?'<p><b>Další zasažené stránky:</b> '+item.affectedUrls.slice(1,6).map(url=>'<a class="audit-link" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(url)+'</a>').join(' · ')+(item.affectedUrls.length>6?' · a další':'')+'</p>':'')+'<p>'+esc(item.detail)+'</p><p><b>Řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Pracnost:</b> '+esc(estimateEffort(item))+(item.confidence?' · <b>Jistota:</b> '+esc(item.confidence):'')+'</p></div>').join('')+'</div>':'<p>V dostupných výsledcích nebyl rozpoznán nález splňující pravidla priorit. Neověřené oblasti tím nejsou potvrzeny jako bezchybné.</p>');
  const pageRows=pages.map(page=>'<tr><td><a href="'+esc(page.url)+'" target="_blank" rel="noopener">'+esc(page.url)+'</a></td><td>'+esc(page.source==='Homepage'?'Homepage':(page.source||'Zdroj nerozpoznán')+(page.sourceUrl?' · '+page.sourceUrl:''))+'</td><td>'+esc(page.type)+'</td><td>'+esc(page.title||'Titulek nebyl rozpoznán')+'</td><td>'+esc(page.h1||'—')+'</td><td>'+esc(page.wordCount===undefined?'Nezjištěno':String(page.wordCount))+'</td><td>'+esc(page.imageCount===undefined?'Nezjištěno':String(page.imageCount)+' / chybí alt: '+page.missingAltCount)+'</td><td>'+esc(page.raw?String(page.links?.length??0):'Nezjištěno')+'</td><td>'+esc(page.raw?String(page.externalLinks?.length??0):'Nezjištěno')+'</td><td>'+esc(page.inboundLinks===null||page.inboundLinks===undefined?'Nezjištěno':String(page.inboundLinks))+'</td><td>'+esc(page.state)+'</td></tr>').join('');
  const competitorHtml=competitors.length?'<h3 style="margin-top:28px">Srovnání veřejné nabídky</h3><p class="audit-disclaimer">Srovnání vychází pouze z rozpoznaného textu úvodních stránek. Neříká nic o návštěvnosti, pozicích ani obchodních výsledcích.</p><div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Web</th><th>Titulek</th><th>Hlavní sdělení</th><th>Cena</th><th>Kontakt</th><th>Důvěra</th><th>Stav</th></tr></thead><tbody>'+competitors.map(item=>'<tr><td><a href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></td><td>'+esc(item.title||'Nerozpoznáno')+'</td><td>'+esc(item.headline||'Nerozpoznáno')+'</td><td>'+esc(item.price?'Signál nalezen':'Nerozpoznáno ve vzorku')+'</td><td>'+esc(item.contact?'Signál nalezen':'Nerozpoznáno ve vzorku')+'</td><td>'+esc(item.trust?'Signál nalezen':'Nerozpoznáno ve vzorku')+'</td><td>'+esc(item.status)+'</td></tr>').join('')+'</tbody></table></div>':'';
  const sitemapFailureHtml=(crawlMeta.sitemapFailures||[]).length?'<h4>Soubory sitemap, které se nepodařilo načíst</h4><ul>'+crawlMeta.sitemapFailures.map(item=>'<li><a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a> — '+esc(item.reason)+'</li>').join('')+'</ul>':''
@@ -548,6 +547,18 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
  }
  throw new Error('PageSpeed '+strategy+': '+(lastError&&lastError.message?lastError.message:'požadavek selhal i po opakování.'));
 }
+async function queryPageSpeedStrategies(url,rootAllowed){
+ const results=[];
+ for(const strategy of ['mobile','desktop']){
+  if(!rootAllowed){results.push({status:'rejected',reason:new Error('Měření vynecháno podle robots.txt.')});continue;}
+  if(results.some(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason))){
+   results.push({status:'rejected',reason:new Error('Měření '+strategy+' vynecháno, protože předchozí požadavek PageSpeed potvrdil vyčerpanou denní kvótu.')});continue;
+  }
+  try{results.push({status:'fulfilled',value:await trackPageSpeed(queryPageSpeed(new URL(url.origin+'/'),strategy))});}
+  catch(reason){results.push({status:'rejected',reason});}
+ }
+ return results;
+}
 async function queryDns(domain,type){
  const response=await fetchTimed('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+type,{headers:{Accept:'application/dns-json'}},8000);
  if(!response.ok)throw new Error('DNS resolver není dostupný.');
@@ -596,6 +607,19 @@ function sitemapUrlCandidates(text){
 }
 function normalizeCrawlUrl(candidate,baseUrl){
  try{const parsed=new URL(candidate,baseUrl);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password||parsed.port)return'';parsed.hash='';if(isSameSiteHost(parsed.hostname.toLowerCase(),baseUrl.hostname.toLowerCase()))parsed.protocol=baseUrl.protocol;if(parsed.pathname.toLowerCase().startsWith('/cdn-cgi/'))return'';return parsed.href}catch{return''}
+}
+function discoverPageLinks(pages,baseUrl,isExcluded,robots){
+ const found=new Map();
+ for(const page of pages){
+  if(!page.raw||!Array.isArray(page.links))continue;
+  for(const raw of page.links){
+   const url=normalizeCrawlUrl(raw,baseUrl);if(!url)continue;
+   const target=new URL(url);
+   if(!isSameSiteHost(target.hostname,baseUrl.hostname)||found.has(url))continue;
+   found.set(url,{url,source:page.url,excluded:isExcluded(url),robotsBlocked:!robotsAllowsPath(robots,target.pathname+target.search)});
+  }
+ }
+ return [...found.values()];
 }
 function getSitemapLocations(text,host,protocol='https:'){
  const source=String(text||'');
@@ -711,22 +735,7 @@ form.addEventListener('submit',async event=>{
   const rootAllowed=!robotsKnown||robotsAllowsPath(robots,'/');
   out.querySelector('.result-summary').textContent='Robots.txt je načteno nebo nedostupné. Spouštím souběžnou kontrolu homepage, DNS, registru domény a PageSpeed.';
   const pagePromise=rootAllowed?fetchReadablePage(url,'/').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'fulfilled',value:''});
-  const pageSpeedPromise=pagePromise.then(async homeResult=>{
-   const results=[];
-   for(const strategy of ['mobile','desktop']){
-    if(!rootAllowed||homeResult.status!=='fulfilled'){
-     results.push({status:'rejected',reason:new Error(rootAllowed?'Měření vynecháno, protože textová čtečka homepage selhala.':'Měření vynecháno podle robots.txt.')});
-     continue;
-    }
-    if(results.some(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason))){
-     results.push({status:'rejected',reason:new Error('Měření '+strategy+' vynecháno, protože předchozí požadavek PageSpeed potvrdil vyčerpanou denní kvótu.')});
-     continue;
-    }
-    try{results.push({status:'fulfilled',value:await trackPageSpeed(queryPageSpeed(new URL(url.origin+'/'),strategy))});}
-    catch(reason){results.push({status:'rejected',reason});}
-   }
-   return results;
-  });
+  const pageSpeedPromise=queryPageSpeedStrategies(url,rootAllowed);
   const baseHostname=url.hostname.replace(/^www\./i,'');
   const httpVariantUrls=[...new Set(['http://'+baseHostname+'/','http://www.'+baseHostname+'/'])];
   const httpVariantPromise=pageSpeedPromise.then(pageSpeedResults=>{
@@ -900,6 +909,21 @@ form.addEventListener('submit',async event=>{
     pages.push({url:candidate,type:pageType(target.pathname),title:parsed.title,h1:arrayJoin(parsed.h1s,' · '),source:'Interní odkaz z prověřené stránky',sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null});
    });
   }
+  // Inventory links even when the page limit was reached before another crawl pass.
+  const finalLinks=discoverPageLinks(pages,url,isExcluded,robots);
+  const allExcluded=new Set(excludedUrls),allRobotsExcluded=new Set(robotsExcludedUrls);
+  for(const item of finalLinks){
+   crawlDiscovered.add(item.url);deepLinkedUrls.add(item.url);
+   const kinds=new Set(sourceKindByUrl.get(item.url)||[]);kinds.add('Interní odkaz z prověřené stránky');sourceKindByUrl.set(item.url,[...kinds]);
+   if(!sitemapSourceByUrl.has(item.url))sitemapSourceByUrl.set(item.url,item.source);
+   if(item.excluded)allExcluded.add(item.url);
+   else if(item.robotsBlocked)allRobotsExcluded.add(item.url);
+   else eligibleDiscoveredUrls.add(item.url);
+  }
+  crawlMeta.excludedUrlCount=allExcluded.size;
+  crawlMeta.excludedUrlExamples=[...allExcluded].slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'Interní odkaz'}));
+  crawlMeta.robotsExcludedUrlCount=allRobotsExcluded.size;
+  crawlMeta.robotsExcludedUrlExamples=[...allRobotsExcluded].slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'Robots policy'}));
   crawlMeta.scanned=pages.filter(page=>page.raw).length;
   crawlMeta.selected=candidateUrls.length;
   crawlMeta.discovered=crawlDiscovered.size;

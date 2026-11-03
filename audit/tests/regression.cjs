@@ -247,6 +247,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const page=c.parsePageText('Title: Article\nMarkdown Content:\n# Using `[example](/fake)`\nHere is `[fake](/fake)` and ``![fake](/fake.png) `code` ``.\n[real](/real) ![real image](/real.png)\n`unmatched [valid](/valid)',new URL('https://example.cz/'));
 assert.equal(page.links.length,2);assert(page.links.includes('https://example.cz/real'));assert(page.links.includes('https://example.cz/valid'));assert.equal(page.images.length,1);assert.equal(page.images[0].url,'https://example.cz/real.png');assert.equal(page.h1s.length,1);assert(page.body.includes('[fake](/fake)'));
 assert.match(c.stripMarkdownInlineCode('before ``code ` inner`` after'),/^before +after$/);
+const escaped='\\`[real](/real)\\`';assert.equal(c.stripMarkdownInlineCode(escaped),escaped);assert.equal(c.parsePageText(escaped,new URL('https://example.cz/')).links.length,1);
 console.log('PASS: inline code examples do not create crawl links or image findings; unmatched backticks preserve actual text');
 })();
 console.log('PASS: all audit regression suites');

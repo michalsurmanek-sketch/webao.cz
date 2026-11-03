@@ -300,7 +300,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.119';
+ const ruleVersion='2026-11-03.120';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -569,10 +569,16 @@ function extractPublicContacts(pages){
   return{url:page.url,emails,phones};
  });
 }
+function normalizeRobotsPath(value){
+ return String(value).replace(/[^\x00-\x7f]/gu,char=>encodeURIComponent(char)).replace(/%([0-9a-f]{2})/gi,(encoded,hex)=>{
+  const char=String.fromCharCode(parseInt(hex,16));
+  return /^[A-Za-z0-9._~-]$/.test(char)?char:'%'+hex.toUpperCase();
+ });
+}
 function parseRobotsGroups(text){
  const groups=[];let agents=[],rules=[];
  const flush=()=>{if(agents.length||rules.length)groups.push({agents,rules});agents=[];rules=[]};
- for(const raw of String(text||'').split(/\r?\n/)){
+ for(const raw of String(text||'').split(/\r\n|[\r\n]/)){
   const line=raw.split('#')[0].trim();if(!line)continue;
   const agent=line.match(/^user-agent\s*:\s*(.+)$/i);
   if(agent){if(rules.length)flush();agents.push(agent[1].trim().toLowerCase());continue}
@@ -582,14 +588,14 @@ function parseRobotsGroups(text){
  flush();return groups;
 }
 function robotsAllowsPath(text,path,product='WEBAOAudit'){
- const pathname=path||'/';if(pathname==='/robots.txt')return true;
+ const pathname=normalizeRobotsPath(path||'/');if(pathname==='/robots.txt')return true;
  const groups=parseRobotsGroups(text),token=product.toLowerCase();
- let matching=groups.filter(group=>group.agents.some(agent=>agent!=='*'&&token.includes(agent)));
+ let matching=groups.filter(group=>group.agents.some(agent=>agent!=='*'&&token===agent));
  if(!matching.length)matching=groups.filter(group=>group.agents.includes('*'));
  const rules=matching.flatMap(group=>group.rules).filter(rule=>rule.path!=='');
  const matches=[];
  for(const rule of rules){
-  const source=rule.path;let pattern='';
+  const source=normalizeRobotsPath(rule.path);let pattern='';
   for(let index=0;index<source.length;index++){
    const char=source[index];
    if(char==='*')pattern+='.*';

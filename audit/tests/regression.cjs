@@ -294,5 +294,13 @@ assert.equal(c.analyzeSpf(['v=spf1 all']).allQualifier,'+');assert.equal(c.analy
 const raw='Title: Contacts\nMarkdown Content:\n# Call 00420 777 888 999\ninfo@example.cz\n`fake@example.cz`\n```\nfake2@example.cz\n+420 111 222 333\n```\n[Call](tel:+420777888999)';const url=new URL('https://example.cz/');const parsed=c.parsePageText(raw,url);const contacts=c.extractPublicContacts([{url:url.href,raw,parsed}])[0];assert.equal(contacts.emails.length,1);assert.equal(contacts.emails[0],'info@example.cz');assert.equal(contacts.phones.length,1);assert.equal(contacts.phones[0],'+420 777 888 999');
 console.log('PASS: implicit SPF pass qualifier and real contacts without code-sample false positives');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL,TextEncoder,console,document:{querySelector:()=>({})},window:{}};vm.createContext(c);vm.runInContext(s.slice(0,s.indexOf("form.addEventListener('submit'")),c);
+for(const text of ['Cena 100','ceník','Cena: 100 Kč','100 Kč','100Kč','100,50Kč','CZK 100','Rozpočet'])assert(c.priceSignalPattern().test(text),text);for(const text of ['ocenění','podceníkx','xKčx','abc100Kč','price 100'])assert(!c.priceSignalPattern().test(text),text);
+const url=new URL('https://example.cz/');const page=raw=>({url:url.href,type:'Úvodní stránka',raw,parsed:c.parsePageText(raw,url)});
+c.buildDetektiv([page('Title: Demo\nMarkdown Content:\nHello\n```\nCena Kč kontakt reference nejrychlejší\n```\n`nejlepší nabídka 50 %`')]);assert(c.window.currentAuditScenarios.every(x=>!x.found));assert.equal(c.window.currentAuditClaims.length,0);
+c.buildDetektiv([page('Title: Demo\nMarkdown Content:\n# Nejlepší nabídka\nSleva 50 %. Cena 100 Kč. Kontaktujte nás.')]);assert(c.window.currentAuditScenarios.find(x=>x.key==='price').found);assert(c.window.currentAuditScenarios.find(x=>x.key==='contact').found);assert(c.window.currentAuditClaims.some(x=>x.phrase.includes('Nejlepší')));assert(c.window.currentAuditClaims.some(x=>x.phrase.includes('50 %')));
+console.log('PASS: Czech pricing and claims use Unicode boundaries and ignore code-sample business signals');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

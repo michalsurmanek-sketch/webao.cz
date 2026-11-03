@@ -97,19 +97,26 @@ function advice(item){
  if(key.includes('dns adresa'))return item.ok?'Ověřte, že adresy patří vašemu hostingu a jsou aktuální.':'Zkontrolujte A nebo AAAA záznam u správce DNS.';
  return !Number.isFinite(item.points)?'Tato část vyžaduje další měřicí modul.':'Zopakujte kontrolu po provedení změny.';
 }
+function auditVisibleText(page){
+ const parsed=page?.parsed||{};
+ return stripMarkdownInlineCode(stripMarkdownCode(String(parsed.contactText??parsed.body??'')));
+}
+function priceSignalPattern(){
+ return /(?:^|[^\p{L}\p{N}_])(?:cena|ceník|cenik|kč|czk|od\s*\d+|nezávazná kalkulace|rozpočet)(?=$|[^\p{L}\p{N}_])|(?<![\p{L}\p{N}_])\d+(?:[.,]\d+)?\s*(?:kč|czk)(?![\p{L}\p{N}_])/iu;
+}
 function buildDetektiv(pages){
  pages=Array.isArray(pages)?pages:[];
   const usable=pages.filter(page=>page&&page.raw&&page.parsed);
- const allText=usable.map(page=>(page.parsed.body||'')+' '+(page.parsed.raw||'')).join(' ').toLowerCase();
+ const allText=usable.map(auditVisibleText).join(' ').toLowerCase();
  const home=usable.find(page=>page.type==='Úvodní stránka')||usable[0];
  const headline=home&&((home.parsed.h1s[0]||home.parsed.title||''));
  const checks=[
-  {key:'price',label:'Najít cenu',question:'Dokáže návštěvník zjistit cenu nebo alespoň způsob nacenění?',re:/\b(cena|ceník|cenik|kč|czk|od\s*\d+|nezávazná kalkulace|rozpočet)\b/i,test:'Požádejte člověka, který web nezná, aby do 30 sekund našel cenu nebo zjistil, jak získá nabídku.'},
+  {key:'price',label:'Najít cenu',question:'Dokáže návštěvník zjistit cenu nebo alespoň způsob nacenění?',re:priceSignalPattern(),test:'Požádejte člověka, který web nezná, aby do 30 sekund našel cenu nebo zjistil, jak získá nabídku.'},
   {key:'contact',label:'Kontaktovat firmu',question:'Je z kontrolovaných stránek jasná a dostupná cesta ke kontaktu?',re:/kontakt|tel:|mailto:|poptáv|objednat|rezervovat|zavolejte|napište/i,test:'Na telefonu zkuste bez nápovědy najít telefon nebo odeslat poptávku; zapište počet kroků.'},
   {key:'trust',label:'Ověřit důvěru',question:'Ukazuje web konkrétní důkazy zkušenosti a důvěryhodnosti?',re:/reference|recenze|realizace|certifik|hodnocení|zákazník|případová studie/i,test:'Ověřte, zda jsou reference konkrétní, přiřaditelné a podporují službu, kterou web nabízí.'},
   {key:'process',label:'Pochopit postup',question:'Vysvětluje web, co se stane po kontaktu nebo objednávce?',re:/jak to funguje|postup|nejprve|následně|do\s*\d+\s*(hodin|dnů|dní)|po odeslání|průběh spolupráce/i,test:'Zeptejte se nového návštěvníka, co podle webu nastane po kliknutí na hlavní výzvu k akci.'}
  ];
- const result=checks.map(check=>{const found=check.re.test(allText);const source=found?(usable.find(page=>check.re.test((page.parsed.body||'')+' '+(page.parsed.raw||'')))||home):home;return{...check,found,source:source?source.url:''}});
+ const result=checks.map(check=>{const found=check.re.test(allText);const source=found?(usable.find(page=>check.re.test(auditVisibleText(page)))||home):home;return{...check,found,source:source?source.url:''}});
  window.currentAuditScenarios=result;
   const cards=result.map(item=>'<article class="detektiv-card"><b>'+(item.found?'Signál nalezen':'Signál nenalezen v kontrolovaném vzorku')+' · '+esc(item.label)+'</b><p>'+esc(item.question)+' '+(item.found?'Ve vzorku stránek se objevuje odpovídající informace.':'V načteném vzorku se odpovídající informace nepodařilo rozpoznat; nemusí to znamenat, že na webu chybí.')+(item.source?' <a class="audit-link" href="'+esc(item.source)+'" target="_blank" rel="noopener">Otevřít zdrojovou stránku</a>.':'')+'</p></article>').join('');
  const contacts=extractPublicContacts(usable);
@@ -119,9 +126,9 @@ function buildDetektiv(pages){
  const contactHtml='<h4>Registr veřejných kontaktů</h4><p class="detektiv-intro">Kontakty rozpoznané v omezeném vzorku. Rozdílné údaje mohou odpovídat různým pobočkám nebo oddělením.</p>'+(contacts.length?'<div style="overflow-x:auto"><table class="audit-pages"><thead><tr><th>Stránka</th><th>E-mail</th><th>Telefon</th></tr></thead><tbody>'+contactRows+'</tbody></table></div>':'<p class="detektiv-intro">Kontaktní údaje se z textového výstupu nepodařilo rozpoznat.</p>');
  const headlineText=headline?'Na úvodní stránce je jako hlavní sdělení rozpoznáno „'+esc(headline)+'“.':'Hlavní sdělení úvodní stránky se z dostupného textu nepodařilo rozpoznat.';
  const claims=[];
- const claimPattern=/\b(?:garance\w*|záruk\w*|nejlepší|nejrychlejší|nejlevnější|největší|více než\s+\d+\s*(?:let|rok|roky|roků)|\d+\s*(?:%|let|roků|rok|hodin|dnů|dní))\b/giu;
+ const claimPattern=/(?<![\p{L}\p{N}_])(?:garance\p{L}*|záruk\p{L}*|nejlepší|nejrychlejší|nejlevnější|největší|více než\s+\d+\s*(?:let|roky|roků|rok)|\d+\s*(?:%|let|roků|rok|hodin|dnů|dní))(?![\p{L}\p{N}_])/giu;
  for(const page of usable){
-  const raw=page.parsed.body||'';
+  const raw=auditVisibleText(page);
   for(const match of raw.matchAll(claimPattern)){
    const index=match.index||0;
    const start=Math.max(raw.lastIndexOf('\n',index),raw.lastIndexOf('.',index),raw.lastIndexOf('!',index),raw.lastIndexOf('?',index))+1;
@@ -365,7 +372,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.145';
+ const ruleVersion='2026-11-03.146';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -1069,14 +1076,14 @@ form.addEventListener('submit',async event=>{
    const target=competitorUrls[index];
    if(result.status!=='fulfilled')return{url:target.href,status:'Nelze načíst',title:'',headline:'',price:false,contact:false,trust:false};
    const parsed=parsePageText(result.value,target);
-   const all=(parsed.raw+' '+parsed.body).toLowerCase();
-   return{url:target.href,status:'Prověřeno',title:parsed.title,headline:parsed.h1s[0]||'',price:/\b(cena|ceník|cenik|kč|czk|od\s*\d+)\b/i.test(all),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(all),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(all)};
+   const all=auditVisibleText({parsed}).toLowerCase();
+   return{url:target.href,status:'Prověřeno',title:parsed.title,headline:parsed.h1s[0]||'',price:priceSignalPattern().test(all),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(all),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(all)};
   });
   if(competitorUrls.length){
    const ownPages=pages.filter(item=>item.raw);
-   const ownText=ownPages.map(item=>item.raw+' '+(item.parsed?.body||'')).join(' ').toLowerCase();
+   const ownText=ownPages.map(auditVisibleText).join(' ').toLowerCase();
    const ownHome=ownPages.find(item=>item.type==='Úvodní stránka')||ownPages[0];
-   competitors.unshift({url:'https://'+url.hostname,status:'Váš web',title:ownHome?.title||'',headline:ownHome?.h1||'',price:/\b(cena|ceník|cenik|kč|czk|od\s*\d+)\b/i.test(ownText),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(ownText),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(ownText)});
+   competitors.unshift({url:'https://'+url.hostname,status:'Váš web',title:ownHome?.title||'',headline:ownHome?.h1||'',price:priceSignalPattern().test(ownText),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(ownText),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(ownText)});
   }
   crawlMeta.scanned=pages.filter(item=>item.raw).length;
   const findings=[

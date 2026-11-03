@@ -667,7 +667,10 @@ function parsePageText(text,url){
 function stripMarkdownInlineCode(text){
  const source=String(text),runs=[...source.matchAll(/`+/g)];let output='',cursor=0;
  for(let index=0;index<runs.length;index++){
-  const opening=runs[index];let closing=index+1;
+  const opening=runs[index];let escapes=0;
+  for(let before=opening.index-1;before>=0&&source[before]==='\\';before--)escapes++;
+  if(escapes%2)continue;
+  let closing=index+1;
   while(closing<runs.length&&runs[closing][0].length!==opening[0].length)closing++;
   if(closing===runs.length)continue;
   const end=runs[closing].index+runs[closing][0].length;

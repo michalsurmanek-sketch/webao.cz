@@ -57,6 +57,10 @@ function estimateEffort(item){
 function advice(item){
  const key=item.name.toLowerCase();
  if(item.action)return item.action;
+ if(!Number.isFinite(item.points)&&/titulek|description|nadpis/.test(key))return 'Nejprve ověřte příslušný prvek přímo ve zdrojovém HTML nebo v prohlížeči. Textová čtečka jeho přítomnost nepotvrdila; upravujte jej až po ověření skutečného stavu.';
+ if(key.includes('pagespeed'))return 'Zopakujte měření po obnovení dostupnosti nebo kvóty PageSpeed Insights. Nedostupný výsledek sám o sobě neznamená pomalý nebo chybný web.';
+ if(key.includes('http varianta'))return 'Ověřte přesměrování dané HTTP adresy a konečnou HTTPS adresu v prohlížeči nebo síťovém nástroji. Konfiguraci měňte až podle skutečného výsledku.';
+ if(key.includes('mdn http observatory'))return 'Pokud chcete externí kontrolu hlaviček, zaškrtněte před novým během volbu MDN HTTP Observatory. Pokud již byla zapnuta a požadavek selhal, zkuste ji znovu později.';
  if(key.includes('duplicitní titulek'))return 'Vytvořte pro každou z uvedených URL samostatný titulek odpovídající jejímu obsahu.';
  if(key.includes('alternativní texty obrázků'))return 'Zkontrolujte každý uvedený obrázek v HTML. Přidejte popisný alt tam, kde obrázek předává informaci; u čistě dekorativních obrázků ponechte alt prázdný.';
  if(key.includes('titulek'))return item.ok?'Udržujte titulek jedinečný a výstižný pro konkrétní stránku.':(item.evidence&&item.evidence!=='Veřejný textový výstup neobsahuje rozpoznaný řádek Title.'?'Upravte délku titulku a ponechte v něm hlavní téma stránky.':'Doplňte jedinečný titulek stránky, který stručně vystihne její nabídku.');
@@ -329,7 +333,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.129';
+ const ruleVersion='2026-11-03.130';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -1261,7 +1265,7 @@ form.addEventListener('submit',async event=>{
    findings.push({area:'SEO a obsah',name:'Rozdílné veřejné kontakty — hypotéza',ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'V kontrolovaném vzorku bylo rozpoznáno více e-mailových adres nebo telefonních čísel. Mohou patřit pobočkám či oddělením; ověřte jejich aktuálnost a účel.',evidence,impact:'Nejasné nebo zastaralé kontakty mohou návštěvníka odvést od správné cesty ke společnosti.',confidence:'Nízká — omezený vzorek a možné legitimní rozdíly',effort:'Nízká'});
   }
   for(const [area] of areaDefs){
-   if(!findings.some(item=>item.area===area))findings.push({area,name:'Kontrola oblasti: '+area,ok:false,points:null,detail:'Tato oblast zatím nemá napojené spolehlivé měření. Není zahrnuta do celkového procenta.'});
+   if(!findings.some(item=>item.area===area))findings.push({area,name:'Kontrola oblasti: '+area,ok:false,points:null,detail:'V tomto běhu nebyl získán skórovaný výsledek této oblasti. Do celkového procenta nevstupuje; dostupnost externího měření a rozsah kontroly jsou uvedeny v reportu.'});
   }
   out.querySelector('.result-summary').textContent='Dokončuji vyhodnocení '+findings.length+' nálezů a připravuji report.';
   const branding=await getReportBranding();

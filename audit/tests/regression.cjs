@@ -1,0 +1,167 @@
+// Run with: node audit/tests/regression.cjs
+(async()=>{
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={localStorage:{getItem:()=>JSON.stringify([{checkedAt:'old',score:50}]),setItem:()=>{throw Error('quota')}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function saveLocalAuditHistory('),s.indexOf('function clearLocalAuditHistory(')),c);let h=c.saveLocalAuditHistory('example.cz',{checkedAt:'new',score:100});assert.equal(h.length,2);assert.equal(h[1].score,50);assert.match(h.storageWarning,/nepodařilo/);c.localStorage.getItem=()=>'{bad';h=c.saveLocalAuditHistory('example.cz',{checkedAt:'new',score:100});assert.equal(h.length,1);assert.match(h.storageWarning,/nepodařilo/);c.localStorage.setItem=()=>{};h=c.saveLocalAuditHistory('example.cz',{checkedAt:'new',score:100});assert(!h.storageWarning);console.log('PASS: history survives write failures and malformed storage');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);
+const c={URL,TextEncoder};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function queryPageSpeedStrategies('),s.indexOf('async function queryDns('))+s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
+const url=new URL('https://example.cz/');const pages=[{url:url.href,raw:'ok',links:['/a','/excluded','/private','https://outside.cz/a']},{url:'https://example.cz/a',raw:'ok',links:['/last','/a']}];
+const links=c.discoverPageLinks(pages,url,x=>x.endsWith('/excluded'),'User-agent: *\nDisallow: /private');assert.equal(links.length,4);assert(links.find(x=>x.url.endsWith('/private')).robotsBlocked);assert(links.find(x=>x.url.endsWith('/excluded')).excluded);assert.equal(links.find(x=>x.url.endsWith('/last')).source,'https://example.cz/a');
+assert(!s.includes('pageSpeedPromise=pagePromise.then'));assert(s.includes('const finalLinks=discoverPageLinks'));
+await (async()=>{let calls=[];c.trackPageSpeed=p=>p;c.isPageSpeedQuotaError=e=>/quota/i.test(e.message);c.queryPageSpeed=async(u,strategy)=>{calls.push(strategy);return{strategy}};
+let r=await c.queryPageSpeedStrategies(url,true);assert.equal(r.length,2);assert.equal(calls.length,2);assert(r.every(x=>x.status==='fulfilled'));
+calls=[];r=await c.queryPageSpeedStrategies(url,false);assert.equal(calls.length,0);assert(r.every(x=>x.status==='rejected'));
+c.queryPageSpeed=async()=>{calls.push('call');throw Error('quota exceeded')};calls=[];r=await c.queryPageSpeedStrategies(url,true);assert.equal(calls.length,1);assert.equal(r.length,2);
+c.queryPageSpeed=async(u,strategy)=>{calls.push(strategy);if(strategy==='mobile')throw Error('temporary failure');return{strategy}};calls=[];r=await c.queryPageSpeedStrategies(url,true);assert.equal(calls.length,2);assert.equal(r[1].status,'fulfilled');console.log('PASS: crawl inventory and independent PageSpeed scheduling');})();
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8'),s=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const memory=new Map(),out={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};const context={console,URL,TextEncoder,window:{},document:{querySelector:sel=>sel==='#result'?out:{}},localStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)}};vm.createContext(context);vm.runInContext(s.slice(0,s.indexOf("form.addEventListener('submit'")),context);
+const findings=[{area:'DNS a e-mail',name:'SPF záznam',points:50,ok:false,detail:'=cmd <script>test</script>'},context.buildMxFinding([{data:'0 .'},{data:'10 mail.example.cz.'}])];
+context.renderReport('example.cz',findings,[],{});assert.match(out.innerHTML,/Pokrytí váhy kontrol/);assert.match(out.innerHTML,/PRIORITA/);assert(!out.innerHTML.includes('<script>test</script>'));assert.match(out.innerHTML,/&lt;script&gt;test/);assert.match(context.window.currentAuditData.ruleVersion,/^\d{4}-\d{2}-\d{2}\.\d+$/);
+context.renderReport('example.cz',findings,[],{});assert.match(out.innerHTML,/Poslední změna: 0 bodů/);
+context.renderReport('example.cz',[...findings,{area:'DNS a e-mail',name:'Extra unknown',points:null}],[],{});assert.match(out.innerHTML,/podíl měření v oblastech/);assert(!out.innerHTML.includes('Poslední změna:'));
+console.log('PASS: complete report generation, escaping, priorities and history integration');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);
+let raw=JSON.stringify({a:null,b:5,c:[],d:{status:'wrong',note:7,owner:'Joe'},e:{status:'Opraveno',note:'ok'}});let written;
+const c={localStorage:{getItem:()=>raw,setItem:(_,v)=>{written=v}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function loadLocalFindingWork('),s.indexOf('function renderFindingWorkControls(')),c);
+assert.equal(Object.keys(c.loadLocalFindingWork('x')).length,2);assert.equal(c.loadLocalFindingWork('x').d.status,'Nový');assert.equal(c.loadLocalFindingWork('x').d.note,'');assert(c.saveLocalFindingWork('x','f','note','new'));assert.equal(JSON.parse(written).f.note,'new');assert(!c.saveLocalFindingWork('x','f','oops','new'));
+raw='[]';assert.equal(Object.keys(c.loadLocalFindingWork('x')).length,0);raw='{bad';assert.equal(Object.keys(c.loadLocalFindingWork('x')).length,0);
+c.localStorage.setItem=()=>{throw Error('quota')};assert(!c.saveLocalFindingWork('x','f','note','new'));
+// Execute the real export and capture every CSV row, including range notes.
+let blob;const rowData={host:'example.cz',pages:[],areas:[],findings:[],coverage:20,score:100,crawlMeta:{note:'range note',excludedUrlExamples:[{url:'https://example.cz/x',source:'test'}]}};
+c.window={currentAuditData:rowData};c.Blob=class{constructor(parts){blob=parts[0]}};c.URL={createObjectURL:()=> 'blob:stub',revokeObjectURL:()=>{}};c.document={createElement:()=>({click(){}})};c.setTimeout=()=>{};
+vm.runInContext(s.slice(s.indexOf('function downloadAuditCsv('),s.indexOf('function auditComparisonScope(')),c);c.downloadAuditCsv();
+const rows=blob.replace(/^\uFEFF/,'').split('\r\n').map(row=>Array.from(row.matchAll(/"(?:[^"]|"")*"(?=;|$)/g),m=>m[0]));assert(rows.every(row=>row.length===18));assert.match(rows[0][17],/Poznámka k rozsahu/);assert.match(blob,/range note/);
+assert(s.includes("dispatchEvent(new Event('change'))"));assert(s.includes("renderFindingWorkNote(progress)"));
+console.log('PASS: UI storage, fixed-width CSV and update integration checks');
+// Exercise the real work-control handler, including filtering and print-note refresh.
+let handler,filterRefreshes=0,removed=0,printHtml='',storageLabel='';
+const card={dataset:{},querySelector:()=>({remove(){removed++}}),insertAdjacentHTML:(_,html)=>{printHtml=html}};
+const field={dataset:{workField:'status'},value:'Opraveno',tagName:'SELECT',type:'select-one',addEventListener:(_,fn)=>{handler=fn},closest:()=>card};
+const container={dataset:{workKey:encodeURIComponent('example.cz|Title')},querySelectorAll:()=>[field],querySelector:()=>({set textContent(v){storageLabel=v}})};
+c.out={querySelectorAll:()=>[container],querySelector:()=>({dispatchEvent:()=>{filterRefreshes++}})};c.Event=class{};c.esc=v=>String(v);c.localStorage.setItem=()=>{};
+vm.runInContext(s.slice(s.indexOf('function renderFindingWorkNote('),s.indexOf('function initFindingFilters('))+s.slice(s.indexOf('function initFindingWorkControls('),s.indexOf('const coverageLimitations=')),c);
+c.initFindingWorkControls('example.cz');handler();assert.equal(card.dataset.workStatus,'Opraveno');assert.equal(filterRefreshes,1);assert.equal(removed,1);assert.match(printHtml,/Opraveno/);assert.match(storageLabel,/Uloženo/);
+c.localStorage.setItem=()=>{throw Error('quota')};handler();assert.match(storageLabel,/nepodařilo/);
+console.log('PASS: actual status handler updates filtering, print notes and storage warnings');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function parsePageText('),s.indexOf('function decodeSitemapLoc(')),c);
+const page=c.parsePageText('Title: Test\n# Main\n[Contact](/contact) [Relative](child) [WWW](https://www.example.cz/a) [Outside](https://other.cz/) ![Alt](/picture.png) [Picture](/picture.png) [![Logo](/logo.png)](/home) [Anchor](#part) [Mail](mailto:a@example.cz) [Bad](javascript:alert) [Auth](https://user:pw@example.cz/a)',new URL('https://example.cz/path/'));
+assert.equal(page.links.length,5);assert(page.links.includes('https://example.cz/contact'));assert(page.links.includes('https://example.cz/path/child'));assert(page.links.includes('https://www.example.cz/a'));assert(page.links.includes('https://example.cz/picture.png'));assert(page.links.includes('https://example.cz/home'));assert.equal(page.externalLinks.length,1);assert.equal(page.images.length,2);assert.equal(page.images[0].alt,'Alt');assert(!page.links.some(x=>/mailto:|javascript:|user:|#/.test(x)));
+console.log('PASS: 10 page extraction assertions');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={};vm.createContext(c);
+vm.runInContext(s.slice(s.indexOf('function isPriorityFinding('),s.indexOf('function renderReport('))+s.slice(s.indexOf('function buildMxFinding('),s.indexOf('function analyzeSpf(')),c);
+const eligible=c.isPriorityFinding;
+assert(eligible({points:50,ok:false}));assert(!eligible({points:100,ok:true}));assert(!eligible({points:null,state:'NELZE OVĚŘIT'}));assert(!eligible({points:null,severity:'Závažná'}));assert(eligible({points:null,requiresAction:true}));assert(eligible({priorityPoints:30}));assert(!eligible({priorityPoints:null}));
+const mx=(...data)=>c.buildMxFinding(data.map(data=>({data})));
+assert(eligible(mx('0 .','10 mail.example.cz.')));assert(!eligible(mx('0 .')));assert(!eligible(mx('10 mail.example.cz.')));assert.match(mx('0 .').action,/Ponechte Null MX/);assert.match(mx('0 .','10 mail.example.cz.').action,/odstraňte kořenový/);
+assert(s.includes('findings.filter(isPriorityFinding)'));assert(s.includes('affectedCount:new Set'));
+console.log('PASS: JavaScript syntax and 14 priority assertions');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function auditComparisonScope('),s.indexOf('function saveLocalAuditHistory(')),c);
+const checks=[{area:'SEO',name:'Title',points:100},{area:'DNS',name:'SPF',points:50}],pages=[{url:'https://example.cz/',raw:'ok'}];
+const scope=(f=checks,p=pages)=>c.auditComparisonScope(f,p),a=scope();
+assert.equal(a,scope([...checks].reverse()));
+assert.equal(a,scope(checks.map(x=>({...x,points:0}))));
+assert.notEqual(a,scope([...checks,{area:'SEO',name:'unknown',points:null}]));
+assert.notEqual(scope([...checks,{area:'SEO',name:'unknown',points:null}]),scope([...checks,{area:'DNS',name:'unknown',points:null}]));
+assert.equal(a,scope([...checks,{area:'SEO',name:'Kontrola oblasti: SEO',points:null}]));
+assert.notEqual(a,scope(checks.slice(1)));assert.notEqual(a,scope(checks,[...pages,{url:'https://example.cz/contact',raw:'ok'}]));
+assert(c.comparableAuditRuns({ruleVersion:'v',comparisonScope:a},{ruleVersion:'v',comparisonScope:a}));
+assert(!c.comparableAuditRuns({ruleVersion:'v',comparisonScope:a},{ruleVersion:'v',comparisonScope:scope([...checks,{area:'SEO',name:'unknown',points:null}])}));
+assert(s.includes('comparisonScope,coverage:totalWeight'));assert(s.includes('entry.coverage'));assert(s.includes('<th>Pokrytí váhy kontrol</th>'));
+console.log('PASS: JavaScript syntax and 12 history coverage assertions');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function normalizeDnsTxt('),s.indexOf('function buildMxFinding(')),c);
+const response=(data,Status=0)=>({status:'fulfilled',value:{Status,Answer:data===null?[]:[{type:16,data}]}});
+const finding=(...r)=>c.buildDkimFinding(r,r.map((_,i)=>'s'+i));
+assert.equal(finding(response('unrelated TXT')).points,null);
+assert.match(finding(response('v=DKIM1; p=')).detail,/odvolané/);
+assert.match(finding(response('v=DKIM1; p=ABCDEF')).detail,/nepotvrzuje platnost/);
+assert.equal(finding(response('v=DKIM1; p=ABCDEF')).points,null);
+assert.match(finding({status:'rejected'}).detail,/Neúspěšných DNS dotazů: 1/);
+assert.equal(finding(response(null)).state,'NELZE OVĚŘIT');
+assert.match(finding(response('v=DKIM1; p=ABC',2)).detail,/Neúspěšných/);
+assert.match(finding(response('"v=DKIM1; " "p="')).detail,/odvolané/);
+assert.match(finding(response('v=DKIM1; p='),response('v=DKIM1; p=ABC')).detail,/kandidátů/);
+assert(!s.includes('dkimMatches'));
+console.log('PASS: JavaScript syntax and 10 DKIM assertions');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function buildMxFinding('),s.indexOf('function analyzeSpf(')),c);
+const mx=(...data)=>c.buildMxFinding(data.map(data=>({data})));
+assert.match(mx('0 .').detail,/výslovně nepřijímá/);assert.equal(mx('0 .').points,null);
+assert.equal(mx('0 .','10 mail.example.cz.').severity,'Závažná');assert.equal(mx('10 .').ok,false);
+assert.equal(mx('0 .','0 .').ok,false);assert.match(mx().detail,/A\/AAAA/);
+assert.match(mx('10 mail.example.cz.').detail,/nepotvrzuje/);assert.equal(mx('10 mail.example.cz.').points,null);
+assert.equal(mx('  0   . ').ok,true);assert.match(mx('10 mail.example.cz.').evidence,/10 mail/);
+console.log('PASS: JavaScript syntax and 10 MX assertions');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8'),script=html.match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(script);
+const context={TextEncoder};vm.createContext(context);vm.runInContext(script.slice(script.indexOf('function normalizeRobotsPath('),script.indexOf('function pageType(')),context);
+const allows=context.robotsAllowsPath;
+const cases=[
+['User-agent: *\nDisallow: /café','/caf%C3%A9',false],
+['User-agent: *\nDisallow: /caf%c3%a9','/café',false],
+['User-agent: *\nDisallow: /private','/%70rivate',false],
+['User-agent: *\nDisallow: /a%2fb','/a%2Fb',false],
+['User-agent: *\nDisallow: /a%2fb','/a/b',true],
+['User-agent: *\nDisallow: /a/b','/a%2Fb',true],
+['User-agent: *\rDisallow: /private','/private',false],
+['User-agent: *\nDisallow: /\nAllow: /public','/public',true],
+['User-agent: *\nDisallow: /foo\nAllow: /foo','/foo',true],
+['User-agent: *\nDisallow: /*.pdf$','/a.pdf',false],
+['User-agent: *\nDisallow: /*.pdf$','/a.pdf?download=1',true],
+['User-agent: *\nDisallow: /','/robots.txt',true],
+['User-agent: Audit\nDisallow: /\nUser-agent: *\nAllow: /','/',true],
+['User-agent: WEBAOAudit\nDisallow: /secret\nUser-agent: webaoaudit\nDisallow: /other','/other',false],
+['User-agent: WEBAOAudit\nAllow: /\nUser-agent: *\nDisallow: /','/',true],
+['User-agent: *\nDisallow: /Private','/private',true],
+['User-agent: *\nDisallow: /x%2A','/x*',true],
+['User-agent: *\nDisallow: /x%2a','/x%2A',false]
+];
+for(const [robots,path,expected] of cases)assert.equal(allows(robots,path),expected,JSON.stringify({robots,path}));
+console.log('PASS: JavaScript syntax and '+cases.length+' robots cases');
+
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8'),script=html.match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(script);
+const context={URL};vm.createContext(context);vm.runInContext(script.slice(script.indexOf('function isSameSiteHost('),script.indexOf('function extractPublicContacts(')),context);
+const urls=text=>Array.from(context.getSitemapUrls(text,'example.cz'));
+assert.deepEqual(urls('<urlset><url><loc>https://example.cz/?a=1&amp;b=2</loc></url></urlset>'),['https://example.cz/?a=1&b=2']);
+assert.deepEqual(urls('<urlset><loc><![CDATA[https://example.cz/?a=1&b=2]]></loc></urlset>'),['https://example.cz/?a=1&b=2']);
+assert.deepEqual(urls('<urlset><loc>https://example.cz/end.</loc><loc>https://example.cz/end;</loc></urlset>'),['https://example.cz/end.','https://example.cz/end;']);
+assert.deepEqual(urls('<urlset><loc>https://example.cz/a</loc></urlset> [annotation](https://example.cz/unrelated)'),['https://example.cz/a']);
+assert.equal(context.decodeSitemapLoc('a&amp;amp;b&#38;c&#x26;d'),'a&amp;b&c&d');
+assert.equal(context.decodeSitemapLoc('&#x110000; &#xD800;'),'&#x110000; &#xD800;');
+assert.deepEqual(urls('<urlset><loc>https://outside.cz/a</loc><loc>https://example.cz/a</loc><loc>https://example.cz/a</loc></urlset>'),['https://example.cz/a']);
+assert.deepEqual(Array.from(context.getSitemapLocations('<sitemapindex><sitemap><loc>https://example.cz/sitemap.xml?a=1&amp;b=2</loc></sitemap></sitemapindex>','example.cz')),['https://example.cz/sitemap.xml?a=1&b=2']);
+assert.deepEqual(urls('[Page](https://example.cz/markdown)'),['https://example.cz/markdown']);
+console.log('PASS: JavaScript syntax and 9 sitemap regression cases');
+for(const candidate of ['ftp://example.cz/a','https://user:password@example.cz/a','https://example.cz:8443/a'])assert.equal(context.normalizeCrawlUrl(candidate,new URL('https://example.cz/')),'');
+console.log('PASS: 3 unsupported crawl URL cases');
+
+})();
+console.log('PASS: all audit regression suites');
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -613,7 +613,7 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots){
  for(const page of pages){
   if(!page.raw||!Array.isArray(page.links))continue;
   for(const raw of page.links){
-   const url=normalizeCrawlUrl(raw,baseUrl);if(!url)continue;
+   const url=normalizeCrawlUrl(raw,baseUrl);if(!url||url===new URL('/',baseUrl).href)continue;
    const target=new URL(url);
    if(!isSameSiteHost(target.hostname,baseUrl.hostname)||found.has(url))continue;
    found.set(url,{url,source:page.url,excluded:isExcluded(url),robotsBlocked:!robotsAllowsPath(robots,target.pathname+target.search)});

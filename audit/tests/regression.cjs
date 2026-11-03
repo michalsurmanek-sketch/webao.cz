@@ -242,6 +242,13 @@ c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};a
 calls=[];c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503}};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/'),/503/);assert.equal(calls.length,1);
 console.log('PASS: reader preserves requested origin, protocol and query without silent HTTP fallback; input schemes are case insensitive');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function parsePageText('),s.indexOf('function decodeSitemapLoc(')),c);
+const page=c.parsePageText('Title: Article\nMarkdown Content:\n# Using `[example](/fake)`\nHere is `[fake](/fake)` and ``![fake](/fake.png) `code` ``.\n[real](/real) ![real image](/real.png)\n`unmatched [valid](/valid)',new URL('https://example.cz/'));
+assert.equal(page.links.length,2);assert(page.links.includes('https://example.cz/real'));assert(page.links.includes('https://example.cz/valid'));assert.equal(page.images.length,1);assert.equal(page.images[0].url,'https://example.cz/real.png');assert.equal(page.h1s.length,1);assert(page.body.includes('[fake](/fake)'));
+assert.match(c.stripMarkdownInlineCode('before ``code ` inner`` after'),/^before +after$/);
+console.log('PASS: inline code examples do not create crawl links or image findings; unmatched backticks preserve actual text');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

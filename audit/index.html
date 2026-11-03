@@ -28,6 +28,12 @@
 <script>
 let auditInProgress=false;
 let pageSpeedChecksCompleted=0;
+function resetAuditRunState(){
+ pageSpeedChecksCompleted=0;
+ window.currentAuditData=null;
+ window.currentAuditScreenshots=[];
+ window.currentAuditScenarios=[];
+}
 function trackPageSpeed(promise){return promise.finally(()=>{pageSpeedChecksCompleted++;});}
 const form=document.querySelector('#audit-form');
 const out=document.querySelector('#result');
@@ -356,7 +362,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.135';
+ const ruleVersion='2026-11-03.137';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -445,6 +451,13 @@ function assertReadableSource(text){
  if(warning)throw new Error('Textová čtečka oznámila chybu cílového zdroje ('+warning[1]+'). Obsah nebyl použit pro hodnocení webu.');
  return value;
 }
+function lighthouseScorePoints(score){
+ return Number.isFinite(score)&&score>=0&&score<=1?Math.round(score*100):null;
+}
+function lighthouseAuditScored(audit){
+ return !!(audit&&lighthouseScorePoints(audit.score)!==null&&!['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode));
+}
+function nonnegativeMetric(value){return Number.isFinite(value)&&value>=0?value:null;}
 function assertPageSpeedResult(payload){
  if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object')throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
  const error=payload.lighthouseResult.runtimeError;
@@ -799,6 +812,7 @@ form.addEventListener('submit',async event=>{
  const excludedPaths=(document.querySelector('#excludedPaths').value||'').split(',').map(path=>path.trim()).filter(Boolean).map(path=>path.startsWith('/')?path:'/'+path);
  const competitorUrls=[...new Map((document.querySelector('#competitors').value||'').split(/[,;\s]+/).filter(Boolean).map(normalize).filter(candidate=>candidate&&(!url||!isSameSiteHost(candidate.hostname,url.hostname))).map(candidate=>[candidate.hostname,candidate])).values()].slice(0,3);
  out.style.display='block';
+ resetAuditRunState();
  if(!url){out.innerHTML='<h2>Zkontrolujte adresu</h2><p class="result-summary">Zadejte platnou veřejnou doménu, například firma.cz.</p>';return}
  auditInProgress=true;
  const submitButton=form.querySelector('button[type="submit"]');
@@ -832,7 +846,7 @@ form.addEventListener('submit',async event=>{
   const dnsPromise=Promise.allSettled([queryDns(dnsDomain,'MX'),queryDns(dnsDomain,'TXT'),queryDns('_dmarc.'+dnsDomain,'TXT'),queryDns(dnsDomain,'A'),queryDns(dnsDomain,'AAAA'),queryDns(dnsDomain,'CAA'),queryDns(dnsDomain,'NS'),queryDns(dnsDomain,'CNAME'),...dkimSelectors.map(selector=>queryDns(selector+'._domainkey.'+dnsDomain,'TXT'))]);
   out.querySelector('.result-summary').textContent='Čekám na veřejné zdroje. PageSpeed má limit 45 s na pokus; ostatní služby mají vlastní časové limity. Výpadek jedné služby neukončí celý audit.';
   const publicSourceWaitStart=Date.now();
-  waitingTimer=setInterval(()=>{const status=out.querySelector('.result-summary');if(status&&status.textContent.startsWith('Čekám na veřejné zdroje'))status.textContent='Čekám na veřejné zdroje ('+Math.floor((Date.now()-publicSourceWaitStart)/1000)+' s). PageSpeed: '+pageSpeedChecksCompleted+'/4 měření dokončeno; jedno může trvat až 45 s na pokus. Ostatní kontroly běží souběžně.'},1000);
+  waitingTimer=setInterval(()=>{const status=out.querySelector('.result-summary');if(status&&status.textContent.startsWith('Čekám na veřejné zdroje'))status.textContent='Čekám na veřejné zdroje ('+Math.floor((Date.now()-publicSourceWaitStart)/1000)+' s). Dokončené požadavky PageSpeed: '+pageSpeedChecksCompleted+'. Jedno měření může trvat až 45 s na pokus. Ostatní kontroly běží souběžně.'},1000);
   const [pageResult,dnsResults,rdapResult,competitorResults,pageSpeedResults,httpVariantResults,observatoryResult]=await Promise.all([pagePromise,dnsPromise,queryRdap(url.hostname.replace(/^www\./i,'')).then(value=>({status:'fulfilled',value}),error=>({status:'rejected',reason:error})),competitorPromise,pageSpeedPromise,httpVariantPromise,observatoryPromise]);
   if(waitingTimer){clearInterval(waitingTimer);waitingTimer=null;}
   const page=pageResult.status==='fulfilled'?pageResult.value:'';
@@ -1168,7 +1182,7 @@ form.addEventListener('submit',async event=>{
     for(const [auditId,findingName] of [['document-title','Titulek stránky'],['meta-description','Meta description']]){
      const audit=audits[auditId];
      const existing=findings.find(item=>item.area==='SEO a obsah'&&item.name===findingName&&!Number.isFinite(item.points));
-     if(!audit||!existing||!Number.isFinite(audit.score)||['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode))continue;
+     if(!existing||!lighthouseAuditScored(audit))continue;
      const points=Math.round(audit.score*100),passed=points>=90;
      existing.ok=passed;existing.points=points;existing.state=undefined;
      existing.severity=passed?'Nízká':'Střední';
@@ -1181,21 +1195,21 @@ form.addEventListener('submit',async event=>{
    const screenshotData=screenshotAudit&&screenshotAudit.data||lighthouse.fullPageScreenshot&&lighthouse.fullPageScreenshot.screenshot&&lighthouse.fullPageScreenshot.screenshot.data||'';
    const normalizedScreenshot=screenshotData?(screenshotData.startsWith('data:image/')?screenshotData:'data:image/jpeg;base64,'+screenshotData):'';
    if(/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(normalizedScreenshot)&&normalizedScreenshot.length<1500000)pageSpeedScreenshots.push({device,url:payload.id||url.origin+'/',data:normalizedScreenshot});
-   const labLcp=audits['largest-contentful-paint']&&audits['largest-contentful-paint'].numericValue;
-   const labCls=audits['cumulative-layout-shift']&&audits['cumulative-layout-shift'].numericValue;
+   const labLcp=nonnegativeMetric(audits['largest-contentful-paint']?.numericValue);
+   const labCls=nonnegativeMetric(audits['cumulative-layout-shift']?.numericValue);
    const pageMetrics=payload.loadingExperience&&payload.loadingExperience.metrics||{};
    const originMetrics=payload.originLoadingExperience&&payload.originLoadingExperience.metrics||{};
    const countFieldCwvMetrics=metricSet=>{
     const interaction=metricSet.INTERACTION_TO_NEXT_PAINT||metricSet.EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT||metricSet.INP;
-    return [metricSet.LARGEST_CONTENTFUL_PAINT_MS&&metricSet.LARGEST_CONTENTFUL_PAINT_MS.percentile,metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE&&metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile,interaction&&interaction.percentile].filter(Number.isFinite).length;
+    return [metricSet.LARGEST_CONTENTFUL_PAINT_MS&&metricSet.LARGEST_CONTENTFUL_PAINT_MS.percentile,metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE&&metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile,interaction&&interaction.percentile].filter(value=>nonnegativeMetric(value)!==null).length;
    };
    const pageFieldMetricCount=countFieldCwvMetrics(pageMetrics),originFieldMetricCount=countFieldCwvMetrics(originMetrics);
    const hasPageFieldData=pageFieldMetricCount>=originFieldMetricCount,metrics=hasPageFieldData?pageMetrics:originMetrics;
    const fieldScope=hasPageFieldData?'pro URL':'za celý origin';
-   const fieldLcp=metrics.LARGEST_CONTENTFUL_PAINT_MS&&metrics.LARGEST_CONTENTFUL_PAINT_MS.percentile;
-   const fieldCls=metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE&&metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile;
+   const fieldLcp=nonnegativeMetric(metrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile);
+   const fieldCls=nonnegativeMetric(metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile);
    const inpMetric=metrics.INTERACTION_TO_NEXT_PAINT||metrics.EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT||metrics.INP;
-   const fieldInp=inpMetric&&inpMetric.percentile;
+   const fieldInp=nonnegativeMetric(inpMetric?.percentile);
    const metricDetails=[];
    if(Number.isFinite(fieldLcp))metricDetails.push('terénní LCP p75 '+(fieldLcp/1000).toFixed(2)+' s ('+fieldScope+')');
    if(Number.isFinite(fieldCls))metricDetails.push('terénní CLS p75 '+(Number(fieldCls)/1000).toFixed(3)+' ('+fieldScope+')');
@@ -1226,7 +1240,7 @@ form.addEventListener('submit',async event=>{
     const detailItems=Array.isArray(auditDetails.items)?auditDetails.items:[];
     const itemEvidence=detailItems.slice(0,8).map(item=>Object.entries(item).filter(([key,value])=>value!==null&&value!==undefined&&typeof value!=='object').map(([key,value])=>key+': '+value).join(', ')).filter(Boolean);
     const warnings=Array.isArray(audit.warnings)?audit.warnings.filter(Boolean):[];
-    const measured=Number.isFinite(audit.score)&&!['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode);
+    const measured=lighthouseAuditScored(audit);
     const passed=measured&&audit.score>=0.9;
     const detailParts=[audit.displayValue,audit.explanation,arrayJoin(warnings,' ')].filter(Boolean);
     if(itemEvidence.length)detailParts.push('Nalezené položky: '+arrayJoin(itemEvidence,' | '));
@@ -1242,8 +1256,7 @@ form.addEventListener('submit',async event=>{
    if(strategy==='mobile'){
     const privacyCookieAudits=Object.entries(audits).filter(([id,audit])=>/third.?party.*cookies?|cookies?.*third.?party/i.test(id+' '+(audit&&audit.title||'')));
     for(const [auditId,audit] of privacyCookieAudits.slice(0,4)){
-     const mode=audit.scoreDisplayMode||'';
-     const measured=Number.isFinite(audit.score)&&!['manual','notApplicable','informative','error'].includes(mode);
+     const measured=lighthouseAuditScored(audit);
      const points=measured?Math.round(audit.score*100):null;
      const details=audit.details||{};
      const items=Array.isArray(details.items)?details.items:[];
@@ -1254,7 +1267,7 @@ form.addEventListener('submit',async event=>{
    }
    if(strategy==='mobile'){
     for(const auditId of ['viewport','tap-targets','font-size','content-width']){
-     const audit=audits[auditId];if(!audit||!Number.isFinite(audit.score))continue;
+     const audit=audits[auditId];if(!lighthouseAuditScored(audit))continue;
      const points=Math.round(audit.score*100);
      findings.push({area:'Mobilní použitelnost',name:'Lighthouse mobil — '+audit.title,url:url.origin+'/',ok:points>=90,points,severity:points<50?'Závažná':points<90?'Střední':'Nízká',detail:(audit.displayValue?audit.displayValue+'. ':'')+'Mobilní Lighthouse kontrola: '+points+'/100. Jde o emulaci, ne test na skutečném telefonu.',evidence:'PageSpeed Insights audit '+auditId+(audit.displayValue?' · '+audit.displayValue:''),confidence:'Vysoká pro mobilní emulaci; chování na reálných zařízeních může být jiné.'});
     }
@@ -1264,7 +1277,7 @@ form.addEventListener('submit',async event=>{
     for(const ref of refs){
      const audit=audits[ref.id];
      if(['is-on-https','no-vulnerable-libraries','csp-xss'].includes(ref.id)||/third.?party.*cookies?|cookies?.*third.?party/i.test(ref.id))continue;
-     if(!audit||!Number.isFinite(audit.score)||audit.score>=0.9||(ref.weight||0)<=0||['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode))continue;
+     if(!lighthouseAuditScored(audit)||audit.score>=0.9||(ref.weight||0)<=0)continue;
      categoryRefs.push({category,area,label,ref,audit});
     }
    }
@@ -1275,7 +1288,7 @@ form.addEventListener('submit',async event=>{
    }
    for(const [category,area,label] of pageSpeedCategoryMap){
     const rawScore=categories[category]&&categories[category].score;
-    const points=Number.isFinite(rawScore)?Math.round(rawScore*100):null;
+    const points=lighthouseScorePoints(rawScore);
     const speedDetails=area==='Rychlost a Core Web Vitals'?(metricDetails.length?arrayJoin(metricDetails,'; ')+'. ':'')+'Lab měření je simulace; terénní data se mohou vztahovat k originu místo konkrétní stránky.':'Automatický Lighthouse signál; ruční posouzení nenahrazuje.';
     findings.push({area,name:'PageSpeed Insights — '+label+' ('+device+')',ok:points!==null&&points>=90,points,state:points===null?'NELZE OVĚŘIT':undefined,severity:points===null?'Informační':points<50?'Kritická':points<75?'Závažná':points<90?'Střední':'Nízká',detail:points===null?'Lighthouse neposkytl skóre této kategorie.':label+' skóre '+points+'/100 pro '+device+'. '+speedDetails,evidence:'Google PageSpeed Insights / Lighthouse · '+(payload.id||url.origin+'/')+(metricDetails.length?' · '+arrayJoin(metricDetails,' · '):''),confidence:'Vysoká pro tento běh Lighthouse; výsledek se může mezi běhy měnit.'});
    }

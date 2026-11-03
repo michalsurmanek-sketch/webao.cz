@@ -216,5 +216,20 @@ f=run(Array.from({length:14},()=>bad));assert(f.some(x=>x.name==='DNS záznamy'&
 const dkimOnly=Array.from({length:14},()=>bad);dkimOnly[8]=good([{type:16,data:'v=DKIM1; p=ABC'}]);f=run(dkimOnly);assert.match(f.find(x=>x.name==='DKIM (běžné selektory)').detail,/kandidátů/);
 console.log('PASS: actual DNS evaluation preserves independent successes and masks failed dependencies');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL,TextEncoder,console,document:{querySelector:()=>({})},window:{}};vm.createContext(c);vm.runInContext(s.slice(0,s.indexOf("form.addEventListener('submit'")),c);
+for(const score of [-1,1.1,NaN,Infinity,null,'1'])assert.equal(c.lighthouseScorePoints(score),null);assert.equal(c.lighthouseScorePoints(0),0);assert.equal(c.lighthouseScorePoints(1),100);
+for(const scoreDisplayMode of ['manual','notApplicable','informative','error'])assert(!c.lighthouseAuditScored({score:1,scoreDisplayMode}));assert(c.lighthouseAuditScored({score:0,scoreDisplayMode:'binary'}));
+const metrics={LARGEST_CONTENTFUL_PAINT_MS:{percentile:-1},CUMULATIVE_LAYOUT_SHIFT_SCORE:{percentile:-1},INTERACTION_TO_NEXT_PAINT:{percentile:-1}};
+const payload={lighthouseResult:{categories:{performance:{score:1.8},accessibility:{score:1},seo:{score:0.75}},audits:{viewport:{score:1,scoreDisplayMode:'notApplicable',title:'viewport'},'tap-targets':{score:-1,title:'targets'},'content-width':{score:0,title:'width'},'csp-xss':{score:1,scoreDisplayMode:'error',title:'CSP'}}},loadingExperience:{metrics}};
+c.pageSpeedResults=[{status:'fulfilled',value:payload}];c.findings=[];c.url=new URL('https://example.cz/');vm.runInContext('{'+s.slice(s.indexOf('  const pageSpeedRecommendations='),s.indexOf('  const titleGroups='))+'}',c);const f=c.findings;
+assert(!f.some(x=>x.name==='Lighthouse mobil — viewport'));assert(!f.some(x=>x.name==='Lighthouse mobil — targets'));assert.equal(f.find(x=>x.name==='Lighthouse mobil — width').points,0);assert.equal(f.find(x=>x.name==='PageSpeed Insights — výkon (mobil)').points,null);assert.equal(f.find(x=>x.name==='PageSpeed Insights — přístupnost (mobil)').points,100);assert.equal(f.find(x=>x.name==='PageSpeed Insights — SEO (mobil)').points,75);assert.equal(f.find(x=>x.name.startsWith('Terénní Core Web Vitals')).points,null);assert(f.filter(x=>Number.isFinite(x.points)).every(x=>x.points>=0&&x.points<=100));
+console.log('PASS: actual Lighthouse evaluation excludes unscored modes, out-of-range scores and invalid field metrics');
+})();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];let submit;const out={style:{},innerHTML:''};const form={addEventListener:(event,handler)=>{submit=handler}};const c={URL,TextEncoder,console,window:{currentAuditData:{host:'previous.cz'},currentAuditScreenshots:['old'],currentAuditScenarios:['old']},document:{querySelector:selector=>selector==='#audit-form'?form:selector==='#result'?out:{value:selector==='#domain'?'invalid':selector==='#pageLimit'?'6':''}}};vm.createContext(c);vm.runInContext(s,c);
+vm.runInContext('pageSpeedChecksCompleted=7',c);await submit({preventDefault(){}});assert.equal(c.window.currentAuditData,null);assert.equal(c.window.currentAuditScreenshots.length,0);assert.equal(c.window.currentAuditScenarios.length,0);assert.equal(vm.runInContext('pageSpeedChecksCompleted',c),0);assert.match(out.innerHTML,/Zkontrolujte adresu/);assert(!s.includes("'/4 měření dokončeno"));
+console.log('PASS: real submit handler resets counters and clears stale exports even for invalid input');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

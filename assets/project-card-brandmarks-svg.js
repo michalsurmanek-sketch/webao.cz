@@ -36,7 +36,7 @@ function renderPublicProjects(rows){
   card.dataset.accent=accent;
   const shortName=e(p.name||domain.replace('.cz','').toUpperCase());
   const description=e(p.summary||'Projekt sítě WEBAO');
-  const verifiedSvgLogos={plotao:'/assets/brand-logos/plotao.svg?v=20261031-source',betonao:'/assets/brand-logos/betonao.svg?v=20261031-logos2',renovao:'/assets/brand-logos/renovao.svg?v=20261031-source',slevao:'/assets/brand-logos/slevao.svg?v=20261031-logos2',vibrao:'/assets/brand-logos/vibrao.svg',casinao:'/assets/brand-logos/casinao.svg'};
+  const verifiedSvgLogos={plotao:'/assets/brand-logos/plotao.svg?v=20261031-source',betonao:'/assets/brand-logos/betonao.svg?v=20261031-logos2',renovao:'/assets/brand-logos/renovao.svg?v=20261031-source',slevao:'/assets/brand-logos/slevao.svg?v=20261031-logos2',vibrao:'/assets/brand-logos/vibrao.svg',casinao:'/assets/brand-logos/casinao.svg',opravao:'/assets/brand-logos/opravao.svg'};
   const brandSvg=verifiedSvgLogos[p.slug]||'';
   const brandLogoClass='';
   const customBrandMarkup={

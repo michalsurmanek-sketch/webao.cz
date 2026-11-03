@@ -204,5 +204,17 @@ await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];let removed='',errorCount=0;const section={innerHTML:'history',querySelector:()=>errorCount?{}:null,insertAdjacentHTML:()=>{errorCount++}};const c={out:{querySelector:()=>section},location:{reload(){throw Error('Unexpected reload')}},localStorage:{removeItem:key=>{removed=key}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function clearLocalAuditHistory('),s.indexOf('function loadLocalFindingWork(')),c);assert(c.clearLocalAuditHistory('example.cz'));assert.equal(removed,'webao-audit-history:example.cz');assert.match(section.innerHTML,/Aktuální report zůstává/);c.localStorage.removeItem=()=>{throw Error('blocked')};assert(!c.clearLocalAuditHistory('example.cz'));assert(!c.clearLocalAuditHistory('example.cz'));assert.equal(errorCount,1);
 console.log('PASS: clearing local history preserves the current report and reports failures');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL,TextEncoder,console,document:{querySelector:()=>({})},window:{}};vm.createContext(c);vm.runInContext(s.slice(0,s.indexOf("form.addEventListener('submit'")),c);
+const good=(Answer=[])=>({status:'fulfilled',value:{Status:0,Answer}}),bad={status:'rejected',reason:new Error('timeout')};const results=Array.from({length:14},()=>good());results[0]=good([{type:15,data:'10 mail.example.cz.'}]);results[1]=good([{type:16,data:'"v=spf1 -all"'}]);results[3]=good([{type:1,data:'192.0.2.1'}]);results[6]=good([{type:2,data:'ns.example.cz.'}]);results[5]=bad;
+const run=responses=>{c.dnsResults=responses;c.findings=[];c.dnsDomain='example.cz';c.dkimSelectors=['google','selector1','selector2','default','k1','mail'];vm.runInContext('{'+s.slice(s.indexOf('  const dnsOk='),s.indexOf('  const pageSpeedRecommendations='))+'}',c);return c.findings};
+let f=run(results);assert.equal(f.find(x=>x.name==='SPF záznam').points,100);assert.equal(f.find(x=>x.name==='Nameservery (NS)').points,100);assert.equal(f.find(x=>x.name==='CAA záznamy').state,'NELZE OVĚŘIT');assert.match(f.find(x=>x.name==='MX záznamy').detail,/1 veřejných MX/);
+const aaaaDown=[...results];aaaaDown[4]=bad;f=run(aaaaDown);assert.equal(f.find(x=>x.name==='DNS adresa webu (A / AAAA)').points,100);
+const txtDown=[...results];txtDown[1]=bad;f=run(txtDown);assert.equal(f.find(x=>x.name==='SPF záznam').points,null);assert.equal(f.find(x=>x.name==='Nameservery (NS)').points,100);
+const servfail=[...results];servfail[6]={status:'fulfilled',value:{Status:2}};f=run(servfail);assert.equal(f.find(x=>x.name==='Nameservery (NS)').state,'NELZE OVĚŘIT');assert.equal(f.find(x=>x.name==='SPF záznam').points,100);
+f=run(Array.from({length:14},()=>bad));assert(f.some(x=>x.name==='DNS záznamy'&&x.points===null));
+const dkimOnly=Array.from({length:14},()=>bad);dkimOnly[8]=good([{type:16,data:'v=DKIM1; p=ABC'}]);f=run(dkimOnly);assert.match(f.find(x=>x.name==='DKIM (běžné selektory)').detail,/kandidátů/);
+console.log('PASS: actual DNS evaluation preserves independent successes and masks failed dependencies');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

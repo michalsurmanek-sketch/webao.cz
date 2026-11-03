@@ -362,7 +362,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-03.138';
+ const ruleVersion='2026-11-03.139';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -655,13 +655,26 @@ function parsePageText(text,url){
  const resolve=raw=>{
   try{const target=new URL(raw,url);if(!['http:','https:'].includes(target.protocol)||target.username||target.password||target.port)return'';target.hash='';return target.href}catch{return''}
  };
- const images=[...content.matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:resolve(match[2])})).filter(image=>image.url);
+ const navigable=stripMarkdownInlineCode(content);
+ const images=[...navigable.matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:resolve(match[2])})).filter(image=>image.url);
  // Remove image syntax, not every link sharing an image URL: linked images are navigable.
- const withoutImages=content.replace(/!\[[^\]]*\]\([^)\s]+\)/g,'');
+ const withoutImages=navigable.replace(/!\[[^\]]*\]\([^)\s]+\)/g,'');
  const markdownLinks=[...withoutImages.matchAll(/\]\(([^)\s]+)\)/g)].filter(match=>!match[1].startsWith('#')).map(match=>resolve(match[1])).filter(Boolean);
  const links=[...new Set(markdownLinks.filter(href=>isSameSiteHost(new URL(href).hostname,url.hostname)))];
  const externalLinks=[...new Set(markdownLinks.filter(href=>!isSameSiteHost(new URL(href).hostname,url.hostname)))];
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,wordCount,raw:text};
+}
+function stripMarkdownInlineCode(text){
+ const source=String(text),runs=[...source.matchAll(/`+/g)];let output='',cursor=0;
+ for(let index=0;index<runs.length;index++){
+  const opening=runs[index];let closing=index+1;
+  while(closing<runs.length&&runs[closing][0].length!==opening[0].length)closing++;
+  if(closing===runs.length)continue;
+  const end=runs[closing].index+runs[closing][0].length;
+  output+=source.slice(cursor,opening.index)+source.slice(opening.index,end).replace(/[^\n]/g,' ');
+  cursor=end;index=closing;
+ }
+ return output+source.slice(cursor);
 }
 function stripMarkdownCode(text){
  let fence=null;

@@ -260,6 +260,19 @@ const xml='<urlset><loc>https://example.cz/a</loc><loc>https://shop.example.cz/p
 assert.equal(c.getSitemapLocations('Sitemap: https://shop.example.cz/sitemap.xml','example.cz').length,0);assert.equal(c.normalizeCrawlUrl('https://example.cz/a',new URL('https://shop.example.cz/')),'');
 console.log('PASS: crawls, sitemap discovery and link inventories stay on the audited origin without borrowing robots rules or rewriting protocols');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+for(const failHome of [true,false]){
+let submit,report;const errors=[];const element={value:'',checked:false,disabled:false,style:{},setAttribute(){},removeAttribute(){},scrollIntoView(){},querySelector(){return element},querySelectorAll(){return[]}};
+const out={...element,innerHTML:''},button={...element};const form={...element,addEventListener:(name,handler)=>{submit=handler},querySelector:()=>button};
+const c={URL,TextEncoder,setTimeout,clearTimeout,setInterval,clearInterval,console:{log(){},error:(...args)=>errors.push(args)},window:{},document:{querySelector:selector=>selector==='#audit-form'?form:selector==='#result'?out:selector==='#domain'?{value:'https://example.cz'}:selector==='#pageLimit'?{value:'6'}:element}};
+vm.createContext(c);vm.runInContext(s,c);
+c.fetchReadablePage=async(url,path)=>{if(path==='/robots.txt')return 'User-agent: *\nAllow: /';if(path==='/sitemap.xml')return '<urlset><loc>https://example.cz/child</loc></urlset>';if(path==='/child'||failHome&&path==='/')throw Error('Reader unavailable');return 'Title: A sufficiently long title\nMarkdown Content:\n# Welcome\n[child](/child)';};
+c.queryDns=async()=>({Status:0,Answer:[]});c.queryRdap=async()=>{throw Error('Registry unavailable')};c.queryPageSpeedStrategies=async()=>[{status:'rejected',reason:Error('quota exceeded')}];c.getReportBranding=async()=>({});const render=c.renderReport;c.renderReport=(host,findings,pages,meta)=>{render(host,findings,pages,meta);report={host,findings,pages,meta}};
+await submit({preventDefault(){}});assert.equal(errors.length,0);assert(report,'Audit must reach report despite reader failures');assert.equal(report.host,'example.cz');assert.equal(report.findings.filter(x=>x.name==='Veřejná čtečka stránku neověřila').length,failHome?2:1);assert(report.findings.some(x=>x.area==='DNS a e-mail'));assert.match(out.innerHTML,/Detailní nálezy/);assert.equal(c.window.currentAuditData.host,'example.cz');assert.equal(button.disabled,false);assert.equal(vm.runInContext('auditInProgress',c),false);
+}
+console.log('PASS: complete submit flow finishes with failed homepage or child reader, keeps independent findings and unlocks the form');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

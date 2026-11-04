@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 13391)
+Total output lines: 330
+
 // Run with: node audit/tests/regression.cjs
 (async()=>{
 await (async()=>{
@@ -164,79 +167,12 @@ console.log('PASS: 3 unsupported crawl URL cases');
 
 })();
 await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function assertReadableSource('),s.indexOf('async function fetchReadablePage('))+s.slice(s.indexOf('async function fetchReadablePage('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function assertReadableSource('),s.indexOf('async function fetchReadablePage('))+s.slice(s.indexOf('async function fetchReadablePage('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
 assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReadableSource('Title: Missing\nWarning: Target URL returned error 404: Not found\nMarkdown Content:\nError'),/404/);
 assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503: unavailable'),/503/);
 const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
 assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-agent: *\nDisallow: /private');
-assert.throws(()=>c.assertPageSpeedResult({}));assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'NO_FCP',message:'No paint'}}}),/NO_FCP/);assert(c.assertPageSpeedResult({lighthouseResult:{categories:{}}}));
-await (async()=>{let calls=0;c.fetchTimed=async()=>{calls++;return{ok:true}};c.readTimedResponse=async()=> 'Title: Missing\nWarning: Target URL returned error 404: Not found';await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/')),/404/);assert.equal(calls,1);
-calls=0;c.readTimedResponse=async()=>({lighthouseResult:{runtimeError:{code:'NO_FCP'}}});c.isPageSpeedQuotaError=()=>false;await assert.rejects(()=>c.queryPageSpeed(new URL('https://example.cz/'),'mobile'),/NO_FCP/);assert.equal(calls,1);console.log('PASS: reader wrapper errors, article false positives and Lighthouse runtime failures');})();
-
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function advice('),s.indexOf('function buildDetektiv(')),c);
-for(const name of ['Meta description','Hlavní nadpis H1','Hlavní nadpis podstránky','Titulek stránky'])assert.match(c.advice({name,points:null}),/Nejprve ověřte/);
-assert.match(c.advice({name:'PageSpeed Insights — mobil',points:null}),/kvóty/);assert.match(c.advice({name:'HTTP varianta přesměrování',points:null}),/Konfiguraci měňte až/);assert.match(c.advice({name:'MDN HTTP Observatory',points:null}),/zaškrtněte/);assert.equal(c.advice({name:'Meta description',points:null,action:'Specific action'}),'Specific action');
-console.log('PASS: unverified results recommend verification before changes');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function auditLinkKey('),s.indexOf('function isPriorityFinding(')),c);c.esc=x=>String(x);c.arrayJoin=(value,separator)=>value.join(separator);
-const pages=[{url:'https://example.cz/a',title:'No slash',raw:'ok',links:['https://example.cz/a#self','https://example.cz/a/','https://example.cz/a/']},{url:'https://example.cz/a/',title:'Slash',raw:'ok',links:['https://example.cz/a/']},{url:'https://example.cz/failed',raw:null,links:['https://example.cz/a']}];
-assert.notEqual(c.auditLinkKey(pages[0].url),c.auditLinkKey(pages[1].url));assert.equal(c.auditLinkKey('https://example.cz'),c.auditLinkKey('https://example.cz/'));assert.equal(c.auditLinkKey(pages[0].url+'#x'),pages[0].url);
-const inbound=c.buildInboundLinks(pages);assert.equal(inbound.get(pages[0].url),0);assert.equal(inbound.get(pages[1].url),1);assert(!inbound.has('https://example.cz/failed'));const html=c.buildLinkGraphHtml(pages);assert(html.includes('Slash — https://example.cz/a/'));assert(html.includes('Odkazy stránky na sebe samu jsou vynechány'));
-console.log('PASS: distinct trailing-slash URLs, self-links, duplicate links and failed-page exclusion');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function findingKind('),s.indexOf('function printAuditReport('))+s.slice(s.indexOf('function buildCoverageHtml('),s.indexOf('function buildSkippedUrlsHtml(')),c);c.esc=x=>String(x);c.arrayJoin=(a,sep)=>a.join(sep);c.coverageLimitations={};vm.runInContext('const coverageLimitations={}',c);
-assert.equal(c.findingKind({state:'NEPROVEDENO',points:null}),'Neprovedeno');assert.equal(c.findingKind({state:'NELZE OVĚŘIT',points:null}),'Nelze ověřit');
-const html=c.buildCoverageHtml([{name:'Test'}],[{area:'Test',name:'Optional scan',state:'NEPROVEDENO',points:null}]);assert(html.includes('0 signálů bez skóre'));assert(html.includes('0 neověřeno · 1 neprovedeno'));assert(html.includes('Neprovedeno'));
-console.log('PASS: skipped optional checks remain distinct from unavailable measurements');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function parsePageText('),s.indexOf('function decodeSitemapLoc(')),c);
-const text='Title: Real title\nMarkdown Content:\nMain heading\n============\n\nDescription: article text, not metadata\n```md\n# Fake H1\n[Fake link](/fake)\n![Fake image](/fake.png)\nTODO\n```\n[Real link](/real)\n# Hash heading #\n## Subheading\n';const page=c.parsePageText(text,new URL('https://example.cz/'));
-assert.equal(page.title,'Real title');assert.equal(page.description,'');assert(page.body.includes('Description: article text'));assert.equal(page.h1s.length,2);assert.equal(page.h1s[0],'Main heading');assert.equal(page.h1s[1],'Hash heading');assert.equal(page.links.length,1);assert.equal(page.links[0],'https://example.cz/real');assert.equal(page.images.length,0);assert(!page.body.includes('TODO'));
-assert.equal(c.parsePageText('Title: A\rH1: Heading',new URL('https://example.cz/')).h1s[0],'Heading');assert.equal(c.stripMarkdownCode('~~~js\n# fake\n~~~\n# Real').trim(),'# Real');assert.equal(c.stripMarkdownCode('````\n```\n# fake\n````\n# Real').trim(),'# Real');
-console.log('PASS: Setext H1, metadata boundaries, CR lines and fenced-code false positives');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];let removed='',errorCount=0;const section={innerHTML:'history',querySelector:()=>errorCount?{}:null,insertAdjacentHTML:()=>{errorCount++}};const c={out:{querySelector:()=>section},location:{reload(){throw Error('Unexpected reload')}},localStorage:{removeItem:key=>{removed=key}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function clearLocalAuditHistory('),s.indexOf('function loadLocalFindingWork(')),c);assert(c.clearLocalAuditHistory('example.cz'));assert.equal(removed,'webao-audit-history:example.cz');assert.match(section.innerHTML,/Aktuální report zůstává/);c.localStorage.removeItem=()=>{throw Error('blocked')};assert(!c.clearLocalAuditHistory('example.cz'));assert(!c.clearLocalAuditHistory('example.cz'));assert.equal(errorCount,1);
-console.log('PASS: clearing local history preserves the current report and reports failures');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL,TextEncoder,console,document:{querySelector:()=>({})},window:{}};vm.createContext(c);vm.runInContext(s.slice(0,s.indexOf("form.addEventListener('submit'")),c);
-const good=(Answer=[])=>({status:'fulfilled',value:{Status:0,Answer}}),bad={status:'rejected',reason:new Error('timeout')};const results=Array.from({length:14},()=>good());results[0]=good([{type:15,data:'10 mail.example.cz.'}]);results[1]=good([{type:16,data:'"v=spf1 -all"'}]);results[3]=good([{type:1,data:'192.0.2.1'}]);results[6]=good([{type:2,data:'ns.example.cz.'}]);results[5]=bad;
-const run=responses=>{c.dnsResults=responses;c.findings=[];c.dnsDomain='example.cz';c.dkimSelectors=['google','selector1','selector2','default','k1','mail'];vm.runInContext('{'+s.slice(s.indexOf('  const dnsOk='),s.indexOf('  const pageSpeedRecommendations='))+'}',c);return c.findings};
-let f=run(results);assert.equal(f.find(x=>x.name==='SPF záznam').points,100);assert.equal(f.find(x=>x.name==='Nameservery (NS)').points,100);assert.equal(f.find(x=>x.name==='CAA záznamy').state,'NELZE OVĚŘIT');assert.match(f.find(x=>x.name==='MX záznamy').detail,/1 veřejných MX/);
-const aaaaDown=[...results];aaaaDown[4]=bad;f=run(aaaaDown);assert.equal(f.find(x=>x.name==='DNS adresa webu (A / AAAA)').points,100);
-const txtDown=[...results];txtDown[1]=bad;f=run(txtDown);assert.equal(f.find(x=>x.name==='SPF záznam').points,null);assert.equal(f.find(x=>x.name==='Nameservery (NS)').points,100);
-const servfail=[...results];servfail[6]={status:'fulfilled',value:{Status:2}};f=run(servfail);assert.equal(f.find(x=>x.name==='Nameservery (NS)').state,'NELZE OVĚŘIT');assert.equal(f.find(x=>x.name==='SPF záznam').points,100);
-f=run(Array.from({length:14},()=>bad));assert(f.some(x=>x.name==='DNS záznamy'&&x.points===null));
-const dkimOnly=Array.from({length:14},()=>bad);dkimOnly[8]=good([{type:16,data:'v=DKIM1; p=ABC'}]);f=run(dkimOnly);assert.match(f.find(x=>x.name==='DKIM (běžné selektory)').detail,/kandidátů/);
-console.log('PASS: actual DNS evaluation preserves independent successes and masks failed dependencies');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL,TextEncoder,console,document:{querySelector:()=>({})},window:{}};vm.createContext(c);vm.runInContext(s.slice(0,s.indexOf("form.addEventListener('submit'")),c);
-for(const score of [-1,1.1,NaN,Infinity,null,'1'])assert.equal(c.lighthouseScorePoints(score),null);assert.equal(c.lighthouseScorePoints(0),0);assert.equal(c.lighthouseScorePoints(1),100);
-for(const scoreDisplayMode of ['manual','notApplicable','informative','error'])assert(!c.lighthouseAuditScored({score:1,scoreDisplayMode}));assert(c.lighthouseAuditScored({score:0,scoreDisplayMode:'binary'}));
-const metrics={LARGEST_CONTENTFUL_PAINT_MS:{percentile:-1},CUMULATIVE_LAYOUT_SHIFT_SCORE:{percentile:-1},INTERACTION_TO_NEXT_PAINT:{percentile:-1}};
-const payload={lighthouseResult:{categories:{performance:{score:1.8},accessibility:{score:1},seo:{score:0.75}},audits:{viewport:{score:1,scoreDisplayMode:'notApplicable',title:'viewport'},'tap-targets':{score:-1,title:'targets'},'content-width':{score:0,title:'width'},'csp-xss':{score:1,scoreDisplayMode:'error',title:'CSP'}}},loadingExperience:{metrics}};
-c.pageSpeedResults=[{status:'fulfilled',value:payload}];c.findings=[];c.url=new URL('https://example.cz/');vm.runInContext('{'+s.slice(s.indexOf('  const pageSpeedRecommendations='),s.indexOf('  const titleGroups='))+'}',c);const f=c.findings;
-assert(!f.some(x=>x.name==='Lighthouse mobil — viewport'));assert(!f.some(x=>x.name==='Lighthouse mobil — targets'));assert.equal(f.find(x=>x.name==='Lighthouse mobil — width').points,0);assert.equal(f.find(x=>x.name==='PageSpeed Insights — výkon (mobil)').points,null);assert.equal(f.find(x=>x.name==='PageSpeed Insights — přístupnost (mobil)').points,100);assert.equal(f.find(x=>x.name==='PageSpeed Insights — SEO (mobil)').points,75);assert.equal(f.find(x=>x.name.startsWith('Terénní Core Web Vitals')).points,null);assert(f.filter(x=>Number.isFinite(x.points)).every(x=>x.points>=0&&x.points<=100));
-console.log('PASS: actual Lighthouse evaluation excludes unscored modes, out-of-range scores and invalid field metrics');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];let submit;const out={style:{},innerHTML:''};const form={addEventListener:(event,handler)=>{submit=handler}};const c={URL,TextEncoder,console,window:{currentAuditData:{host:'previous.cz'},currentAuditScreenshots:['old'],currentAuditScenarios:['old']},document:{querySelector:selector=>selector==='#audit-form'?form:selector==='#result'?out:{value:selector==='#domain'?'invalid':selector==='#pageLimit'?'6':''}}};vm.createContext(c);vm.runInContext(s,c);
-vm.runInContext('pageSpeedChecksCompleted=7',c);await submit({preventDefault(){}});assert.equal(c.window.currentAuditData,null);assert.equal(c.window.currentAuditScreenshots.length,0);assert.equal(c.window.currentAuditScenarios.length,0);assert.equal(vm.runInContext('pageSpeedChecksCompleted',c),0);assert.match(out.innerHTML,/Zkontrolujte adresu/);assert(!s.includes("'/4 měření dokončeno"));
-console.log('PASS: real submit handler resets counters and clears stale exports even for invalid input');
-})();
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];let calls=[];
-const c={URL,fetchTimed:async target=>{calls.push(target);return{ok:true,status:200}},readTimedResponse:async()=> 'Title: real\nMarkdown Content:\n# Real'};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function assertReadableSource('),s.indexOf('function lighthouseScorePoints('))+s.slice(s.indexOf('async function fetchReadablePage('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function normalize('),s.indexOf('function arrayJoin(')),c);
-assert.equal(c.normalize('HTTPS://EXAMPLE.CZ/a').href,'https://example.cz/a');assert.equal(c.normalize('HTTP://EXAMPLE.CZ/a').href,'http://example.cz/a');
-await c.fetchReadablePage(new URL('https://example.cz/'),'/a?x=1&y=2');assert.equal(calls.pop(),'https://r.jina.ai/https://example.cz/a?x=1&y=2');
-await c.fetchReadablePage(new URL('http://example.cz/'),'/a');assert.equal(calls.pop(),'https://r.jina.ai/http://example.cz/a');
+assert.throws(()=>c.assertPageSpeedResult({}));assert.throws(()=>c.assertPage…3391 tokens truncated…lePage(new URL('http://example.cz/'),'/a');assert.equal(calls.pop(),'https://r.jina.ai/http://example.cz/a');
 for(const path of ['//outside.cz/a','https://outside.cz/a','http://example.cz/a'])await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),path),/požadovaný původ/);assert.equal(calls.length,0);
 c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
 calls=[];c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503}};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/'),/503/);assert.equal(calls.length,1);

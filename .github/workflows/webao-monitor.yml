@@ -1,0 +1,85 @@
+name: WEBAO and Webmetr monitoring
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'audit/**'
+      - '.github/workflows/webao-monitor.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: webao-webmetr-monitor
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    name: Webmetr regression suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run audit regression tests
+        run: node audit/tests/regression.cjs
+
+  production-health:
+    name: Production availability and audit smoke checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check HTTPS, redirects, audit page and application markers
+        env:
+          WEBAO_BASE_URL: https://webao.cz
+        run: node audit/tests/healthcheck.cjs
+      - name: Store timestamped check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webao-health-${{ github.run_id }}-${{ github.run_attempt }}
+          path: healthcheck-results.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  browser-smoke:
+    name: Weekly browser smoke test
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'schedule' && github.event.schedule == '17 3 * * 1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - name: Check rendered audit page and console errors
+        run: node audit/tests/browser-smoke.cjs
+      - name: Store browser screenshots and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webao-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: browser-results/
+          if-no-files-found: warn
+          retention-days: 30

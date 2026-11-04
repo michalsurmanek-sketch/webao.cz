@@ -171,7 +171,7 @@ assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReada
 assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503: unavailable'),/503/);
 const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
 assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-agent: *\nDisallow: /private');
-assert.throws(()=>c.assertPageSpeedResult({}));assert.throws(()=>c.assertPage…3391 tokens truncated…lePage(new URL('http://example.cz/'),'/a');assert.equal(calls.pop(),'https://r.jina.ai/http://example.cz/a');
+assert.throws(()=>c.assertPageSpeedResult({}));assert.throws(()=>c.assertPage…3391 tokens truncated…lePage(new URL('http://example.cz/'),'/a');assert.equal(calls.pop(),'https://r.jina.ai/http://example.cz/a'));
 for(const path of ['//outside.cz/a','https://outside.cz/a','http://example.cz/a'])await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),path),/požadovaný původ/);assert.equal(calls.length,0);
 c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
 calls=[];c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503}};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/'),/503/);assert.equal(calls.length,1);

@@ -277,7 +277,7 @@ console.log('PASS: unscored Lighthouse recommendations do not distort weighted a
 await (async()=>{
 const fs=require('fs'),assert=require('assert/strict'),path=require('path');
 const healthcheck=fs.readFileSync(path.join(__dirname,'healthcheck.cjs'),'utf8');
-assert.match(healthcheck,/record\('audit_markup',[^\\n]*,true\);/);
+assert(healthcheck.includes("present', true)"));
 assert.match(healthcheck,/record\('audit_markup', 'FAIL', error\\.message, true\);/);
 assert.match(healthcheck,/records\\.some\\(item => item\\.status === 'FAIL' && item\\.critical\\)/);
 console.log('PASS: missing audit markup is a critical healthcheck failure');

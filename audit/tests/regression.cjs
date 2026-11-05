@@ -278,8 +278,8 @@ await (async()=>{
 const fs=require('fs'),assert=require('assert/strict'),path=require('path');
 const healthcheck=fs.readFileSync(path.join(__dirname,'healthcheck.cjs'),'utf8');
 assert(healthcheck.includes("present', true)"));
-assert.match(healthcheck,/record\('audit_markup', 'FAIL', error\\.message, true\);/);
-assert.match(healthcheck,/records\\.some\\(item => item\\.status === 'FAIL' && item\\.critical\\)/);
+assert(healthcheck.includes("record('audit_markup', 'FAIL', error.message, true)"));
+assert(healthcheck.includes("records.some(item => item.status === 'FAIL' && item.critical)"));
 console.log('PASS: missing audit markup is a critical healthcheck failure');
 })();
 \nconsole.log('PASS: all audit regression suites');

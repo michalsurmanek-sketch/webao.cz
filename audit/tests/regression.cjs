@@ -167,6 +167,7 @@ console.log('PASS: 3 unsupported crawl URL cases');
 })();
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function assertReadableSource('),s.indexOf('async function fetchReadablePage('))+s.slice(s.indexOf('async function fetchReadablePage('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
+vm.runInContext(s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts(')),c);
 assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReadableSource('Title: Missing\nWarning: Target URL returned error 404: Not found\nMarkdown Content:\nError'),/404/);
 assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503: unavailable'),/503/);
 const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
@@ -174,6 +175,10 @@ assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-a
 assert.throws(()=>c.assertPageSpeedResult({}));
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'ERRORED_DOCUMENT_REQUEST',message:'failed'}}}),/ERRORED_DOCUMENT_REQUEST/);
 const payload={lighthouseResult:{audits:{}}};assert.equal(c.assertPageSpeedResult(payload),payload);
+const expectedPageUrl=new URL('https://example.cz/');
+const sameSitePayload={lighthouseResult:{requestedUrl:'https://www.example.cz/',finalUrl:'https://example.cz/a',audits:{}}};assert.equal(c.assertPageSpeedResult(sameSitePayload,expectedPageUrl),sameSitePayload);
+assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{requestedUrl:'https://attacker.example/',finalUrl:'https://attacker.example/',audits:{}}},expectedPageUrl),/jinou doménu/);
+assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalUrl:'javascript:alert(1)',audits:{}}},expectedPageUrl),/neplatnou adresu/);
 let calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,timeout});return{ok:true,status:200,text:async()=> 'Title: Example\nMarkdown Content:\nPage text'}};c.readTimedResponse=async response=>response.text();
 const pageUrl=new URL('https://example.cz/');const page=await c.fetchReadablePage(pageUrl,'/a?x=1#section');assert.match(page,/Page text/);assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].timeout,20000);
 calls=[];await assert.rejects(()=>c.fetchReadablePage(pageUrl,'//outside.cz/a'),/požadovaný původ/);assert.equal(calls.length,0);

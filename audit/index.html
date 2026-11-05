@@ -506,12 +506,29 @@ function lighthouseAuditScored(audit){
  return !!(audit&&lighthouseScorePoints(audit.score)!==null&&!['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode));
 }
 function nonnegativeMetric(value){return Number.isFinite(value)&&value>=0?value:null;}
-function assertPageSpeedResult(payload){
+function assertPageSpeedResult(payload,expectedUrl){
  if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object')throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
- const error=payload.lighthouseResult.runtimeError;
+ const lighthouse=payload.lighthouseResult;
+ const error=lighthouse.runtimeError;
  if(error){
   const failure=new Error('Lighthouse měření nebylo dokončeno: '+(error.code||'neznámá chyba')+(error.message?' — '+error.message:''));
   failure.retryable=false;throw failure;
+ }
+ if(expectedUrl){
+  const expected=new URL(expectedUrl);
+  for(const field of ['requestedUrl','finalUrl']){
+   const address=lighthouse[field];
+   if(!address)continue;
+   let actual;
+   try{actual=new URL(address)}catch{
+    const failure=new Error('PageSpeed vrátil neplatnou adresu '+field+'; výsledek nebyl použit pro audit.');
+    failure.retryable=false;throw failure;
+   }
+   if(!['http:','https:'].includes(actual.protocol)||!isSameSiteHost(actual.hostname,expected.hostname)){
+    const failure=new Error('PageSpeed změřil jinou doménu ('+actual.hostname+'); výsledek nebyl použit pro audit '+expected.hostname+'.');
+    failure.retryable=false;throw failure;
+   }
+  }
  }
  return payload;
 }
@@ -660,7 +677,7 @@ function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|querie
 function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Rychlost a Lighthouse skóre proto nejsou v tomto běhu ověřené. Zkuste audit znovu později.';return String(error&&error.message||error||'Příčina není známa.');}
 async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
  const cache=window.WebaoPsiCache?.read(pageUrl.href,strategy);
- if(cache)return assertPageSpeedResult(cache.payload);
+ if(cache)return assertPageSpeedResult(cache.payload,pageUrl);
  const endpoint=new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed');
  endpoint.searchParams.set('url',pageUrl.href);
  endpoint.searchParams.set('strategy',strategy);
@@ -672,7 +689,7 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
    const response=await fetchTimed(endpoint.href,{headers:{Accept:'application/json'}},45000);
    let payload={};try{payload=await readTimedResponse(response,'json',45000)}catch(error){throw new Error(error&&error.name==='AbortError'?'Požadavek PageSpeed překročil limit 45 sekund.':'Odpověď PageSpeed se nepodařilo přečíst.');}
    if(!response.ok)throw new Error(payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
-   const result=assertPageSpeedResult(payload);
+   const result=assertPageSpeedResult(payload,pageUrl);
    window.WebaoPsiCache?.write(pageUrl.href,strategy,payload);
    return result;
   }catch(error){lastError=error;if(attempt<maxAttempts&&error.retryable!==false&&!isPageSpeedQuotaError(error))await new Promise(resolve=>setTimeout(resolve,1200));else break;}

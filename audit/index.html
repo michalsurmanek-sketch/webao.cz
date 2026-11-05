@@ -505,6 +505,9 @@ function lighthouseScorePoints(score){
 function lighthouseAuditScored(audit){
  return !!(audit&&lighthouseScorePoints(audit.score)!==null&&!['manual','notApplicable','informative','error'].includes(audit.scoreDisplayMode));
 }
+function missingLighthouseFinding(area,name,auditId,url){
+ return{area,name,url,ok:false,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Lighthouse v tomto běhu neposkytl audit '+auditId+'. Kontrola se proto nezapočítá jako vyhovující ani jako potvrzený problém.',evidence:'PageSpeed Insights / Lighthouse · audit '+auditId,confidence:'Nelze určit bez skórovaného výsledku Lighthouse.'};
+}
 function nonnegativeMetric(value){return Number.isFinite(value)&&value>=0?value:null;}
 function assertPageSpeedResult(payload,expectedUrl){
  if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object')throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
@@ -1327,7 +1330,7 @@ form.addEventListener('submit',async event=>{
    ];
    for(const spec of securityAuditSpecs){
     const audit=audits[spec.id];
-    if(!audit)continue;
+    if(!audit){findings.push(missingLighthouseFinding('Bezpečnost a HTTPS',spec.name+' — audit chybí ('+device+')',spec.id,payload.id||url.origin+'/'));continue;}
     const auditDetails=audit.details||{};
     const detailItems=Array.isArray(auditDetails.items)?auditDetails.items:[];
     const itemEvidence=detailItems.slice(0,8).map(item=>Object.entries(item).filter(([key,value])=>value!==null&&value!==undefined&&typeof value!=='object').map(([key,value])=>key+': '+value).join(', ')).filter(Boolean);
@@ -1347,6 +1350,7 @@ form.addEventListener('submit',async event=>{
    }
    if(strategy==='mobile'){
     const privacyCookieAudits=Object.entries(audits).filter(([id,audit])=>/third.?party.*cookies?|cookies?.*third.?party/i.test(id+' '+(audit&&audit.title||'')));
+    if(!privacyCookieAudits.length)findings.push(missingLighthouseFinding('Cookies a soukromí','Lighthouse — cookies třetích stran — bez dostupného auditu','third-party-cookies',payload.id||url.origin+'/'));
     for(const [auditId,audit] of privacyCookieAudits.slice(0,4)){
      const measured=lighthouseAuditScored(audit);
      const points=measured?Math.round(audit.score*100):null;
@@ -1359,7 +1363,8 @@ form.addEventListener('submit',async event=>{
    }
    if(strategy==='mobile'){
     for(const auditId of ['viewport','tap-targets','font-size','content-width']){
-     const audit=audits[auditId];if(!lighthouseAuditScored(audit))continue;
+     const audit=audits[auditId];
+     if(!lighthouseAuditScored(audit)){findings.push(missingLighthouseFinding('Mobilní použitelnost','Lighthouse mobil — '+auditId+' — bez skórovaného auditu',auditId,payload.id||url.origin+'/'));continue;}
      const points=Math.round(audit.score*100);
      findings.push({area:'Mobilní použitelnost',name:'Lighthouse mobil — '+audit.title,url:url.origin+'/',ok:points>=90,points,severity:points<50?'Závažná':points<90?'Střední':'Nízká',detail:(audit.displayValue?audit.displayValue+'. ':'')+'Mobilní Lighthouse kontrola: '+points+'/100. Jde o emulaci, ne test na skutečném telefonu.',evidence:'PageSpeed Insights audit '+auditId+(audit.displayValue?' · '+audit.displayValue:''),confidence:'Vysoká pro mobilní emulaci; chování na reálných zařízeních může být jiné.'});
     }

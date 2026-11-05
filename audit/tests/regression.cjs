@@ -171,11 +171,15 @@ assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReada
 assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503: unavailable'),/503/);
 const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
 assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-agent: *\nDisallow: /private');
-assert.throws(()=>c.assertPageSpeedResult({}));assert.throws(()=>c.assertPage…3391 tokens truncated…lePage(new URL('http://example.cz/'),'/a');assert.equal(calls.pop(),'https://r.jina.ai/http://example.cz/a'));
-for(const path of ['//outside.cz/a','https://outside.cz/a','http://example.cz/a'])await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),path),/požadovaný původ/);assert.equal(calls.length,0);
-c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
-calls=[];c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503}};await assert.rejects(()=>c.fetchReadablePage(new URL('https://example.cz/'),'/'),/503/);assert.equal(calls.length,1);
-console.log('PASS: reader preserves requested origin, protocol and query without silent HTTP fallback; input schemes are case insensitive');
+assert.throws(()=>c.assertPageSpeedResult({}));
+assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'ERRORED_DOCUMENT_REQUEST',message:'failed'}}}),/ERRORED_DOCUMENT_REQUEST/);
+const payload={lighthouseResult:{audits:{}}};assert.equal(c.assertPageSpeedResult(payload),payload);
+let calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,timeout});return{ok:true,status:200,text:async()=> 'Title: Example\nMarkdown Content:\nPage text'}};c.readTimedResponse=async response=>response.text();
+const pageUrl=new URL('https://example.cz/');const page=await c.fetchReadablePage(pageUrl,'/a?x=1#section');assert.match(page,/Page text/);assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].timeout,20000);
+calls=[];await assert.rejects(()=>c.fetchReadablePage(pageUrl,'//outside.cz/a'),/požadovaný původ/);assert.equal(calls.length,0);
+c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
+c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503,text:async()=> 'unavailable'}};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/'),/503/);
+console.log('PASS: readable source validation, PageSpeed payload validation and origin-safe page fetch');
 })();
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function parsePageText('),s.indexOf('function decodeSitemapLoc(')),c);

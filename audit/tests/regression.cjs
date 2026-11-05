@@ -292,6 +292,17 @@ vm.runInContext(source.slice(source.indexOf('async function request('),source.in
 const started=Date.now();
 await assert.rejects(c.request('https://example.cz/audit/',true),{name:'AbortError'});
 assert(Date.now()-started<1000,'body read should honor the configured timeout');
+const redirectSource=source.slice(source.indexOf('function isSecureSiteResponse('),source.indexOf('function record('));
+const redirects={URL};vm.createContext(redirects);vm.runInContext(redirectSource,redirects);
+const site=new URL('https://webao.cz/');
+const response=(status,location)=>({status,headers:{get:()=>location}});
+assert(redirects.isSecureSiteResponse(response(200,null),site));
+assert(redirects.isSecureSiteResponse(response(301,'https://www.webao.cz/audit/'),site));
+assert(redirects.isSecureSiteResponse(response(302,'/audit/'),site));
+assert(!redirects.isSecureSiteResponse(response(301,'http://webao.cz/'),site));
+assert(!redirects.isSecureSiteResponse(response(302,'https://attacker.example/'),site));
+assert(!redirects.isSecureSiteResponse(response(301,null),site));
+assert(!redirects.isSecureSiteResponse(response(404,null),site));
 console.log('PASS: healthcheck aborts a stalled response body within its timeout');
 })();
 console.log('PASS: missing audit markup is a critical healthcheck failure');

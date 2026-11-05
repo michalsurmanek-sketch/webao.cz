@@ -318,5 +318,19 @@ console.log('PASS: healthcheck aborts a stalled response body within its timeout
 })();
 console.log('PASS: missing audit markup is a critical healthcheck failure');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const script=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').match(/<script>([\\s\\S]*?)<\\/script>/)[1];
+const c={areaDefs:[['Mobilní použitelnost',5]]};vm.createContext(c);
+vm.runInContext(script.slice(script.indexOf('function missingLighthouseFinding('),script.indexOf('function assertPageSpeedResult('))+script.slice(script.indexOf('function scoreAuditAreas('),script.indexOf('function renderReport(')),c);
+const missing=c.missingLighthouseFinding('Mobilní použitelnost','Lighthouse mobil — viewport — bez skórovaného auditu','viewport','https://example.cz/');
+assert.equal(missing.points,null);assert.equal(missing.state,'NELZE OVĚŘIT');
+const area=c.scoreAuditAreas([{area:'Mobilní použitelnost',name:'PageSpeed Insights',points:100},missing])[0];
+assert.equal(area.tests,2);assert.equal(area.measured,1);assert.equal(area.coverage,0.5);assert.equal(area.effectiveWeight,2.5);
+assert(script.includes("missingLighthouseFinding('Bezpečnost a HTTPS'"));
+assert(script.includes("missingLighthouseFinding('Mobilní použitelnost'"));
+assert(script.includes("if(!privacyCookieAudits.length)findings.push(missingLighthouseFinding"));
+console.log('PASS: absent Lighthouse security, mobile and cookie checks reduce measured coverage instead of disappearing');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

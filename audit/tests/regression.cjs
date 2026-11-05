@@ -184,6 +184,12 @@ const pageUrl=new URL('https://example.cz/');const page=await c.fetchReadablePag
 calls=[];await assert.rejects(()=>c.fetchReadablePage(pageUrl,'//outside.cz/a'),/požadovaný původ/);assert.equal(calls.length,0);
 c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
 c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503,text:async()=> 'unavailable'}};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/'),/503/);
+let pageSpeedRequests=0,pageSpeedCacheWrites=0;
+c.window.WebaoPsiCache={read:()=>null,write:()=>{pageSpeedCacheWrites++}};
+c.fetchTimed=async()=>{pageSpeedRequests++;return{ok:true,status:200}};
+c.readTimedResponse=async()=>({lighthouseResult:{requestedUrl:'https://example.cz/',finalUrl:'https://other.example/',audits:{}}});
+await assert.rejects(c.queryPageSpeed(new URL('https://example.cz/'),'mobile'),/jinou doménu/);
+assert.equal(pageSpeedRequests,1);assert.equal(pageSpeedCacheWrites,0);
 console.log('PASS: readable source validation, PageSpeed payload validation and origin-safe page fetch');
 })();
 await (async()=>{

@@ -273,5 +273,14 @@ assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'p
 assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-05\.149'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
-console.log('PASS: all audit regression suites');
+
+await (async()=>{
+const fs=require('fs'),assert=require('assert/strict'),path=require('path');
+const healthcheck=fs.readFileSync(path.join(__dirname,'healthcheck.cjs'),'utf8');
+assert.match(healthcheck,/record\('audit_markup',[^\\n]*,true\);/);
+assert.match(healthcheck,/record\('audit_markup', 'FAIL', error\\.message, true\);/);
+assert.match(healthcheck,/records\\.some\\(item => item\\.status === 'FAIL' && item\\.critical\\)/);
+console.log('PASS: missing audit markup is a critical healthcheck failure');
+})();
+\nconsole.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -283,6 +283,17 @@ assert(healthcheck.includes("records.some(item => item.status === 'FAIL' && item
 assert(healthcheck.includes("async function request(url, readBody = false)"));
 assert(healthcheck.includes("const body = await response.text();"));
 assert(healthcheck.includes("body: html } = await request(new URL('/audit/', origin), true)"));
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const source=fs.readFileSync(path.join(__dirname,'healthcheck.cjs'),'utf8');
+const c={AbortController,setTimeout,clearTimeout,timeoutMs:15,retries:0,fetch:async(_url,{signal})=>({text:()=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Object.assign(new Error('aborted'),{name:'AbortError'}))))})};
+vm.createContext(c);
+vm.runInContext(source.slice(source.indexOf('async function request('),source.indexOf('async function checkUrl(')),c);
+const started=Date.now();
+await assert.rejects(c.request('https://example.cz/audit/',true),{name:'AbortError'});
+assert(Date.now()-started<1000,'body read should honor the configured timeout');
+console.log('PASS: healthcheck aborts a stalled response body within its timeout');
+})();
 console.log('PASS: missing audit markup is a critical healthcheck failure');
 })();
 console.log('PASS: all audit regression suites');

@@ -280,6 +280,9 @@ const healthcheck=fs.readFileSync(path.join(__dirname,'healthcheck.cjs'),'utf8')
 assert(healthcheck.includes("present', true)"));
 assert(healthcheck.includes("record('audit_markup', 'FAIL', error.message, true)"));
 assert(healthcheck.includes("records.some(item => item.status === 'FAIL' && item.critical)"));
+assert(healthcheck.includes("async function request(url, readBody = false)"));
+assert(healthcheck.includes("const body = await response.text();"));
+assert(healthcheck.includes("body: html } = await request(new URL('/audit/', origin), true)"));
 console.log('PASS: missing audit markup is a critical healthcheck failure');
 })();
 console.log('PASS: all audit regression suites');

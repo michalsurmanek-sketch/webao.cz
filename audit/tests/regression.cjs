@@ -282,5 +282,5 @@ assert(healthcheck.includes("record('audit_markup', 'FAIL', error.message, true)
 assert(healthcheck.includes("records.some(item => item.status === 'FAIL' && item.critical)"));
 console.log('PASS: missing audit markup is a critical healthcheck failure');
 })();
-\nconsole.log('PASS: all audit regression suites');
+console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

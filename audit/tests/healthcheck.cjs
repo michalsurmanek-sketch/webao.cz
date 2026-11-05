@@ -9,6 +9,21 @@ const timeoutMs = Number(process.env.HEALTHCHECK_TIMEOUT_MS || 12000);
 const retries = 2;
 const records = [];
 
+function isSecureSiteResponse(response, origin) {
+  if (response.status >= 200 && response.status < 300) return true;
+  if (![301, 302, 303, 307, 308].includes(response.status)) return false;
+  const location = response.headers.get('location');
+  if (!location) return false;
+  try {
+    const target = new URL(location, origin);
+    const expectedHost = origin.hostname.replace(/^www\\./i, '').toLowerCase();
+    const targetHost = target.hostname.replace(/^www\\./i, '').toLowerCase();
+    return target.protocol === 'https:' && targetHost === expectedHost;
+  } catch {
+    return false;
+  }
+}
+
 function record(name, status, detail, critical = false) {
   records.push({ at: new Date().toISOString(), name, status, detail, critical });
   console.log(`${status === 'PASS' ? 'PASS' : 'FAIL'} ${name}: ${detail}`);
@@ -52,8 +67,8 @@ async function checkUrl(name, url, predicate, critical = true) {
   if (origin.protocol !== 'https:') throw new Error('WEBAO_BASE_URL must use HTTPS');
 
   await checkUrl('web_https', origin.href, response => ({
-    ok: response.status >= 200 && response.status < 400,
-    detail: `HTTP ${response.status}; final URL ${response.url || origin.href}`,
+    ok: isSecureSiteResponse(response, origin),
+    detail: `HTTP ${response.status}; ${response.headers.get('location') ? 'redirect to ' + response.headers.get('location') : 'final URL ' + (response.url || origin.href)}`,
   }));
 
   await checkUrl('audit_page', new URL('/audit/', origin).href, response => ({

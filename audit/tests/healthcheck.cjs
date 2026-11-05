@@ -14,13 +14,18 @@ function record(name, status, detail, critical = false) {
   console.log(`${status === 'PASS' ? 'PASS' : 'FAIL'} ${name}: ${detail}`);
 }
 
-async function request(url) {
+async function request(url, readBody = false) {
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(url, { redirect: 'manual', signal: controller.signal });
+      if (readBody) {
+        const body = await response.text();
+        clearTimeout(timer);
+        return { response, body };
+      }
       clearTimeout(timer);
       return response;
     } catch (error) {
@@ -62,8 +67,7 @@ async function checkUrl(name, url, predicate, critical = true) {
   }));
 
   try {
-    const response = await request(new URL('/audit/', origin));
-    const html = await response.text();
+    const { response, body: html } = await request(new URL('/audit/', origin), true);
     const required = ['id="audit-form"', 'id="result"', 'id="domain"', '/audit/psi-cache.js', 'Zkontrolovat web'];
     const missing = required.filter(token => !html.includes(token));
     record('audit_markup', missing.length ? 'FAIL' : 'PASS', missing.length ? `missing markers: ${missing.join(', ')}` : 'form, result region and cache script are present', true);

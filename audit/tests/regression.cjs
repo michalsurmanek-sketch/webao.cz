@@ -320,7 +320,7 @@ console.log('PASS: missing audit markup is a critical healthcheck failure');
 })();
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
-const script=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').match(/<script>([\\s\\S]*?)<\\/script>/)[1];
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');const script=html.slice(html.indexOf('<script>')+8,html.indexOf('</script>'));
 const c={areaDefs:[['Mobilní použitelnost',5]]};vm.createContext(c);
 vm.runInContext(script.slice(script.indexOf('function missingLighthouseFinding('),script.indexOf('function assertPageSpeedResult('))+script.slice(script.indexOf('function scoreAuditAreas('),script.indexOf('function renderReport(')),c);
 const missing=c.missingLighthouseFinding('Mobilní použitelnost','Lighthouse mobil — viewport — bez skórovaného auditu','viewport','https://example.cz/');

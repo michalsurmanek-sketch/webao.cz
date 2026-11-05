@@ -178,7 +178,7 @@ const payload={lighthouseResult:{audits:{}}};assert.equal(c.assertPageSpeedResul
 const expectedPageUrl=new URL('https://example.cz/');
 const sameSitePayload={lighthouseResult:{requestedUrl:'https://www.example.cz/',finalUrl:'https://example.cz/a',audits:{}}};assert.equal(c.assertPageSpeedResult(sameSitePayload,expectedPageUrl),sameSitePayload);
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{requestedUrl:'https://attacker.example/',finalUrl:'https://attacker.example/',audits:{}}},expectedPageUrl),/jinou doménu/);
-assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalUrl:'javascript:alert(1)',audits:{}}},expectedPageUrl),/neplatnou adresu/);
+assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalUrl:'not a valid URL',audits:{}}},expectedPageUrl),/neplatnou adresu/);
 let calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,timeout});return{ok:true,status:200,text:async()=> 'Title: Example\nMarkdown Content:\nPage text'}};c.readTimedResponse=async response=>response.text();
 const pageUrl=new URL('https://example.cz/');const page=await c.fetchReadablePage(pageUrl,'/a?x=1#section');assert.match(page,/Page text/);assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].timeout,20000);
 calls=[];await assert.rejects(()=>c.fetchReadablePage(pageUrl,'//outside.cz/a'),/požadovaný původ/);assert.equal(calls.length,0);

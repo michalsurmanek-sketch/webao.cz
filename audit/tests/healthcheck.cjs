@@ -16,8 +16,8 @@ function isSecureSiteResponse(response, origin) {
   if (!location) return false;
   try {
     const target = new URL(location, origin);
-    const expectedHost = origin.hostname.replace(/^www\\./i, '').toLowerCase();
-    const targetHost = target.hostname.replace(/^www\\./i, '').toLowerCase();
+    const expectedHost = origin.hostname.replace(/^www\./i, '').toLowerCase();
+    const targetHost = target.hostname.replace(/^www\./i, '').toLowerCase();
     return target.protocol === 'https:' && targetHost === expectedHost;
   } catch {
     return false;

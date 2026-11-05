@@ -66,9 +66,9 @@ async function checkUrl(name, url, predicate, critical = true) {
     const html = await response.text();
     const required = ['id="audit-form"', 'id="result"', 'id="domain"', '/audit/psi-cache.js', 'Zkontrolovat web'];
     const missing = required.filter(token => !html.includes(token));
-    record('audit_markup', missing.length ? 'FAIL' : 'PASS', missing.length ? `missing markers: ${missing.join(', ')}` : 'form, result region and cache script are present');
+    record('audit_markup', missing.length ? 'FAIL' : 'PASS', missing.length ? `missing markers: ${missing.join(', ')}` : 'form, result region and cache script are present', true);
   } catch (error) {
-    record('audit_markup', 'FAIL', error.message);
+    record('audit_markup', 'FAIL', error.message, true);
   }
 
   const json = `${JSON.stringify({ generatedAt: new Date().toISOString(), base, checks: records }, null, 2)}\n`;

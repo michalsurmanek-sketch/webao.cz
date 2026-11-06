@@ -372,5 +372,14 @@ assert(script.includes("missingLighthouseFinding('Mobilní použitelnost'"));
 assert(script.includes("if(!privacyCookieAudits.length)findings.push(missingLighthouseFinding"));
 console.log('PASS: absent Lighthouse security, mobile and cookie checks reduce measured coverage instead of disappearing');
 })();
+await (async()=>{
+const fs=require('fs'),assert=require('assert/strict'),path=require('path');
+const workflow=fs.readFileSync(path.join(__dirname,'../../.github/workflows/webao-monitor.yml'),'utf8');
+const auditHtml=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+assert(auditHtml.includes('href="/assets/network.css'));
+assert(workflow.includes("      - 'assets/**'"));
+assert(workflow.includes("if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'"));
+console.log('PASS: shared audit assets trigger the mobile/browser smoke checks on push');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

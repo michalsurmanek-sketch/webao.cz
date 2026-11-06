@@ -299,10 +299,24 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=req
 const source=fs.readFileSync(path.join(__dirname,'healthcheck.cjs'),'utf8');
 const c={AbortController,setTimeout,clearTimeout,timeoutMs:15,retries:0,fetch:async(_url,{signal})=>({text:()=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Object.assign(new Error('aborted'),{name:'AbortError'}))))})};
 vm.createContext(c);
-vm.runInContext(source.slice(source.indexOf('async function request('),source.indexOf('async function checkUrl(')),c);
+vm.runInContext(source.slice(source.indexOf('async function readResponseText('),source.indexOf('async function checkUrl(')),c);
 const started=Date.now();
 await assert.rejects(c.request('https://example.cz/audit/',true),{name:'AbortError'});
 assert(Date.now()-started<1000,'body read should honor the configured timeout');
+const streamContext={Buffer,TextDecoder};vm.createContext(streamContext);
+vm.runInContext(source.slice(source.indexOf('async function readResponseText('),source.indexOf('async function request(')),streamContext);
+const makeStream=(chunks,onCancel=()=>{})=>({getReader:()=>{let index=0;return{async read(){return index<chunks.length?{done:false,value:chunks[index++]}:{done:true}},async cancel(){onCancel()}}}});
+let reads=0;
+const declaredLarge={headers:{get:()=> '4'},body:{getReader:()=>{reads++;return makeStream([]).getReader()}},text:async()=>''};
+await assert.rejects(streamContext.readResponseText(declaredLarge,3),/exceeds 3 bytes/);
+assert.equal(reads,0,'Content-Length should be checked before reading');
+let cancelled=false;
+const streamedLarge={headers:{get:()=>null},body:makeStream([Buffer.from('ab'),Buffer.from('cd')],()=>{cancelled=true}),text:async()=>''};
+await assert.rejects(streamContext.readResponseText(streamedLarge,3),/exceeds 3 bytes/);
+assert(cancelled,'stream should be cancelled as soon as the byte limit is exceeded');
+const utf8={headers:{get:()=>null},body:makeStream([Buffer.from([0x41,0xc5]),Buffer.from([0xbe])]),text:async()=>''};
+assert.equal(await streamContext.readResponseText(utf8,3),'Až','UTF-8 sequences split across chunks should decode correctly');
+
 const redirectSource=source.slice(source.indexOf('function isSecureSiteResponse('),source.indexOf('function record('));
 const redirects={URL};vm.createContext(redirects);vm.runInContext(redirectSource,redirects);
 const site=new URL('https://webao.cz/');

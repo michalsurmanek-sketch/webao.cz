@@ -45,17 +45,8 @@ function record(name, status, detail, critical = false) {
 }
 
 async function readResponseText(response, maxBytes = maxResponseBytes) {
-  const contentLength = response.headers.get('content-length');
-  if (contentLength !== null && contentLength !== '' && Number.isFinite(Number(contentLength)) && Number(contentLength) > maxBytes) {
-    throw new Error(`response body exceeds ${maxBytes} bytes`);
-  }
-  if (!response.body || typeof response.body.getReader !== 'function') {
-    const text = await response.text();
-    if (Buffer.byteLength(text, 'utf8') > maxBytes) throw new Error(`response body exceeds ${maxBytes} bytes`);
-    return text;
-  }
-
-  const reader = response.body.getReader();
+  const reader = response.body && typeof response.body.getReader === 'function' ? response.body.getReader() : null;
+  if (!reader) throw new Error('response body stream is unavailable; cannot inspect it safely within the size limit');
   const decoder = new TextDecoder();
   let size = 0;
   let text = '';

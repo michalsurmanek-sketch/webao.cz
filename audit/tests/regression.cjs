@@ -319,6 +319,8 @@ console.log('PASS: healthcheck aborts a stalled response body within its timeout
 const timeoutSource=source.slice(source.indexOf('function configuredTimeout('),source.indexOf('const timeoutMs ='));
 const timeoutContext={};vm.createContext(timeoutContext);vm.runInContext(timeoutSource,timeoutContext);
 assert.equal(timeoutContext.configuredTimeout('2500'),2500);
+assert.equal(timeoutContext.configuredTimeout('0.5'),12000);
+assert.equal(timeoutContext.configuredTimeout('12.5'),12000);
 assert.equal(timeoutContext.configuredTimeout('0'),12000);
 assert.equal(timeoutContext.configuredTimeout('-1'),12000);
 assert.equal(timeoutContext.configuredTimeout('Infinity'),12000);

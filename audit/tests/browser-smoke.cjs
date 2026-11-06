@@ -22,6 +22,36 @@ const { chromium } = require('playwright');
       results.checks.push({ name: `visible:${selector}`, ok: visible, detail: visible ? 'visible' : 'not visible' });
     }
 
+    const accessibility = await page.evaluate(() => {
+      const lang = document.documentElement.lang.trim();
+      const missingImageAlts = [...document.querySelectorAll('img:not([alt])')].map(image => image.getAttribute('src') || '(inline image)');
+      const controls = [...document.querySelectorAll('#audit-form input:not([type="hidden"]), #audit-form select, #audit-form textarea, #audit-form button')];
+      const unnamedControls = controls.filter(control => {
+        const labelledBy = (control.getAttribute('aria-labelledby') || '').split(/\\s+/).filter(Boolean)
+          .some(id => document.getElementById(id)?.textContent.trim());
+        const ariaLabel = Boolean(control.getAttribute('aria-label')?.trim());
+        const associatedLabel = [...(control.labels || [])].some(label => label.textContent.trim());
+        const buttonText = control.matches('button') && Boolean(control.textContent.trim());
+        return !(labelledBy || ariaLabel || associatedLabel || buttonText);
+      }).map(control => control.id || control.name || control.tagName.toLowerCase());
+      return { lang, missingImageAlts, unnamedControls };
+    });
+    results.checks.push({
+      name: 'document_language',
+      ok: Boolean(accessibility.lang),
+      detail: accessibility.lang ? `lang=${accessibility.lang}` : 'document language is missing'
+    });
+    results.checks.push({
+      name: 'images_have_alt_attribute',
+      ok: accessibility.missingImageAlts.length === 0,
+      detail: accessibility.missingImageAlts.length ? `missing alt: ${accessibility.missingImageAlts.join(', ')}` : 'all images declare alt text (empty is allowed for decorative images)'
+    });
+    results.checks.push({
+      name: 'audit_form_controls_have_accessible_names',
+      ok: accessibility.unnamedControls.length === 0,
+      detail: accessibility.unnamedControls.length ? `unnamed controls: ${accessibility.unnamedControls.join(', ')}` : 'all form controls have an associated or ARIA name'
+    });
+
     const result = page.locator('#result');
     const resultExists = await result.count() === 1;
     const resultHiddenBeforeAudit = resultExists && !(await result.isVisible());

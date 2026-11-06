@@ -778,7 +778,14 @@ function stripMarkdownCode(text){
   return line;
  }).join('\n');
 }
-function isSameSiteHost(candidate,host){return candidate===host||candidate.endsWith('.'+host)||host.endsWith('.'+candidate)}
+function isSameSiteHost(candidate,host){
+ const normalize=value=>String(value||'').toLowerCase().replace(/\\.$/,'');
+ const candidateHost=normalize(candidate),hostName=normalize(host);
+ if(!candidateHost||!hostName)return false;
+ const candidateSite=candidateHost.replace(/^www\\./,'');
+ const hostSite=hostName.replace(/^www\\./,'');
+ return candidateSite===hostSite||candidateHost.endsWith('.'+hostSite);
+}
 function decodeSitemapLoc(value){
  // Decode XML exactly once; query strings may contain literal entity-like text.
  return String(value).replace(/&(#x[0-9a-f]+|#[0-9]+|amp|lt|gt|quot|apos);/gi,(entity,key)=>{

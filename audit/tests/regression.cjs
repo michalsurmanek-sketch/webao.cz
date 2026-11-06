@@ -328,7 +328,6 @@ assert(!redirects.isSecureSiteResponse(response(302,'https://attacker.example/')
 assert(!redirects.isSecureSiteResponse(response(301,null),site));
 assert(!redirects.isSecureSiteResponse(response(404,null),site));
 console.log('PASS: healthcheck aborts a stalled response body within its timeout');
-})();
 const timeoutSource=source.slice(source.indexOf('function configuredTimeout('),source.indexOf('const timeoutMs ='));
 const timeoutContext={};vm.createContext(timeoutContext);vm.runInContext(timeoutSource,timeoutContext);
 assert.equal(timeoutContext.configuredTimeout('2500'),2500);
@@ -349,7 +348,8 @@ assert(!contentTypeContext.hasContentType(mediaResponse('text/htmlish'),'text/ht
 assert(!contentTypeContext.hasContentType(mediaResponse('application/notjavascript'),'javascript'));
 assert(!contentTypeContext.hasContentType(mediaResponse(null),'text/html'));
 assert(!contentTypeContext.hasContentType(mediaResponse('text/plain'),'javascript'));
-console.log('PASS: missing audit markup is a critical healthcheck failure');
+console.log('PASS: healthcheck timeout and MIME type assertions');
+})();
 })();
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');

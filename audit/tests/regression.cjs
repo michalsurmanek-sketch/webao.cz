@@ -381,5 +381,15 @@ assert(workflow.includes("      - 'assets/**'"));
 assert(workflow.includes("if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'"));
 console.log('PASS: shared audit assets trigger the mobile/browser smoke checks on push');
 })();
+await (async()=>{
+const fs=require('fs'),assert=require('assert/strict'),path=require('path');
+const browserSmoke=fs.readFileSync(path.join(__dirname,'browser-smoke.cjs'),'utf8');
+assert(browserSmoke.includes("name: 'document_language'"));
+assert(browserSmoke.includes("name: 'images_have_alt_attribute'"));
+assert(browserSmoke.includes("name: 'audit_form_controls_have_accessible_names'"));
+assert(browserSmoke.includes("document.querySelectorAll('img:not([alt])')"));
+assert(browserSmoke.includes("control.labels || []"));
+console.log('PASS: browser smoke protects document language, image alt attributes and form control names');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

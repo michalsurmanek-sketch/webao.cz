@@ -9,6 +9,16 @@ function configuredTimeout(value) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 120000) : 12000;
 }
+function hasContentType(response, expected) {
+  const value = response.headers.get('content-type') || '';
+  const mediaType = value.split(';', 1)[0].trim().toLowerCase();
+  if (expected === 'text/html') return mediaType === 'text/html';
+  if (expected === 'javascript') {
+    return ['application/javascript', 'text/javascript', 'application/ecmascript', 'text/ecmascript', 'application/x-javascript', 'text/x-javascript'].includes(mediaType);
+  }
+  return false;
+}
+
 const timeoutMs = configuredTimeout(process.env.HEALTHCHECK_TIMEOUT_MS);
 const retries = 2;
 const records = [];
@@ -76,19 +86,19 @@ async function checkUrl(name, url, predicate, critical = true) {
   }));
 
   await checkUrl('audit_page', new URL('/audit/', origin).href, response => ({
-    ok: response.status === 200 && response.headers.get('content-type')?.includes('text/html'),
+    ok: response.status === 200 && hasContentType(response, 'text/html'),
     detail: `HTTP ${response.status}; content-type ${response.headers.get('content-type') || 'missing'}`,
   }));
 
   await checkUrl('audit_cache_script', new URL('/audit/psi-cache.js', origin).href, response => ({
-    ok: response.status === 200 && response.headers.get('content-type')?.includes('javascript'),
+    ok: response.status === 200 && hasContentType(response, 'javascript'),
     detail: `HTTP ${response.status}; content-type ${response.headers.get('content-type') || 'missing'}`,
   }));
 
   try {
     const { response, body: html } = await request(new URL('/audit/', origin), true);
     const contentType = response.headers.get('content-type') || '';
-    if (response.status !== 200 || !contentType.toLowerCase().includes('text/html')) {
+    if (response.status !== 200 || !hasContentType(response, 'text/html')) {
       record('audit_markup', 'FAIL', `HTTP ${response.status}; content-type ${contentType || 'missing'}; markup was not inspected`, true);
     } else {
       const required = ['id="audit-form"', 'id="result"', 'id="domain"', '/audit/psi-cache.js', 'Zkontrolovat web'];

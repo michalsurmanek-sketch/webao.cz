@@ -325,6 +325,17 @@ assert.equal(timeoutContext.configuredTimeout('0'),12000);
 assert.equal(timeoutContext.configuredTimeout('-1'),12000);
 assert.equal(timeoutContext.configuredTimeout('Infinity'),12000);
 assert.equal(timeoutContext.configuredTimeout('999999'),120000);
+const contentTypeSource=source.slice(source.indexOf('function hasContentType('),source.indexOf('const timeoutMs ='));
+const contentTypeContext={};vm.createContext(contentTypeContext);vm.runInContext(contentTypeSource,contentTypeContext);
+const mediaResponse=value=>({headers:{get:()=>value}});
+assert(contentTypeContext.hasContentType(mediaResponse('Text/HTML; charset=UTF-8'),'text/html'));
+assert(contentTypeContext.hasContentType(mediaResponse(' text/javascript ; charset=utf-8'),'javascript'));
+assert(contentTypeContext.hasContentType(mediaResponse('application/javascript'),'javascript'));
+assert(contentTypeContext.hasContentType(mediaResponse('application/x-javascript'),'javascript'));
+assert(!contentTypeContext.hasContentType(mediaResponse('text/htmlish'),'text/html'));
+assert(!contentTypeContext.hasContentType(mediaResponse('application/notjavascript'),'javascript'));
+assert(!contentTypeContext.hasContentType(mediaResponse(null),'text/html'));
+assert(!contentTypeContext.hasContentType(mediaResponse('text/plain'),'javascript'));
 console.log('PASS: missing audit markup is a critical healthcheck failure');
 })();
 await (async()=>{

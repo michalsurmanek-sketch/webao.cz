@@ -292,7 +292,9 @@ assert(healthcheck.includes("present', true)"));
 assert(healthcheck.includes("record('audit_markup', 'FAIL', error.message, true)"));
 assert(healthcheck.includes("records.some(item => item.status === 'FAIL' && item.critical)"));
 assert(healthcheck.includes("async function request(url, readBody = false)"));
-assert(healthcheck.includes("const body = await response.text();"));
+assert(healthcheck.includes("const body = await readResponseText(response);"));
+assert(healthcheck.includes("size > maxBytes"));
+assert(healthcheck.includes("const maxResponseBytes = 2 * 1024 * 1024;"));
 assert(healthcheck.includes("body: html } = await request(new URL('/audit/', origin), true)"));
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');

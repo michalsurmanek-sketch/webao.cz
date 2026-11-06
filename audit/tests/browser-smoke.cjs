@@ -52,6 +52,52 @@ const { chromium } = require('playwright');
       detail: accessibility.unnamedControls.length ? `unnamed controls: ${accessibility.unnamedControls.join(', ')}` : 'all form controls have an associated or ARIA name'
     });
 
+    const domainInput = page.locator('#domain');
+    await domainInput.focus();
+    await page.keyboard.press('Tab');
+    const forwardFocus = await page.evaluate(() => {
+      const active = document.activeElement;
+      const style = getComputedStyle(active);
+      return {
+        isSubmit: active.matches('#audit-form button[type="submit"]'),
+        isFocusVisible: active.matches(':focus-visible'),
+        outlineStyle: style.outlineStyle,
+        outlineWidth: parseFloat(style.outlineWidth),
+        outlineColor: style.outlineColor
+      };
+    });
+    const submitFocusVisible = forwardFocus.isSubmit && forwardFocus.isFocusVisible &&
+      forwardFocus.outlineStyle !== 'none' && forwardFocus.outlineWidth >= 2 &&
+      forwardFocus.outlineColor !== 'rgba(0, 0, 0, 0)';
+    results.checks.push({
+      name: 'keyboard_can_reach_audit_submit',
+      ok: forwardFocus.isSubmit,
+      detail: forwardFocus.isSubmit ? 'Tab moves from the domain field to submit' : 'Tab did not move from the domain field to submit'
+    });
+    results.checks.push({
+      name: 'keyboard_submit_focus_is_visible',
+      ok: submitFocusVisible,
+      detail: submitFocusVisible ? `visible ${forwardFocus.outlineWidth}px ${forwardFocus.outlineStyle} outline` : `focus indicator missing or too thin: ${JSON.stringify(forwardFocus)}`
+    });
+    await page.keyboard.press('Shift+Tab');
+    const reverseFocus = await page.evaluate(() => {
+      const active = document.activeElement;
+      const style = getComputedStyle(active);
+      return {
+        isDomain: active.matches('#domain'),
+        isFocusVisible: active.matches(':focus-visible'),
+        boxShadow: style.boxShadow,
+        borderColor: style.borderColor
+      };
+    });
+    const domainFocusVisible = reverseFocus.isDomain && reverseFocus.isFocusVisible &&
+      reverseFocus.boxShadow !== 'none' && reverseFocus.borderColor !== 'rgba(0, 0, 0, 0)';
+    results.checks.push({
+      name: 'keyboard_domain_focus_is_visible',
+      ok: domainFocusVisible,
+      detail: domainFocusVisible ? 'Shift+Tab returns to the domain field with its focus treatment' : `domain focus treatment missing: ${JSON.stringify(reverseFocus)}`
+    });
+
     const result = page.locator('#result');
     const resultExists = await result.count() === 1;
     const resultHiddenBeforeAudit = resultExists && !(await result.isVisible());

@@ -20,6 +20,7 @@ function hasContentType(response, expected) {
 }
 
 const timeoutMs = configuredTimeout(process.env.HEALTHCHECK_TIMEOUT_MS);
+const maxResponseBytes = 2 * 1024 * 1024;
 const retries = 2;
 const records = [];
 
@@ -43,6 +44,39 @@ function record(name, status, detail, critical = false) {
   console.log(`${status === 'PASS' ? 'PASS' : 'FAIL'} ${name}: ${detail}`);
 }
 
+async function readResponseText(response, maxBytes = maxResponseBytes) {
+  const contentLength = response.headers.get('content-length');
+  if (contentLength !== null && contentLength !== '' && Number.isFinite(Number(contentLength)) && Number(contentLength) > maxBytes) {
+    throw new Error(`response body exceeds ${maxBytes} bytes`);
+  }
+  if (!response.body || typeof response.body.getReader !== 'function') {
+    const text = await response.text();
+    if (Buffer.byteLength(text, 'utf8') > maxBytes) throw new Error(`response body exceeds ${maxBytes} bytes`);
+    return text;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = '';
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel();
+        throw new Error(`response body exceeds ${maxBytes} bytes`);
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    return text + decoder.decode();
+  } catch (error) {
+    try { await reader.cancel(); } catch {}
+    throw error;
+  }
+}
+
 async function request(url, readBody = false) {
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -51,7 +85,7 @@ async function request(url, readBody = false) {
     try {
       const response = await fetch(url, { redirect: 'manual', signal: controller.signal });
       if (readBody) {
-        const body = await response.text();
+        const body = await readResponseText(response);
         clearTimeout(timer);
         return { response, body };
       }

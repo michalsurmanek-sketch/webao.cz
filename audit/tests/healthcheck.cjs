@@ -7,7 +7,7 @@ const path = require('node:path');
 const base = process.env.WEBAO_BASE_URL || 'https://webao.cz';
 function configuredTimeout(value) {
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), 120000) : 12000;
+  return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 120000) : 12000;
 }
 const timeoutMs = configuredTimeout(process.env.HEALTHCHECK_TIMEOUT_MS);
 const retries = 2;

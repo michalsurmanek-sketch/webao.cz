@@ -394,7 +394,8 @@ console.log('PASS: browser smoke protects document language, image alt attribute
 await (async()=>{
 const fs=require('fs'),assert=require('assert/strict'),path=require('path');
 const browserSmoke=fs.readFileSync(path.join(__dirname,'browser-smoke.cjs'),'utf8');
-const networkCss=fs.readFileSync(path.join(__dirname,'../../assets/network.css'),'utf8');\nconst auditHtml=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const networkCss=fs.readFileSync(path.join(__dirname,'../../assets/network.css'),'utf8');
+const auditHtml=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 assert(browserSmoke.includes("name: 'keyboard_can_reach_audit_submit'"));
 assert(browserSmoke.includes("name: 'keyboard_submit_focus_is_visible'"));
 assert(browserSmoke.includes("name: 'keyboard_domain_focus_is_visible'"));

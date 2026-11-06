@@ -391,5 +391,16 @@ assert(browserSmoke.includes("document.querySelectorAll('img:not([alt])')"));
 assert(browserSmoke.includes("control.labels || []"));
 console.log('PASS: browser smoke protects document language, image alt attributes and form control names');
 })();
+await (async()=>{
+const fs=require('fs'),assert=require('assert/strict'),path=require('path');
+const browserSmoke=fs.readFileSync(path.join(__dirname,'browser-smoke.cjs'),'utf8');
+const networkCss=fs.readFileSync(path.join(__dirname,'../../assets/network.css'),'utf8');
+assert(browserSmoke.includes("name: 'keyboard_can_reach_audit_submit'"));
+assert(browserSmoke.includes("name: 'keyboard_submit_focus_is_visible'"));
+assert(browserSmoke.includes("name: 'keyboard_domain_focus_is_visible'"));
+assert(networkCss.includes('button:focus-visible{outline:2px solid var(--gold);outline-offset:5px}'));
+assert(networkCss.includes('.audit-form input:focus{'));
+console.log('PASS: browser smoke protects keyboard tab order and visible focus checks');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

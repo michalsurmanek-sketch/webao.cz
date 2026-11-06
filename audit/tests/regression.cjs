@@ -299,7 +299,7 @@ assert(healthcheck.includes("body: html } = await request(new URL('/audit/', ori
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
 const source=fs.readFileSync(path.join(__dirname,'healthcheck.cjs'),'utf8');
-const c={AbortController,setTimeout,clearTimeout,timeoutMs:15,retries:0,maxResponseBytes:2*1024*1024,fetch:async(_url,{signal})=>({headers:{get:()=>null},body:{getReader:()=>({read:()=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Object.assign(new Error('aborted'),{name:'AbortError'})))),cancel:async()=>{}})}})};
+const c={AbortController,TextDecoder:require('node:util').TextDecoder,Buffer,setTimeout,clearTimeout,timeoutMs:15,retries:0,maxResponseBytes:2*1024*1024,fetch:async(_url,{signal})=>({headers:{get:()=>null},body:{getReader:()=>({read:()=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Object.assign(new Error('aborted'),{name:'AbortError'})))),cancel:async()=>{}})}})};
 vm.createContext(c);
 vm.runInContext(source.slice(source.indexOf('async function readResponseText('),source.indexOf('async function checkUrl(')),c);
 const started=Date.now();

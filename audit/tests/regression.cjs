@@ -9,6 +9,13 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);
 const c={URL,TextEncoder};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function queryPageSpeedStrategies('),s.indexOf('async function queryDns('))+s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
+assert(c.isSameSiteHost('example.cz','example.cz'));
+assert(c.isSameSiteHost('www.example.cz','example.cz'));
+assert(c.isSameSiteHost('shop.example.cz','example.cz'));
+assert(!c.isSameSiteHost('example.cz','shop.example.cz'));
+assert(!c.isSameSiteHost('co.uk','shop.co.uk'));
+assert(!c.isSameSiteHost('github.io','project.github.io'));
+assert(!c.isSameSiteHost('other.example.cz','shop.example.cz'));
 const url=new URL('https://example.cz/');const pages=[{url:url.href,raw:'ok',links:['/','/a','/excluded','/private','https://outside.cz/a']},{url:'https://example.cz/a',raw:'ok',links:['/last','/a']}];
 const links=c.discoverPageLinks(pages,url,x=>x.endsWith('/excluded'),'User-agent: *\nDisallow: /private');assert.equal(links.length,4);assert(links.find(x=>x.url.endsWith('/private')).robotsBlocked);assert(links.find(x=>x.url.endsWith('/excluded')).excluded);assert.equal(links.find(x=>x.url.endsWith('/last')).source,'https://example.cz/a');
 assert(!s.includes('pageSpeedPromise=pagePromise.then'));assert(s.includes('const finalLinks=discoverPageLinks'));

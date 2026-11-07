@@ -119,6 +119,38 @@ const { chromium } = require('playwright');
       detail: domainFocusVisible ? 'Shift+Tab returns to the domain field with its focus treatment' : `domain focus treatment missing: ${JSON.stringify(reverseFocus)}`
     });
 
+    const textContrast = await page.evaluate(() => {
+      const rgb = value => {
+        const match = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        return match ? match.slice(1, 4).map(Number) : null;
+      };
+      const luminance = color => color.map(value => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      }).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+      const samples = [
+        { name: 'domain input', selector: '#domain' },
+        { name: 'audit submit button', selector: '#audit-form button[type="submit"]' }
+      ].map(sample => {
+        const element = document.querySelector(sample.selector);
+        const style = getComputedStyle(element);
+        const foreground = rgb(style.color);
+        const background = rgb(style.backgroundColor);
+        if (!foreground || !background || style.backgroundColor.startsWith('rgba(') && Number(style.backgroundColor.split(',')[3]?.replace(/[ )]/g, '')) < 1) {
+          return { ...sample, ratio: null, foreground: style.color, background: style.backgroundColor };
+        }
+        const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+        return { ...sample, ratio: (values[0] + 0.05) / (values[1] + 0.05), foreground: style.color, background: style.backgroundColor };
+      });
+      return samples;
+    });
+    const validTextContrast = textContrast.every(sample => sample.ratio !== null && sample.ratio >= 4.5);
+    results.checks.push({
+      name: 'sampled_form_text_contrast',
+      ok: validTextContrast,
+      detail: textContrast.map(sample => sample.ratio === null ? `${sample.name}: unable to measure opaque colors` : `${sample.name}: ${sample.ratio.toFixed(2)}:1`).join('; ')
+    });
+
     const result = page.locator('#result');
     const resultExists = await result.count() === 1;
     const resultHiddenBeforeAudit = resultExists && !(await result.isVisible());

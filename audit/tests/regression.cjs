@@ -426,10 +426,10 @@ const s=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').match(/<scr
 const start=s.indexOf('function validateObservatoryResult('),end=s.indexOf('async function queryHttpObservatory(');
 assert(start>=0&&end>start,'Observatory payload validator exists before query');
 const c={Number};vm.createContext(c);vm.runInContext(s.slice(start,end)+';this.validateObservatoryResult=validateObservatoryResult;',c);
-const valid={score:95,tests_quantity:10,tests_passed:9,tests_failed:1,grade:'A',status_code:200};
+const valid={score:105,tests_quantity:10,tests_passed:10,tests_failed:0,grade:'A+',status_code:200};
 assert.equal(c.validateObservatoryResult(valid),valid);
 for(const invalid of [
- null,[],{}, {...valid,score:NaN}, {...valid,score:101}, {...valid,tests_quantity:0},
+ null,[],{}, {...valid,score:NaN}, {...valid,score:146}, {...valid,tests_quantity:0},
  {...valid,tests_passed:-1}, {...valid,tests_failed:-1},
  {...valid,tests_passed:10,tests_failed:1}, {...valid,grade:''},
  {...valid,status_code:0}, {...valid,status_code:600}

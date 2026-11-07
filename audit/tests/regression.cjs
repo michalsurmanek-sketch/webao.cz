@@ -430,7 +430,7 @@ const valid={score:105,tests_quantity:10,tests_passed:10,tests_failed:0,grade:'A
 assert.equal(c.validateObservatoryResult(valid),valid);
 assert.throws(()=>c.validateObservatoryResult({...valid,grade:'A'}),/skóre a známku/);
 for(const invalid of [
- null,[],{}, {...valid,score:NaN}, {...valid,score:146}, {...valid,tests_quantity:0},
+ null,[],{}, {...valid,score:NaN}, {...valid,score:105.5}, {...valid,score:146}, {...valid,tests_quantity:0},
  {...valid,tests_passed:-1}, {...valid,tests_failed:-1},
  {...valid,tests_passed:10,tests_failed:1}, {...valid,grade:''},
  {...valid,status_code:0}, {...valid,status_code:600}

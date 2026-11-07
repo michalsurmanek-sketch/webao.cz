@@ -397,7 +397,8 @@ const browserSmoke=fs.readFileSync(path.join(__dirname,'browser-smoke.cjs'),'utf
 const networkCss=fs.readFileSync(path.join(__dirname,'../../assets/network.css'),'utf8');
 const auditHtml=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 assert(browserSmoke.includes("name: 'keyboard_can_reach_audit_submit'"));
-assert(browserSmoke.includes("name: 'keyboard_submit_focus_is_visible'"));\nassert(browserSmoke.includes("name: 'keyboard_focus_outline_contrast'"));
+assert(browserSmoke.includes("name: 'keyboard_submit_focus_is_visible'"));
+assert(browserSmoke.includes("name: 'keyboard_focus_outline_contrast'"));
 assert(browserSmoke.includes('focusContrast.ratio >= 3'));
 assert(browserSmoke.includes("name: 'keyboard_domain_focus_is_visible'"));
 assert(networkCss.includes('button:focus-visible{outline:2px solid var(--gold);outline-offset:5px}'));

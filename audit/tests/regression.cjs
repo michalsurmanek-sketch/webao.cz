@@ -428,6 +428,7 @@ assert(start>=0&&end>start,'Observatory payload validator exists before query');
 const c={Number};vm.createContext(c);vm.runInContext(s.slice(start,end)+';this.validateObservatoryResult=validateObservatoryResult;',c);
 const valid={score:105,tests_quantity:10,tests_passed:10,tests_failed:0,grade:'A+',status_code:200};
 assert.equal(c.validateObservatoryResult(valid),valid);
+assert.throws(()=>c.validateObservatoryResult({...valid,grade:'A'}),/skóre a známku/);
 for(const invalid of [
  null,[],{}, {...valid,score:NaN}, {...valid,score:146}, {...valid,tests_quantity:0},
  {...valid,tests_passed:-1}, {...valid,tests_failed:-1},

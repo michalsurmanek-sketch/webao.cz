@@ -671,7 +671,7 @@ function analyzeDmarc(values){
 }
 function validateObservatoryResult(payload){
  if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('MDN HTTP Observatory vrátil neplatný formát výsledku.');
- const complete=Number.isFinite(payload.score)&&payload.score>=0&&payload.score<=145&&
+ const complete=Number.isInteger(payload.score)&&payload.score>=0&&payload.score<=145&&
   Number.isInteger(payload.tests_quantity)&&payload.tests_quantity>0&&
   Number.isInteger(payload.tests_passed)&&payload.tests_passed>=0&&
   Number.isInteger(payload.tests_failed)&&payload.tests_failed>=0&&

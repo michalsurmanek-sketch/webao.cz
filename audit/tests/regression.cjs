@@ -413,8 +413,12 @@ assert(workflow.includes("github.event.schedule == '35 2 * * *'"));
 assert(workflow.includes("name: Browser smoke test"));
 console.log('PASS: daily scheduled browser smoke includes keyboard and accessibility checks');
 })();
+await (async()=>{
+const fs=require('fs'),assert=require('assert/strict'),path=require('path');
+const browserSmoke=fs.readFileSync(path.join(__dirname,'browser-smoke.cjs'),'utf8');
 assert(browserSmoke.includes("name: 'sampled_form_text_contrast'"));
 assert(browserSmoke.includes("sample.ratio >= 4.5"));
 console.log('PASS: form text contrast smoke check is kept scoped to opaque controls');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

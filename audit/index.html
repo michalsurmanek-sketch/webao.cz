@@ -679,6 +679,8 @@ function validateObservatoryResult(payload){
   typeof payload.grade==='string'&&payload.grade.trim().length>0&&
   Number.isInteger(payload.status_code)&&payload.status_code>=100&&payload.status_code<=599;
  if(!complete)throw new Error('MDN HTTP Observatory vrátil neúplný výsledek skenu; souhrn nelze potvrdit.');
+ const expectedGrade=payload.score>=100?'A+':payload.score>=90?'A':payload.score>=85?'A-':payload.score>=80?'B+':payload.score>=70?'B':payload.score>=65?'B-':payload.score>=60?'C+':payload.score>=50?'C':payload.score>=45?'C-':payload.score>=40?'D+':payload.score>=30?'D':payload.score>=25?'D-':'F';
+ if(payload.grade.trim().toUpperCase()!==expectedGrade)throw new Error('MDN HTTP Observatory vrátil skóre a známku, které si neodpovídají.');
  return payload;
 }
 async function queryHttpObservatory(host){

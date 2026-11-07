@@ -403,5 +403,13 @@ assert(networkCss.includes('button:focus-visible{outline:2px solid var(--gold);o
 assert(auditHtml.includes('.audit-form input:focus{'));
 console.log('PASS: browser smoke protects keyboard tab order and visible focus checks');
 })();
+await (async()=>{
+const fs=require('fs'),assert=require('assert/strict'),path=require('path');
+const workflow=fs.readFileSync(path.join(__dirname,'../../.github/workflows/webao-monitor.yml'),'utf8');
+assert(workflow.includes("    - cron: '35 2 * * *'"));
+assert(workflow.includes("github.event.schedule == '35 2 * * *'"));
+assert(workflow.includes("name: Browser smoke test"));
+console.log('PASS: daily scheduled browser smoke includes keyboard and accessibility checks');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -63,7 +63,8 @@ const { chromium } = require('playwright');
         isFocusVisible: active.matches(':focus-visible'),
         outlineStyle: style.outlineStyle,
         outlineWidth: parseFloat(style.outlineWidth),
-        outlineColor: style.outlineColor
+        outlineColor: style.outlineColor,
+        bodyBackground: getComputedStyle(document.body).backgroundColor
       };
     });
     const submitFocusVisible = forwardFocus.isSubmit && forwardFocus.isFocusVisible &&
@@ -73,6 +74,26 @@ const { chromium } = require('playwright');
       name: 'keyboard_can_reach_audit_submit',
       ok: forwardFocus.isSubmit,
       detail: forwardFocus.isSubmit ? 'Tab moves from the domain field to submit' : 'Tab did not move from the domain field to submit'
+    });
+    const focusContrast = await page.evaluate(() => {
+      const parse = value => {
+        const match = value.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);
+        return match ? match.slice(1, 4).map(Number) : null;
+      };
+      const luminance = rgb => {
+        const channels = rgb.map(value => value / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+      };
+      const outline = parse(getComputedStyle(document.querySelector('#audit-form button[type="submit"]')).outlineColor);
+      const background = parse(getComputedStyle(document.body).backgroundColor);
+      if (!outline || !background) return { ratio: null, outline, background };
+      const values = [luminance(outline), luminance(background)].sort((a, b) => b - a);
+      return { ratio: (values[0] + 0.05) / (values[1] + 0.05), outline, background };
+    });
+    results.checks.push({
+      name: 'keyboard_focus_outline_contrast',
+      ok: focusContrast.ratio !== null && focusContrast.ratio >= 3,
+      detail: focusContrast.ratio === null ? 'could not determine focus outline and adjacent background colors' : `outline/background contrast ${focusContrast.ratio.toFixed(2)}:1 (sampled on the audit page)`
     });
     results.checks.push({
       name: 'keyboard_submit_focus_is_visible',

@@ -519,7 +519,7 @@ function assertPageSpeedResult(payload,expectedUrl){
  }
  if(expectedUrl){
   const expected=new URL(expectedUrl);
-  for(const field of ['requestedUrl','finalUrl']){
+  for(const field of ['requestedUrl','finalUrl','finalDisplayedUrl']){
    const address=lighthouse[field];
    if(!address)continue;
    let actual;

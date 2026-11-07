@@ -77,7 +77,7 @@ const { chromium } = require('playwright');
     });
     const focusContrast = await page.evaluate(() => {
       const parse = value => {
-        const match = value.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/);
+        const match = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
         return match ? match.slice(1, 4).map(Number) : null;
       };
       const luminance = rgb => {

@@ -669,12 +669,24 @@ function analyzeDmarc(values){
  const effectivePolicy=(tags.p||'none').toLowerCase();
  return{candidates,validRecords,records:candidates,record,tags,errors,warnings,valid:errors.length===0,effectivePolicy,testing:(tags.t||'n').toLowerCase()==='y'};
 }
+function validateObservatoryResult(payload){
+ if(!payload||typeof payload!=='object'||Array.isArray(payload))throw new Error('MDN HTTP Observatory vrátil neplatný formát výsledku.');
+ const complete=Number.isFinite(payload.score)&&payload.score>=0&&payload.score<=100&&
+  Number.isInteger(payload.tests_quantity)&&payload.tests_quantity>0&&
+  Number.isInteger(payload.tests_passed)&&payload.tests_passed>=0&&
+  Number.isInteger(payload.tests_failed)&&payload.tests_failed>=0&&
+  payload.tests_passed+payload.tests_failed<=payload.tests_quantity&&
+  typeof payload.grade==='string'&&payload.grade.trim().length>0&&
+  Number.isInteger(payload.status_code)&&payload.status_code>=100&&payload.status_code<=599;
+ if(!complete)throw new Error('MDN HTTP Observatory vrátil neúplný výsledek skenu; souhrn nelze potvrdit.');
+ return payload;
+}
 async function queryHttpObservatory(host){
  const endpoint='https://observatory-api.mdn.mozilla.net/api/v2/scan?host='+encodeURIComponent(host);
  const response=await fetchTimed(endpoint,{method:'POST',headers:{Accept:'application/json'}},30000);
  let payload={};try{payload=await readTimedResponse(response,'json',30000)}catch(error){throw new Error(error&&error.name==='AbortError'?'MDN HTTP Observatory překročil limit 30 sekund.':'Odpověď MDN HTTP Observatory se nepodařilo přečíst.')}
  if(!response.ok||payload.error)throw new Error(payload.message||payload.error||'MDN HTTP Observatory nevrátil výsledek ('+response.status+').');
- return payload;
+ return validateObservatoryResult(payload);
 }
 function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit/i.test(String(error&&error.message||error||''))}
 function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Rychlost a Lighthouse skóre proto nejsou v tomto běhu ověřené. Zkuste audit znovu později.';return String(error&&error.message||error||'Příčina není známa.');}

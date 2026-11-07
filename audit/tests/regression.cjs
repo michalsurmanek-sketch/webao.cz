@@ -420,5 +420,22 @@ assert(browserSmoke.includes("name: 'sampled_form_text_contrast'"));
 assert(browserSmoke.includes("sample.ratio >= 4.5"));
 console.log('PASS: form text contrast smoke check is kept scoped to opaque controls');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const s=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+const start=s.indexOf('function validateObservatoryResult('),end=s.indexOf('async function queryHttpObservatory(');
+assert(start>=0&&end>start,'Observatory payload validator exists before query');
+const c={Number};vm.createContext(c);vm.runInContext(s.slice(start,end)+';this.validateObservatoryResult=validateObservatoryResult;',c);
+const valid={score:95,tests_quantity:10,tests_passed:9,tests_failed:1,grade:'A',status_code:200};
+assert.equal(c.validateObservatoryResult(valid),valid);
+for(const invalid of [
+ null,[],{}, {...valid,score:NaN}, {...valid,score:101}, {...valid,tests_quantity:0},
+ {...valid,tests_passed:-1}, {...valid,tests_failed:-1},
+ {...valid,tests_passed:10,tests_failed:1}, {...valid,grade:''},
+ {...valid,status_code:0}, {...valid,status_code:600}
+])assert.throws(()=>c.validateObservatoryResult(invalid),/neplatný formát|neúplný výsledek/);
+assert(s.slice(end,end+1000).includes('return validateObservatoryResult(payload)'), 'query validates payload before returning');
+console.log('PASS: Observatory rejects incomplete and out-of-range payloads');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

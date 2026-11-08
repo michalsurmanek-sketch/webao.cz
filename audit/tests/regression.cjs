@@ -183,6 +183,7 @@ assert.throws(()=>c.assertPageSpeedResult({}));
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'ERRORED_DOCUMENT_REQUEST',message:'failed'}}}),/ERRORED_DOCUMENT_REQUEST/);
 const payload={lighthouseResult:{audits:{}}};assert.equal(c.assertPageSpeedResult(payload),payload);
 const expectedPageUrl=new URL('https://example.cz/');
+const mobilePayload={lighthouseResult:{configSettings:{emulatedFormFactor:'mobile'},audits:{}}};assert.equal(c.assertPageSpeedResult(mobilePayload,expectedPageUrl,'mobile'),mobilePayload);assert.throws(()=>c.assertPageSpeedResult(mobilePayload,expectedPageUrl,'desktop'),/jiné zařízení/);assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{configSettings:{},audits:{}}},expectedPageUrl,'mobile'),/jiné zařízení/);
 const sameSitePayload={lighthouseResult:{requestedUrl:'https://www.example.cz/',finalUrl:'https://example.cz/a',finalDisplayedUrl:'https://example.cz/a',audits:{}}};assert.equal(c.assertPageSpeedResult(sameSitePayload,expectedPageUrl),sameSitePayload);
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{requestedUrl:'https://attacker.example/',finalUrl:'https://attacker.example/',audits:{}}},expectedPageUrl),/jinou doménu/);
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalUrl:'not a valid URL',audits:{}}},expectedPageUrl),/neplatnou adresu/);
@@ -360,7 +361,7 @@ assert(!contentTypeContext.hasContentType(mediaResponse('text/plain'),'javascrip
 console.log('PASS: healthcheck timeout and MIME type assertions');
 })();
 })();
-await (async()=>{
+;(async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');const firstClose=html.indexOf('</script>');const scriptStart=html.indexOf('<script>',firstClose+9);const script=html.slice(scriptStart+8,html.indexOf('</script>',scriptStart));
 const c={areaDefs:[['Mobilní použitelnost',5]]};vm.createContext(c);

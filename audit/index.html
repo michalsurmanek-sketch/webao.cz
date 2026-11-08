@@ -535,6 +535,11 @@ function assertPageSpeedResult(payload,expectedUrl){
  }
  return payload;
 }
+function pageSpeedFinalAddress(lighthouse){
+ const displayed=typeof lighthouse?.finalDisplayedUrl==='string'?lighthouse.finalDisplayedUrl.trim():'';
+ if(displayed)return displayed;
+ return typeof lighthouse?.finalUrl==='string'?lighthouse.finalUrl.trim():'';
+}
 async function fetchReadablePage(url,path='/'){
  const target=new URL(path||'/',url);
  if(!['http:','https:'].includes(target.protocol)||target.origin!==url.origin)throw new Error('Čtečka odmítla adresu mimo požadovaný původ.');
@@ -1202,7 +1207,7 @@ form.addEventListener('submit',async event=>{
   for(const httpVariantResult of httpVariantResults){
    if(httpVariantResult.status==='fulfilled'){
     const lighthouse=httpVariantResult.value.lighthouseResult||{};
-    const finalAddress=lighthouse.finalDisplayedUrl||'';
+    const finalAddress=pageSpeedFinalAddress(lighthouse);
     let finalProtocol='';
     try{finalProtocol=new URL(finalAddress).protocol}catch{}
     const redirectedToHttps=finalProtocol==='https:';

@@ -194,12 +194,13 @@ const pageUrl=new URL('https://example.cz/');const page=await c.fetchReadablePag
 calls=[];await assert.rejects(()=>c.fetchReadablePage(pageUrl,'//outside.cz/a'),/požadovaný původ/);assert.equal(calls.length,0);
 c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
 c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503,text:async()=> 'unavailable'}};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/'),/503/);
-let pageSpeedRequests=0,pageSpeedCacheWrites=0;
-c.window.WebaoPsiCache={read:()=>null,write:()=>{pageSpeedCacheWrites++}};
+let pageSpeedRequests=0,pageSpeedCacheWrites=0,cachedPageSpeed=null;
+c.window.WebaoPsiCache={read:()=>cachedPageSpeed,write:()=>{pageSpeedCacheWrites++}};
 c.fetchTimed=async()=>{pageSpeedRequests++;return{ok:true,status:200}};
 c.readTimedResponse=async()=>({lighthouseResult:{configSettings:{emulatedFormFactor:'mobile'},requestedUrl:'https://example.cz/',finalUrl:'https://other.example/',audits:{}}});
 await assert.rejects(c.queryPageSpeed(new URL('https://example.cz/'),'mobile'),/jinou doménu/);
 assert.equal(pageSpeedRequests,1);assert.equal(pageSpeedCacheWrites,0);
+cachedPageSpeed={payload:{lighthouseResult:{configSettings:{emulatedFormFactor:'desktop'},audits:{}}}};c.readTimedResponse=async()=>({lighthouseResult:{configSettings:{emulatedFormFactor:'mobile'},requestedUrl:'https://example.cz/',finalUrl:'https://example.cz/',audits:{}}});const recovered=await c.queryPageSpeed(new URL('https://example.cz/'),'mobile');assert.equal(recovered.lighthouseResult.configSettings.emulatedFormFactor,'mobile');assert.equal(pageSpeedRequests,2);assert.equal(pageSpeedCacheWrites,1);
 console.log('PASS: readable source validation, PageSpeed payload validation and origin-safe page fetch');
 })();
 await (async()=>{
@@ -444,7 +445,7 @@ console.log('PASS: Observatory rejects incomplete and out-of-range payloads');
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
-await (async()=>{
+;(async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const firstClose=html.indexOf('</script>'),scriptStart=html.indexOf('<script>',firstClose+9),script=html.slice(scriptStart+8,html.indexOf('</script>',scriptStart));

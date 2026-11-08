@@ -442,6 +442,21 @@ for(const invalid of [
 assert(s.slice(end,end+1000).includes('return validateObservatoryResult(payload)'), 'query validates payload before returning');
 console.log('PASS: Observatory rejects incomplete and out-of-range payloads');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const firstClose=html.indexOf('</script>'),scriptStart=html.indexOf('<script>',firstClose+9),script=html.slice(scriptStart+8,html.indexOf('</script>',scriptStart));
+const start=script.indexOf('function nonnegativeMetric('),end=script.indexOf('function assertPageSpeedResult(',start);
+assert(start>=0&&end>start,'CrUX metric helpers exist before PageSpeed validation');
+const c={Number};vm.createContext(c);vm.runInContext(script.slice(start,end),c);
+const metrics={INTERACTION_TO_NEXT_PAINT:{percentile:null},EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT:{percentile:-1},INP:{percentile:180}};
+assert.equal(c.firstMetricPercentile(metrics,['INTERACTION_TO_NEXT_PAINT','EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT','INP']),180);
+assert.equal(c.firstMetricPercentile({INTERACTION_TO_NEXT_PAINT:{percentile:150},INP:{percentile:180}},['INTERACTION_TO_NEXT_PAINT','INP']),150);
+assert.equal(c.firstMetricPercentile({INTERACTION_TO_NEXT_PAINT:{percentile:'180'}},['INTERACTION_TO_NEXT_PAINT','INP']),null);
+assert(script.includes("const interactionPercentile=firstMetricPercentile(metricSet,['INTERACTION_TO_NEXT_PAINT','EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT','INP']);"));
+assert(script.includes("const fieldInp=firstMetricPercentile(metrics,['INTERACTION_TO_NEXT_PAINT','EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT','INP']);"));
+console.log('PASS: CrUX INP aliases fall through invalid preferred values without mixing scopes');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

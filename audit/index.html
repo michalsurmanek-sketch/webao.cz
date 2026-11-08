@@ -509,6 +509,7 @@ function missingLighthouseFinding(area,name,auditId,url){
  return{area,name,url,ok:false,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Lighthouse v tomto běhu neposkytl audit '+auditId+'. Kontrola se proto nezapočítá jako vyhovující ani jako potvrzený problém.',evidence:'PageSpeed Insights / Lighthouse · audit '+auditId,confidence:'Nelze určit bez skórovaného výsledku Lighthouse.'};
 }
 function nonnegativeMetric(value){return Number.isFinite(value)&&value>=0?value:null;}
+function firstMetricPercentile(metricSet,keys){for(const key of keys){const percentile=metricSet?.[key]?.percentile;if(nonnegativeMetric(percentile)!==null)return percentile;}return null;}
 function assertPageSpeedResult(payload,expectedUrl,expectedStrategy){
  if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object')throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
  const lighthouse=payload.lighthouseResult;
@@ -1322,16 +1323,15 @@ form.addEventListener('submit',async event=>{
    const pageMetrics=payload.loadingExperience&&payload.loadingExperience.metrics||{};
    const originMetrics=payload.originLoadingExperience&&payload.originLoadingExperience.metrics||{};
    const countFieldCwvMetrics=metricSet=>{
-    const interaction=metricSet.INTERACTION_TO_NEXT_PAINT||metricSet.EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT||metricSet.INP;
-    return [metricSet.LARGEST_CONTENTFUL_PAINT_MS&&metricSet.LARGEST_CONTENTFUL_PAINT_MS.percentile,metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE&&metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile,interaction&&interaction.percentile].filter(value=>nonnegativeMetric(value)!==null).length;
+    const interactionPercentile=firstMetricPercentile(metricSet,['INTERACTION_TO_NEXT_PAINT','EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT','INP']);
+    return [metricSet.LARGEST_CONTENTFUL_PAINT_MS&&metricSet.LARGEST_CONTENTFUL_PAINT_MS.percentile,metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE&&metricSet.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile,interactionPercentile].filter(value=>nonnegativeMetric(value)!==null).length;
    };
    const pageFieldMetricCount=countFieldCwvMetrics(pageMetrics),originFieldMetricCount=countFieldCwvMetrics(originMetrics);
    const hasPageFieldData=pageFieldMetricCount>=originFieldMetricCount,metrics=hasPageFieldData?pageMetrics:originMetrics;
    const fieldScope=hasPageFieldData?'pro URL':'za celý origin';
    const fieldLcp=nonnegativeMetric(metrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile);
    const fieldCls=nonnegativeMetric(metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile);
-   const inpMetric=metrics.INTERACTION_TO_NEXT_PAINT||metrics.EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT||metrics.INP;
-   const fieldInp=nonnegativeMetric(inpMetric?.percentile);
+   const fieldInp=firstMetricPercentile(metrics,['INTERACTION_TO_NEXT_PAINT','EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT','INP']);
    const metricDetails=[];
    if(Number.isFinite(fieldLcp))metricDetails.push('terénní LCP p75 '+(fieldLcp/1000).toFixed(2)+' s ('+fieldScope+')');
    if(Number.isFinite(fieldCls))metricDetails.push('terénní CLS p75 '+(Number(fieldCls)/1000).toFixed(3)+' ('+fieldScope+')');

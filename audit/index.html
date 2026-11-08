@@ -512,7 +512,7 @@ function nonnegativeMetric(value){return Number.isFinite(value)&&value>=0?value:
 function assertPageSpeedResult(payload,expectedUrl,expectedStrategy){
  if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object')throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
  const lighthouse=payload.lighthouseResult;
- if(expectedStrategy&&lighthouse.configSettings&&lighthouse.configSettings.emulatedFormFactor!==expectedStrategy){const failure=new Error('PageSpeed vrátil jiné zařízení ('+(lighthouse.configSettings.emulatedFormFactor||'neuvedeno')+'); očekával se audit '+expectedStrategy+'.');failure.retryable=false;throw failure;}
+ if(expectedStrategy&&(!lighthouse.configSettings||lighthouse.configSettings.emulatedFormFactor!==expectedStrategy)){const failure=new Error('PageSpeed vrátil jiné zařízení ('+(lighthouse.configSettings?.emulatedFormFactor||'neuvedeno')+'); očekával se audit '+expectedStrategy+'.');failure.retryable=false;throw failure;}
  const error=lighthouse.runtimeError;
  if(error){
   const failure=new Error('Lighthouse měření nebylo dokončeno: '+(error.code||'neznámá chyba')+(error.message?' — '+error.message:''));

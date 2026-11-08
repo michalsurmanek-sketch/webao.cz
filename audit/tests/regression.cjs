@@ -442,3 +442,20 @@ console.log('PASS: Observatory rejects incomplete and out-of-range payloads');
 })();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const firstClose=html.indexOf('</script>'),scriptStart=html.indexOf('<script>',firstClose+9),script=html.slice(scriptStart+8,html.indexOf('</script>',scriptStart));
+const start=script.indexOf('function pageSpeedFinalAddress('),end=script.indexOf('async function fetchReadablePage(',start);
+assert(start>=0&&end>start,'PageSpeed final URL helper exists');
+const c={};vm.createContext(c);vm.runInContext(script.slice(start,end),c);
+assert.equal(c.pageSpeedFinalAddress({finalDisplayedUrl:'https://example.cz/final'}),'https://example.cz/final');
+assert.equal(c.pageSpeedFinalAddress({finalDisplayedUrl:'',finalUrl:'https://example.cz/final'}),'https://example.cz/final');
+assert.equal(c.pageSpeedFinalAddress({finalUrl:'https://example.cz/final'}),'https://example.cz/final');
+assert.equal(c.pageSpeedFinalAddress({finalDisplayedUrl:'   ',finalUrl:'https://example.cz/final'}),'https://example.cz/final');
+assert.equal(c.pageSpeedFinalAddress({finalDisplayedUrl:'http://example.cz/final',finalUrl:'https://example.cz/final'}),'http://example.cz/final','present display address remains authoritative');
+assert.equal(c.pageSpeedFinalAddress({finalUrl:42}), '');
+assert(script.includes('const finalAddress=pageSpeedFinalAddress(lighthouse);'),'HTTP redirect finding consumes final display or final URL');
+console.log('PASS: HTTP redirect audit falls back to Lighthouse finalUrl only when finalDisplayedUrl is absent');
+})();

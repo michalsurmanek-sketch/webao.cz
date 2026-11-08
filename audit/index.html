@@ -700,7 +700,7 @@ function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|querie
 function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Rychlost a Lighthouse skóre proto nejsou v tomto běhu ověřené. Zkuste audit znovu později.';return String(error&&error.message||error||'Příčina není známa.');}
 async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
  const cache=window.WebaoPsiCache?.read(pageUrl.href,strategy);
- if(cache)return assertPageSpeedResult(cache.payload,pageUrl,strategy);
+ if(cache){try{return assertPageSpeedResult(cache.payload,pageUrl,strategy)}catch{ /* Invalid cached payload: fetch and validate a fresh result. */ }}
  const endpoint=new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed');
  endpoint.searchParams.set('url',pageUrl.href);
  endpoint.searchParams.set('strategy',strategy);

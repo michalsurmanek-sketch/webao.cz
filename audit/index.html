@@ -554,9 +554,12 @@ async function fetchReadablePage(url,path='/'){
  }catch(error){throw new Error('Čtečka stránky: '+(error&&error.message?error.message:'zdroj neodpověděl.'));}
 }
 async function fetchRobotsAwarePage(url,path='/'){
- const robots=await fetchReadablePage(url,'/robots.txt').catch(()=> '');
- if(robots&&!robotsAllowsPath(robots,path))throw new Error('URL vynechána podle robots.txt.');
- return fetchReadablePage(url,path);
+ let robots='',robotsStatus='Ověřeno';
+ try{robots=await fetchReadablePage(url,'/robots.txt');}
+ catch{robotsStatus='Nelze ověřit robots.txt';}
+ if(robots&&!robotsAllowsPath(robots,path))return{status:'Vynecháno podle robots.txt',robotsStatus,text:''};
+ const text=await fetchReadablePage(url,path);
+ return{text,robotsStatus};
 }
 async function queryRdap(domain){
  const tld=domain.split('.').pop().toLowerCase();
@@ -1165,9 +1168,11 @@ form.addEventListener('submit',async event=>{
   const competitors=competitorResults.map((result,index)=>{
    const target=competitorUrls[index];
    if(result.status!=='fulfilled')return{url:target.href,status:'Nelze načíst',title:'',headline:'',price:false,contact:false,trust:false};
-   const parsed=parsePageText(result.value,target);
+   if(result.value.status==='Vynecháno podle robots.txt')return{url:target.href,status:'Vynecháno podle robots.txt',title:'',headline:'',price:false,contact:false,trust:false};
+   const parsed=parsePageText(result.value.text,target);
    const all=auditVisibleText({parsed}).toLowerCase();
-   return{url:target.href,status:'Prověřeno',title:parsed.title,headline:parsed.h1s[0]||'',price:priceSignalPattern().test(all),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(all),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(all)};
+   const robotsNote=result.value.robotsStatus==='Nelze ověřit robots.txt'?' · robots.txt se nepodařilo ověřit':'';
+   return{url:target.href,status:'Prověřeno'+robotsNote,title:parsed.title,headline:parsed.h1s[0]||'',price:priceSignalPattern().test(all),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(all),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(all)};
   });
   if(competitorUrls.length){
    const ownPages=pages.filter(item=>item.raw);

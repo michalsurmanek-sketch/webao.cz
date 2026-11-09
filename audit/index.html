@@ -168,6 +168,24 @@ function printAuditReport(){
  window.addEventListener("afterprint",restore,{once:true});
  window.print();
 }
+function auditCsvPageValue(page,key){
+ if(!page||page.raw===null||page.raw===undefined)return'Nelze ověřit';
+ switch(key){
+  case'title':return page.title||'Titulek nebyl rozpoznán';
+  case'h1':return page.h1||'—';
+  case'words':return Number.isFinite(page.wordCount)?String(page.wordCount):'Nezjištěno';
+  case'images':return Number.isFinite(page.imageCount)?String(page.imageCount)+' / chybí alt: '+(Number.isFinite(page.missingAltCount)?page.missingAltCount:'nezjištěno'):'Nezjištěno';
+  case'links':return Array.isArray(page.links)?String(page.links.length):'Nezjištěno';
+  case'externalLinks':return Array.isArray(page.externalLinks)?String(page.externalLinks.length):'Nezjištěno';
+  default:return'Nezjištěno';
+ }
+}
+function auditCsvCompetitorSignal(item,key){
+ const status=String(item&&item.status||'');
+ const sampled=status==='Váš web'||status==='Prověřeno'||status.startsWith('Prověřeno ·');
+ if(!sampled)return'Nelze ověřit';
+ return item&&item[key]?'Signál nalezen':'Nerozpoznáno ve vzorku';
+}
 function downloadAuditCsv(){
  const data=window.currentAuditData;
  if(!data)return;
@@ -180,7 +198,7 @@ function downloadAuditCsv(){
   const key=(item.url||data.host)+'|'+item.name,progress=csvWork[key]||{};
   rows.push(['Nález',item.url||data.host,item.area,item.state||(!Number.isFinite(item.points)?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),estimateEffort(item),item.confidence||'',data.checkedAt,progress.status||'Nový',progress.owner||'',progress.note||'',data.coverage+' %',findingKind(item)]);
  }
- for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,page.title,'Zdroj: '+(page.source||'nezjištěn')+(page.sourceUrl?' ('+page.sourceUrl+')':'')+'; H1: '+(page.h1||'')+'; slov ve výstupu: '+(page.wordCount??'nezjištěno')+'; obrázky: '+(page.imageCount??'nezjištěno')+'; bez alt: '+(page.missingAltCount??'nezjištěno')+'; odchozí interní odkazy ve vzorku: '+(page.links? page.links.length:'nezjištěno')+'; odchozí externí odkazy: '+(page.externalLinks? page.externalLinks.length:'nezjištěno')+'; příchozí interní odkazy mezi prověřenými URL: '+(page.inboundLinks??'nezjištěno'),'','','','','']);
+ for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,auditCsvPageValue(page,'title'),'Zdroj: '+(page.source||'nezjištěno')+(page.sourceUrl?' ('+page.sourceUrl+')':'')+'; H1: '+auditCsvPageValue(page,'h1')+'; slov ve výstupu: '+auditCsvPageValue(page,'words')+'; obrázky: '+auditCsvPageValue(page,'images')+'; odchozí interní odkazy ve vzorku: '+auditCsvPageValue(page,'links')+'; odchozí externí odkazy: '+auditCsvPageValue(page,'externalLinks')+'; příchozí interní odkazy mezi prověřenými URL: '+(page.raw===null||page.raw===undefined?'Nelze ověřit':page.inboundLinks??'Nezjištěno'),'','','','','']);
  const crawl=data.crawlMeta||{};
  for(const source of crawl.sourceStatuses||[])rows.push(['Zdroj měření',data.host,'Dostupnost zdrojů',source.status,'',source.name,source.detail,'','','','',data.checkedAt, '', '', '',data.coverage+' %','Informace']);
  rows.push(['Souhrn rozsahu',data.host,'Rozsah auditu','ČÁSTEČNÝ','','Inventář URL','Sitemap: '+(crawl.sitemapDiscovered||0)+'; interní odkazy: '+(crawl.linkDiscovered||0)+'; obojí: '+(crawl.sitemapAndLinkCount||0)+'; celkem unikátních: '+(crawl.discovered||0)+'; načteno: '+(crawl.scanned||0)+'; vynecháno limitem: '+(crawl.omittedByLimit||0)+'; robots.txt: '+(crawl.robotsExcludedUrlCount||0)+'; nastavené cesty: '+(crawl.excludedUrlCount||0)+'; sitemap soubory: '+(crawl.sitemapFiles||0),'','','','',data.checkedAt,'','','',data.coverage+' %','',crawl.note||'']);
@@ -197,7 +215,7 @@ function downloadAuditCsv(){
  }
  for(const item of data.contacts||[])rows.push(['Kontakt',item.url,'Veřejné kontakty','ZACHYCENO','','E-mail: '+arrayJoin(item.emails,', '),'Telefon: '+arrayJoin(item.phones,', '),'','','','Textové rozpoznání',data.checkedAt]);
  for(const item of data.claims||[])rows.push(['Tvrzení',item.url,'Obchodní obsah','K PROVĚŘENÍ','',item.phrase,'Rozpoznáno ve veřejném textu','','Ověřit a doložit tvrzení','','Automatické rozpoznání',data.checkedAt]);
- for(const item of data.competitors||[])rows.push(['Srovnání',item.url,'Veřejná nabídka',item.status,'',item.title,'Hlavní sdělení: '+item.headline,'Cena: '+(item.price?'signál nalezen':'nerozpoznán')+'; kontakt: '+(item.contact?'signál nalezen':'nerozpoznán')+'; důvěra: '+(item.trust?'signál nalezen':'nerozpoznán'),'','','','']);
+ for(const item of data.competitors||[]){const sampled=['Váš web','Prověřeno'].includes(String(item.status||''))||String(item.status||'').startsWith('Prověřeno ·');rows.push(['Srovnání',item.url,'Veřejná nabídka',item.status,'',sampled?(item.title||'Nerozpoznáno ve vzorku'):'Nelze ověřit','Hlavní sdělení: '+(sampled?(item.headline||'Nerozpoznáno ve vzorku'):'Nelze ověřit'),'Cena: '+auditCsvCompetitorSignal(item,'price')+'; kontakt: '+auditCsvCompetitorSignal(item,'contact')+'; důvěra: '+auditCsvCompetitorSignal(item,'trust'),'','','','']);}
  const csv='\uFEFF'+rows.map(row=>Array.from({length:rows[0].length},(_,index)=>safe(row[index])).join(';')).join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
  const link=document.createElement('a');const objectUrl=URL.createObjectURL(blob);link.href=objectUrl;link.download='webao-audit-'+data.host+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);

@@ -39,7 +39,7 @@ console.log('PASS: complete report generation, escaping, priorities and history 
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);
 let raw=JSON.stringify({a:null,b:5,c:[],d:{status:'wrong',note:7,owner:'Joe'},e:{status:'Opraveno',note:'ok'}});let written;
-const c={localStorage:{getItem:()=>raw,setItem:(_,v)=>{written=v}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function loadLocalFindingWork('),s.indexOf('function renderFindingWorkControls(')),c);
+const c={pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined),localStorage:{getItem:()=>raw,setItem:(_,v)=>{written=v}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function loadLocalFindingWork('),s.indexOf('function renderFindingWorkControls(')),c);
 assert.equal(Object.keys(c.loadLocalFindingWork('x')).length,2);assert.equal(c.loadLocalFindingWork('x').d.status,'Nový');assert.equal(c.loadLocalFindingWork('x').d.note,'');assert(c.saveLocalFindingWork('x','f','note','new'));assert.equal(JSON.parse(written).f.note,'new');assert(!c.saveLocalFindingWork('x','f','oops','new'));
 raw='[]';assert.equal(Object.keys(c.loadLocalFindingWork('x')).length,0);raw='{bad';assert.equal(Object.keys(c.loadLocalFindingWork('x')).length,0);
 c.localStorage.setItem=()=>{throw Error('quota')};assert(!c.saveLocalFindingWork('x','f','note','new'));

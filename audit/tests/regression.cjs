@@ -471,6 +471,8 @@ deny=false;result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'));
 assert.equal(result.text,'page');assert.equal(result.robotsStatus,'Ověřeno');assert.equal(pageCalls,1);
 c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')throw Error('timeout');pageCalls++;return 'page';};
 result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');assert.equal(result.text,'page');assert.equal(result.robotsStatus,'Nelze ověřit robots.txt');
+c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')throw Error('Čtečka oznámila chybu cílového zdroje (404).');pageCalls++;return 'page';};
+result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');assert.equal(result.text,'page');assert.equal(result.robotsStatus,'robots.txt nebyl nalezen (HTTP 404)');
 console.log('PASS: competitor crawl distinguishes robots denial from unavailable rules');
 })();
 console.log('PASS: all audit regression suites');

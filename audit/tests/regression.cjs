@@ -520,9 +520,9 @@ console.log('PASS: HTTP redirect audit falls back to Lighthouse finalUrl only wh
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const firstClose=html.indexOf('</script>'),scriptStart=html.indexOf('<script>',firstClose+9),script=html.slice(scriptStart+8,html.indexOf('</script>',scriptStart));
-const start=script.indexOf('function pageTextWasFetched('),end=script.indexOf('const pageRows=',start);
+const start=script.indexOf('function pageInventoryValue('),end=script.indexOf('const pageRows=',start);
 assert(start>=0&&end>start,'inventory values use a shared page availability helper');
-const c={};vm.createContext(c);vm.runInContext(script.slice(start,end)+';this.pageTextWasFetched=pageTextWasFetched;this.pageInventoryValue=pageInventoryValue;',c);
+const c={pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined)};vm.createContext(c);vm.runInContext(script.slice(start,end)+';this.pageInventoryValue=pageInventoryValue;',c);
 const unavailable={raw:null,state:'Textová čtečka stránku nenačetla'};
 for(const key of ['title','h1','words','images','links','externalLinks','inbound'])
  assert.equal(c.pageInventoryValue(unavailable,key),'Nelze ověřit',key+' stays unknown when page was not loaded');
@@ -549,9 +549,9 @@ console.log('PASS: unavailable page inventory does not claim missing content; em
 (()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-const start=html.indexOf('function pageTextWasFetched('),end=html.indexOf('function downloadAuditCsv(',start);
+const start=html.indexOf('function auditCsvPageValue('),end=html.indexOf('function downloadAuditCsv(',start);
 assert(start>=0&&end>start,'CSV-specific availability helpers exist');
-const c={};vm.createContext(c);vm.runInContext(html.slice(start,end)+';this.pageTextWasFetched=pageTextWasFetched;this.auditCsvPageValue=auditCsvPageValue;this.auditCsvCompetitorSignal=auditCsvCompetitorSignal;',c);
+const c={pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined)};vm.createContext(c);vm.runInContext(html.slice(start,end)+';this.auditCsvPageValue=auditCsvPageValue;this.auditCsvCompetitorSignal=auditCsvCompetitorSignal;',c);
 const unavailable={raw:null,title:'',h1:'',links:null,externalLinks:null,imageCount:undefined};
 for(const key of ['title','h1','words','images','links','externalLinks'])assert.equal(c.auditCsvPageValue(unavailable,key),'Nelze ověřit');
 const loadedEmpty={raw:'',title:'',h1:'',wordCount:0,imageCount:0,missingAltCount:0,links:[],externalLinks:[]};

@@ -66,7 +66,10 @@ await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function parsePageText('),s.indexOf('function decodeSitemapLoc(')),c);
 const page=c.parsePageText('Title: Test\n# Main\n[Contact](/contact) [Relative](child) [WWW](https://www.example.cz/a) [Outside](https://other.cz/) ![Alt](/picture.png) [Picture](/picture.png) [![Logo](/logo.png)](/home) [Anchor](#part) [Mail](mailto:a@example.cz) [Bad](javascript:alert) [Auth](https://user:pw@example.cz/a)',new URL('https://example.cz/path/'));
 assert.equal(page.links.length,5);assert(page.links.includes('https://example.cz/contact'));assert(page.links.includes('https://example.cz/path/child'));assert(page.links.includes('https://www.example.cz/a'));assert(page.links.includes('https://example.cz/picture.png'));assert(page.links.includes('https://example.cz/home'));assert.equal(page.externalLinks.length,1);assert.equal(page.images.length,2);assert.equal(page.images[0].alt,'Alt');assert(!page.links.some(x=>/mailto:|javascript:|user:|#/.test(x)));
-console.log('PASS: 10 page extraction assertions');
+const textOnly=c.parsePageText('Markdown Content:\n\nTato stránka má obsahový text, ale nemá titulek ani nadpis H1.',new URL('https://example.cz/text-only'));
+assert.equal(textOnly.title,'');assert.equal(textOnly.h1s.length,0);assert(textOnly.wordCount>0);assert.equal(c.pageInventoryState(textOnly),'Prověřeno');
+const blank=c.parsePageText('',new URL('https://example.cz/blank'));assert.equal(c.pageInventoryState(blank),'Obsah nerozpoznán');
+console.log('PASS: page extraction and page-inventory recognition assertions');
 
 })();
 await (async()=>{

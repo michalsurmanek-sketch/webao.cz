@@ -8,7 +8,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 })();
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);
-const c={URL,TextEncoder};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function queryPageSpeedStrategies('),s.indexOf('async function queryDns('))+s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
+const c={URL,TextEncoder,pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined)};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function queryPageSpeedStrategies('),s.indexOf('async function queryDns('))+s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
 assert(c.isSameSiteHost('example.cz','example.cz'));
 assert(c.isSameSiteHost('www.example.cz','example.cz'));
 assert(c.isSameSiteHost('shop.example.cz','example.cz'));

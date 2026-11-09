@@ -514,3 +514,33 @@ assert.equal(c.pageSpeedFinalAddress({finalUrl:42}), '');
 assert(script.includes('const finalAddress=pageSpeedFinalAddress(lighthouse);'),'HTTP redirect finding consumes final display or final URL');
 console.log('PASS: HTTP redirect audit falls back to Lighthouse finalUrl only when finalDisplayedUrl is absent');
 })();
+
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const firstClose=html.indexOf('</script>'),scriptStart=html.indexOf('<script>',firstClose+9),script=html.slice(scriptStart+8,html.indexOf('</script>',scriptStart));
+const start=script.indexOf('function pageInventoryValue('),end=script.indexOf('const pageRows=',start);
+assert(start>=0&&end>start,'inventory values use a shared page availability helper');
+const c={};vm.createContext(c);vm.runInContext(script.slice(start,end)+';this.pageInventoryValue=pageInventoryValue;',c);
+const unavailable={raw:null,state:'Textová čtečka stránku nenačetla'};
+for(const key of ['title','h1','words','images','links','externalLinks','inbound'])
+ assert.equal(c.pageInventoryValue(unavailable,key),'Nelze ověřit',key+' stays unknown when page was not loaded');
+const empty={raw:'',title:'',h1:'',wordCount:0,imageCount:0,missingAltCount:0,links:[],externalLinks:[],inboundLinks:null};
+assert.equal(c.pageInventoryValue(empty,'title'),'Titulek nebyl rozpoznán');
+assert.equal(c.pageInventoryValue(empty,'h1'),'—');
+assert.equal(c.pageInventoryValue(empty,'words'),'0');
+assert.equal(c.pageInventoryValue(empty,'images'),'0 / chybí alt: 0');
+assert.equal(c.pageInventoryValue(empty,'links'),'0','an empty successfully loaded page has zero links, not unknown');
+assert.equal(c.pageInventoryValue(empty,'externalLinks'),'0');
+assert.equal(c.pageInventoryValue(empty,'inbound'),'Nezjištěno');
+const loaded={raw:'text',title:'Domů',h1:'Nabídka',wordCount:12,imageCount:2,missingAltCount:1,links:['/a'],externalLinks:['https://other.cz'],inboundLinks:3};
+assert.equal(c.pageInventoryValue(loaded,'title'),'Domů');
+assert.equal(c.pageInventoryValue(loaded,'h1'),'Nabídka');
+assert.equal(c.pageInventoryValue(loaded,'images'),'2 / chybí alt: 1');
+assert.equal(c.pageInventoryValue(loaded,'links'),'1');
+assert.equal(c.pageInventoryValue(loaded,'externalLinks'),'1');
+assert.equal(c.pageInventoryValue(loaded,'inbound'),'3');
+const rows=script.slice(end,script.indexOf('function competitorSignalLabel(',end));
+for(const key of ['title','h1','words','images','links','externalLinks','inbound'])assert(rows.includes("pageInventoryValue(page,'"+key+"')"),'inventory column uses helper: '+key);
+console.log('PASS: unavailable page inventory does not claim missing content; empty loaded content retains zero counts');
+})();

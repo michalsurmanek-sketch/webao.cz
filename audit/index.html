@@ -810,6 +810,10 @@ function parsePageText(text,url){
  const externalLinks=[...new Set(markdownLinks.filter(href=>!isSameSiteHost(new URL(href).hostname,url.hostname)))];
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,contactText:navigable,wordCount,raw:text};
 }
+
+function pageInventoryState(parsed){
+ return parsed&&(parsed.title||parsed.description||parsed.h1s.length||parsed.wordCount>0||parsed.images.length||parsed.links.length||parsed.externalLinks.length)?'Prověřeno':'Obsah nerozpoznán';
+}
 function findPlaceholderExamples(text){
  const visible=stripMarkdownInlineCode(stripMarkdownCode(String(text)));
  const pattern=/\b(?:lorem\s+ipsum|todo|tbd|xxx+|doplň\s+(?:název|jméno|adresu|datum|údaje|telefon|e-?mail)|example\.com)\b|\[doplnit\]|\{\{[^}]+\}\}/giu;
@@ -1135,7 +1139,7 @@ form.addEventListener('submit',async event=>{
    const source=target.href===rootUrl?'Homepage':(sourceKindByUrl.get(target.href)||'Zdroj nerozpoznán');
    if(result.status!=='fulfilled')return{url:target.href,type:pageType(target.pathname),title:'',h1:'',source,sourceUrl,state:'Textová čtečka stránku nenačetla',loadError:result.reason?.message||'Čtečka nevrátila veřejný textový obsah.',raw:null,links:null,externalLinks:null,inboundLinks:null};
    const parsed=parsePageText(result.value,target);
-   return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:arrayJoin(parsed.h1s,' · '),source,sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null};
+   return{url:target.href,type:pageType(target.pathname),title:parsed.title,h1:arrayJoin(parsed.h1s,' · '),source,sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:pageInventoryState(parsed),raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null};
   });
   const crawlDiscovered=new Set([...candidateUrls,...discoveredUrls]);
   const deepLinkedUrls=new Set();
@@ -1171,7 +1175,7 @@ form.addEventListener('submit',async event=>{
      return;
     }
     const parsed=parsePageText(result.value,target);
-    pages.push({url:candidate,type:pageType(target.pathname),title:parsed.title,h1:arrayJoin(parsed.h1s,' · '),source:'Interní odkaz z prověřené stránky',sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:parsed.title||parsed.h1s.length?'Prověřeno':'Obsah nerozpoznán',raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null});
+    pages.push({url:candidate,type:pageType(target.pathname),title:parsed.title,h1:arrayJoin(parsed.h1s,' · '),source:'Interní odkaz z prověřené stránky',sourceUrl,wordCount:parsed.wordCount,imageCount:parsed.images.length,missingAltCount:parsed.images.filter(image=>!image.alt).length,externalLinkCount:parsed.externalLinks.length,state:pageInventoryState(parsed),raw:result.value,parsed,links:parsed.links,externalLinks:parsed.externalLinks,inboundLinks:null});
    });
   }
   // Inventory links even when the page limit was reached before another crawl pass.

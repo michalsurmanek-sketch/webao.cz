@@ -457,6 +457,19 @@ assert(script.includes("const interactionPercentile=firstMetricPercentile(metric
 assert(script.includes("const fieldInp=firstMetricPercentile(metrics,['INTERACTION_TO_NEXT_PAINT','EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT','INP']);"));
 console.log('PASS: CrUX INP aliases fall through invalid preferred values without mixing scopes');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const start=html.indexOf('async function fetchRobotsAwarePage('),end=html.indexOf('async function queryRdap(',start),c={};vm.createContext(c);
+vm.runInContext(html.slice(start,end)+';this.fetchRobotsAwarePage=fetchRobotsAwarePage;',c);
+const base={URL,fetchReadablePage:async(_url,path)=>path==='/robots.txt'?'User-agent: *\nDisallow: /':'page',robotsAllowsPath:()=>false};
+let result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'));
+assert.equal(result.status,'Vynecháno podle robots.txt');assert.equal(result.robotsStatus,'Ověřeno');
+const denied={...base,robotsAllowsPath:()=>false};result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'));assert.equal(result.status,'Vynecháno podle robots.txt');
+const unavailable={...base,fetchReadablePage:async(_url,path)=>{if(path==='/robots.txt')throw Error('timeout');return 'page';},robotsAllowsPath:()=>true};
+result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');assert.equal(result.text,'page');assert.equal(result.robotsStatus,'Nelze ověřit robots.txt');
+console.log('PASS: competitor crawl distinguishes robots denial from unavailable rules');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

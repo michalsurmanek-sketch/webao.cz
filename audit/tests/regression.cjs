@@ -81,7 +81,7 @@ console.log('PASS: JavaScript syntax and 14 priority assertions');
 
 })();
 await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function auditComparisonScope('),s.indexOf('function saveLocalAuditHistory(')),c);
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined)};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function auditComparisonScope('),s.indexOf('function saveLocalAuditHistory(')),c);
 const checks=[{area:'SEO',name:'Title',points:100},{area:'DNS',name:'SPF',points:50}],pages=[{url:'https://example.cz/',raw:'ok'}];
 const scope=(f=checks,p=pages)=>c.auditComparisonScope(f,p),a=scope();
 assert.equal(a,scope([...checks].reverse()));

@@ -219,6 +219,9 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const base=new URL('https://example.cz/');
 for(const candidate of ['http://example.cz/a','https://www.example.cz/a','https://shop.example.cz/a','https://cz/a','https://outside.cz/a'])assert.equal(c.normalizeCrawlUrl(candidate,base),'');
 assert.equal(c.normalizeCrawlUrl('/a?x=1#part',base),'https://example.cz/a?x=1');assert.equal(c.normalizeCrawlUrl('http://example.cz/a',new URL('http://example.cz/')),'http://example.cz/a');
+assert.equal(c.normalizeCrawlUrl('/article?utm_source=newsletter&gclid=campaign&product=42#details',base),'https://example.cz/article?product=42','known analytics identifiers must not multiply crawled copies of the same page');
+assert.equal(c.normalizeCrawlUrl('/article?campaign=summer&ref=partner&UTM_MEDIUM=email',base),'https://example.cz/article?campaign=summer&ref=partner','remove tracking parameters while preserving potentially content-bearing query values');
+assert.equal(c.normalizeCrawlUrl('/article?utm=content&lang=cs',base),'https://example.cz/article?utm=content&lang=cs','keep non-standard and functional query parameters');
 const links=c.discoverPageLinks([{url:base.href,raw:'ok',links:['/allowed','https://shop.example.cz/private','http://example.cz/other']}],base,()=>false,'User-agent: *\nDisallow: /private');assert.equal(links.length,1);assert.equal(links[0].url,'https://example.cz/allowed');
 const xml='<urlset><loc>https://example.cz/a</loc><loc>https://shop.example.cz/private</loc><loc>http://example.cz/other</loc></urlset>';assert.deepEqual(Array.from(c.getSitemapUrls(xml,'example.cz')),['https://example.cz/a']);
 assert.equal(c.getSitemapLocations('Sitemap: https://shop.example.cz/sitemap.xml','example.cz').length,0);assert.equal(c.normalizeCrawlUrl('https://example.cz/a',new URL('https://shop.example.cz/')),'');

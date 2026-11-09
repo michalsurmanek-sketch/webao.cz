@@ -874,7 +874,7 @@ function sitemapUrlCandidates(text){
  return candidates;
 }
 function normalizeCrawlUrl(candidate,baseUrl){
- try{const parsed=new URL(candidate,baseUrl);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password||parsed.port)return'';parsed.hash='';if(parsed.origin!==baseUrl.origin)return'';if(parsed.pathname.toLowerCase().startsWith('/cdn-cgi/'))return'';return parsed.href}catch{return''}
+ try{const parsed=new URL(candidate,baseUrl);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password||parsed.port)return'';parsed.hash='';if(parsed.origin!==baseUrl.origin)return'';if(parsed.pathname.toLowerCase().startsWith('/cdn-cgi/'))return'';for(const key of [...parsed.searchParams.keys()]){const normalized=key.toLowerCase();if(normalized.startsWith('utm_')||['gclid','dclid','fbclid','msclkid','gbraid','wbraid','yclid','igshid','_ga','mc_cid','mc_eid'].includes(normalized))parsed.searchParams.delete(key)}return parsed.href}catch{return''}
 }
 function discoverPageLinks(pages,baseUrl,isExcluded,robots){
  const found=new Map();

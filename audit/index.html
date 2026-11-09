@@ -556,7 +556,11 @@ async function fetchReadablePage(url,path='/'){
 async function fetchRobotsAwarePage(url,path='/'){
  let robots='',robotsStatus='Ověřeno';
  try{robots=await fetchReadablePage(url,'/robots.txt');}
- catch{robotsStatus='Nelze ověřit robots.txt';}
+ catch(error){
+  const targetStatus=String(error&&error.message||'').match(/cílového zdroje \((\d{3})\)/);
+  if(targetStatus&&targetStatus[1]==='404')robotsStatus='robots.txt nebyl nalezen (HTTP 404)';
+  else robotsStatus='Nelze ověřit robots.txt'+(targetStatus?' (HTTP '+targetStatus[1]+')':'');
+ }
  if(robots&&!robotsAllowsPath(robots,path))return{status:'Vynecháno podle robots.txt',robotsStatus,text:''};
  const text=await fetchReadablePage(url,path);
  return{text,robotsStatus};
@@ -1171,7 +1175,7 @@ form.addEventListener('submit',async event=>{
    if(result.value.status==='Vynecháno podle robots.txt')return{url:target.href,status:'Vynecháno podle robots.txt',title:'',headline:'',price:false,contact:false,trust:false};
    const parsed=parsePageText(result.value.text,target);
    const all=auditVisibleText({parsed}).toLowerCase();
-   const robotsNote=result.value.robotsStatus==='Nelze ověřit robots.txt'?' · robots.txt se nepodařilo ověřit':'';
+   const robotsNote=result.value.robotsStatus!=='Ověřeno'?' · '+result.value.robotsStatus:'';
    return{url:target.href,status:'Prověřeno'+robotsNote,title:parsed.title,headline:parsed.h1s[0]||'',price:priceSignalPattern().test(all),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(all),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(all)};
   });
   if(competitorUrls.length){

@@ -107,7 +107,7 @@ function priceSignalPattern(){
 }
 function buildDetektiv(pages){
  pages=Array.isArray(pages)?pages:[];
-  const usable=pages.filter(page=>page&&page.raw&&page.parsed);
+  const usable=pages.filter(page=>pageTextWasFetched(page)&&page.parsed);
  const allText=usable.map(auditVisibleText).join(' ').toLowerCase();
  const home=usable.find(page=>page.type==='Úvodní stránka')||usable[0];
  const headline=home&&((home.parsed.h1s[0]||home.parsed.title||''));
@@ -168,8 +168,9 @@ function printAuditReport(){
  window.addEventListener("afterprint",restore,{once:true});
  window.print();
 }
+function pageTextWasFetched(page){return Boolean(page&&page.raw!==null&&page.raw!==undefined)}
 function auditCsvPageValue(page,key){
- if(!page||page.raw===null||page.raw===undefined)return'Nelze ověřit';
+ if(!pageTextWasFetched(page))return'Nelze ověřit';
  switch(key){
   case'title':return page.title||'Titulek nebyl rozpoznán';
   case'h1':return page.h1||'—';
@@ -198,7 +199,7 @@ function downloadAuditCsv(){
   const key=(item.url||data.host)+'|'+item.name,progress=csvWork[key]||{};
   rows.push(['Nález',item.url||data.host,item.area,item.state||(!Number.isFinite(item.points)?'NELZE OVĚŘIT':item.ok?'V POŘÁDKU':'OPRAVIT'),item.severity||'',item.name,item.evidence||item.detail,item.impact||'',advice(item),estimateEffort(item),item.confidence||'',data.checkedAt,progress.status||'Nový',progress.owner||'',progress.note||'',data.coverage+' %',findingKind(item)]);
  }
- for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,auditCsvPageValue(page,'title'),'Zdroj: '+(page.source||'nezjištěno')+(page.sourceUrl?' ('+page.sourceUrl+')':'')+'; H1: '+auditCsvPageValue(page,'h1')+'; slov ve výstupu: '+auditCsvPageValue(page,'words')+'; obrázky: '+auditCsvPageValue(page,'images')+'; odchozí interní odkazy ve vzorku: '+auditCsvPageValue(page,'links')+'; odchozí externí odkazy: '+auditCsvPageValue(page,'externalLinks')+'; příchozí interní odkazy mezi prověřenými URL: '+(page.raw===null||page.raw===undefined?'Nelze ověřit':page.inboundLinks??'Nezjištěno'),'','','','','']);
+ for(const page of data.pages)rows.push(['Stránka',page.url,'Inventář',page.state,page.type,auditCsvPageValue(page,'title'),'Zdroj: '+(page.source||'nezjištěno')+(page.sourceUrl?' ('+page.sourceUrl+')':'')+'; H1: '+auditCsvPageValue(page,'h1')+'; slov ve výstupu: '+auditCsvPageValue(page,'words')+'; obrázky: '+auditCsvPageValue(page,'images')+'; odchozí interní odkazy ve vzorku: '+auditCsvPageValue(page,'links')+'; odchozí externí odkazy: '+auditCsvPageValue(page,'externalLinks')+'; příchozí interní odkazy mezi prověřenými URL: '+(!pageTextWasFetched(page)?'Nelze ověřit':page.inboundLinks??'Nezjištěno'),'','','','','']);
  const crawl=data.crawlMeta||{};
  for(const source of crawl.sourceStatuses||[])rows.push(['Zdroj měření',data.host,'Dostupnost zdrojů',source.status,'',source.name,source.detail,'','','','',data.checkedAt, '', '', '',data.coverage+' %','Informace']);
  rows.push(['Souhrn rozsahu',data.host,'Rozsah auditu','ČÁSTEČNÝ','','Inventář URL','Sitemap: '+(crawl.sitemapDiscovered||0)+'; interní odkazy: '+(crawl.linkDiscovered||0)+'; obojí: '+(crawl.sitemapAndLinkCount||0)+'; celkem unikátních: '+(crawl.discovered||0)+'; načteno: '+(crawl.scanned||0)+'; vynecháno limitem: '+(crawl.omittedByLimit||0)+'; robots.txt: '+(crawl.robotsExcludedUrlCount||0)+'; nastavené cesty: '+(crawl.excludedUrlCount||0)+'; sitemap soubory: '+(crawl.sitemapFiles||0),'','','','',data.checkedAt,'','','',data.coverage+' %','',crawl.note||'']);
@@ -207,9 +208,9 @@ function downloadAuditCsv(){
  for(const item of crawl.robotsExcludedUrlExamples||[])rows.push(['URL neprověřena',item.url,'Rozsah auditu','VYNECHÁNO','','Zakázáno podle robots.txt','Zdroj: '+item.source+'; URL nebyla načtena.','','','','','', '', '', '',data.coverage+' %','','Vynecháno pravidly robots.txt']);
  for(const item of crawl.omittedUrlExamples||[])rows.push(['URL neprověřena',item.url,'Rozsah auditu','VYNECHÁNO','','Mimo limit počtu stránek','Zdroj: '+item.source+'; URL nebyla načtena.','','','','','', '', '', '',data.coverage+' %','','Vynecháno limitem auditu']);
  for(const [label,count,shown] of [['URL vynechané cestou',crawl.excludedUrlCount||0,(crawl.excludedUrlExamples||[]).length],['URL vynechané robots.txt',crawl.robotsExcludedUrlCount||0,(crawl.robotsExcludedUrlExamples||[]).length],['URL mimo limit',crawl.omittedByLimit||0,(crawl.omittedUrlExamples||[]).length]])if(count>shown)rows.push(['Souhrn rozsahu',data.host,'Rozsah auditu','ČÁSTEČNÝ','','Celkový počet '+label,String(count),'','','','','','','','',data.coverage+' %','','V exportu je vypsáno prvních '+shown+' URL.']);
- const sampledPages=new Set(data.pages.filter(page=>page.raw).map(page=>{try{const u=new URL(page.url);u.hash='';return u.href}catch{return page.url}}));
+ const sampledPages=new Set(data.pages.filter(pageTextWasFetched).map(page=>{try{const u=new URL(page.url);u.hash='';return u.href}catch{return page.url}}));
  const normalizeTarget=value=>{try{const u=new URL(value);u.hash='';return u.href}catch{return value}};
- for(const page of data.pages.filter(item=>item.raw)){
+ for(const page of data.pages.filter(pageTextWasFetched)){
   for(const target of page.links||[])rows.push(['Odkaz',page.url,'Interní odkaz',sampledPages.has(normalizeTarget(target))?'CÍL VE VZORKU':'CÍL MIMO VZOREK','',target,'Odkaz rozpoznán z veřejného textového výstupu; cílový HTTP stav nebyl ověřen.','','','','Omezený vzorek',data.checkedAt,'','','',data.coverage+' %','Rozpoznáno ve výstupu']);
   for(const target of page.externalLinks||[])rows.push(['Odkaz',page.url,'Externí odkaz','CÍL MIMO VZOREK','',target,'Externí odkaz rozpoznán z veřejného textového výstupu; cílový HTTP stav nebyl ověřen.','','','','Omezený vzorek',data.checkedAt,'','','',data.coverage+' %','Rozpoznáno ve výstupu']);
  }
@@ -223,7 +224,7 @@ function downloadAuditCsv(){
 function auditComparisonScope(findings,pages){
  // Keep duplicates: two scored checks with the same label still affect the average.
  const checks=findings.filter(item=>Number.isFinite(item.points)).map(item=>[item.area,item.name,item.url||'']).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
- const urls=[...new Set(pages.filter(page=>page.raw).map(page=>page.url))].sort();
+ const urls=[...new Set(pages.filter(pageTextWasFetched).map(page=>page.url))].sort();
  const totals=new Map();
  for(const item of findings.filter(item=>!item.name.startsWith('Kontrola oblasti:')&&!item.coverageExcluded))totals.set(item.area,(totals.get(item.area)||0)+1);
  const areaTotals=[...totals].sort((a,b)=>a[0].localeCompare(b[0]));
@@ -367,8 +368,8 @@ function auditLinkKey(value){
  try{const url=new URL(value);url.hash='';return url.href}catch{return''}
 }
 function buildInboundLinks(pages){
- const inbound=new Map(pages.filter(page=>page.raw).map(page=>[auditLinkKey(page.url),0]).filter(([key])=>key));
- for(const page of pages.filter(page=>page.raw)){
+ const inbound=new Map(pages.filter(pageTextWasFetched).map(page=>[auditLinkKey(page.url),0]).filter(([key])=>key));
+ for(const page of pages.filter(pageTextWasFetched)){
   const source=auditLinkKey(page.url);
   const targets=new Set((page.links||[]).map(auditLinkKey).filter(key=>key&&key!==source));
   for(const key of targets)if(inbound.has(key))inbound.set(key,inbound.get(key)+1);
@@ -377,8 +378,8 @@ function buildInboundLinks(pages){
 }
 function buildLinkGraphHtml(pages){
  const normalizeLink=auditLinkKey;
- const sampled=new Map(pages.filter(page=>page.raw).map(page=>[normalizeLink(page.url),page]));
- const rows=pages.filter(page=>page.raw).map(page=>{
+ const sampled=new Map(pages.filter(pageTextWasFetched).map(page=>[normalizeLink(page.url),page]));
+ const rows=pages.filter(pageTextWasFetched).map(page=>{
   const targetsWithoutSelf=[...new Set((page.links||[]).map(normalizeLink).filter(href=>href&&href!==normalizeLink(page.url)))];
   const sampledTargets=targetsWithoutSelf.filter(href=>sampled.has(href));
   const externalHosts=[...new Set((page.externalLinks||[]).map(href=>{try{return new URL(href).hostname}catch{return''}}).filter(Boolean))];
@@ -392,7 +393,7 @@ function isPriorityFinding(item){
  return (Number.isFinite(item.points)&&item.points<100&&!item.ok)||Number.isFinite(item.priorityPoints)||item.requiresAction===true;
 }
 function measurementSourceStatuses({pages=[],robotsKnown=false,rootAllowed=true,dnsResults=[],rdapResult={},pageSpeedResults=[],httpVariantResults=[],observatoryResult={}}){
- const loaded=pages.filter(page=>page.raw).length,failed=pages.filter(page=>page.loadError&&page.state!=='Vynecháno podle robots.txt').length;
+ const loaded=pages.filter(pageTextWasFetched).length,failed=pages.filter(page=>page.loadError&&page.state!=='Vynecháno podle robots.txt').length;
  const dnsAnswered=dnsResults.filter(dnsResultAvailable).length;
  const psiDone=pageSpeedResults.filter(result=>result.status==='fulfilled').length;
  const psiQuota=pageSpeedResults.some(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason));
@@ -462,7 +463,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const priorityFindings=[...priorityBuckets.values()].map(group=>({...group[0],affectedUrls:[...new Set(group.map(item=>item.url).filter(Boolean))],affectedCount:new Set(group.map(item=>item.url).filter(Boolean)).size})).sort((a,b)=>(severityRank[a.severity]??((a.priorityPoints??a.points)<50?1:2))-(severityRank[b.severity]??((b.priorityPoints??b.points)<50?1:2))||(a.points??a.priorityPoints??100)-(b.points??b.priorityPoints??100)||(effortRank[estimateEffort(a)]??1)-(effortRank[estimateEffort(b)]??1)).slice(0,5);
  const priorityHtml='<h3 style="margin-top:28px">Co opravit jako první</h3><p class="audit-disclaimer">Pořadí kombinuje závažnost, skóre a konkrétní nálezy vyžadující zásah; položka bez skóre nemusí ovlivňovat procento auditu. Opakované stejné nálezy jsou seskupeny, aby seznam ukázal různé hlavní opravy. Pracnost je orientační podle typu zásahu; skutečný čas závisí na CMS, přístupech a rozsahu opravy. Nejde o odhad počtu ztracených zákazníků.</p>'+(priorityFindings.length?'<div class="finding-list">'+priorityFindings.map((item,index)=>'<div class="finding warn"><span class="state">PRIORITA '+(index+1)+'</span><span class="severity">'+esc(item.severity||(item.points<50?'Závažná':'Střední'))+'</span><strong>'+esc(item.name)+(item.affectedCount>1?' · '+item.affectedCount+' stránek':'')+'</strong>'+(item.url?'<p><b>Ukázková stránka:</b> <a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a></p>':'')+(item.affectedUrls.length>1?'<p><b>Další zasažené stránky:</b> '+item.affectedUrls.slice(1,6).map(url=>'<a class="audit-link" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(url)+'</a>').join(' · ')+(item.affectedUrls.length>6?' · a další':'')+'</p>':'')+'<p>'+esc(item.detail)+'</p><p><b>Řešení:</b> '+esc(advice(item))+'</p><p class="finding-meta"><b>Pracnost:</b> '+esc(estimateEffort(item))+(item.confidence?' · <b>Jistota:</b> '+esc(item.confidence):'')+'</p></div>').join('')+'</div>':'<p>V dostupných výsledcích nebyl rozpoznán nález splňující pravidla priorit. Neověřené oblasti tím nejsou potvrzeny jako bezchybné.</p>');
  function pageInventoryValue(page,key){
-  if(!page||page.raw===null||page.raw===undefined)return'Nelze ověřit';
+  if(!pageTextWasFetched(page))return'Nelze ověřit';
   switch(key){
    case'title':return page.title||'Titulek nebyl rozpoznán';
    case'h1':return page.h1||'—';
@@ -486,7 +487,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const mediumCount=findings.filter(item=>item.severity==='Střední').length;
  const unverifiedCount=findings.filter(item=>findingKind(item)==='Nelze ověřit').length;
  const skippedCount=findings.filter(item=>findingKind(item)==='Neprovedeno').length;
- out.innerHTML='<div class="print-only">WEBAO AUDIT · '+esc(host)+' · '+esc(reportDate)+' · Pravidla '+esc(ruleVersion)+' · Prověřeno '+pages.filter(page=>page.raw).length+' URL · Vážené pokrytí '+totalWeight+' %</div><h2>Výsledek auditu: '+esc(host)+'</h2>'+brandHtml+'<div class="score-head"><div class="score-big">'+(score===null?'—':(totalWeight<100?totalWeight:score)+'<small>%</small>')+'</div><div class="score-explain"><strong>'+(totalWeight<100?'VÁŽENÉ POKRYTÍ · ČÁSTEČNÝ AUDIT':'Známka '+grade)+'</strong><br>'+(totalWeight<100?'Tento běh pokryl '+totalWeight+' % váhy auditu. Průměr změřených kontrol je '+(score===null?'—':score+' %')+'. Nejde o skóre celého webu.':'Vážený průměr změřených oblastí; skóre platí pouze pro provedené kontroly.')+'<br><small>Změřeno '+measured+' kontrol; pokryto '+scored.length+' z '+areaDefs.length+' oblastí; váhové pokrytí '+totalWeight+' %.</small><br><small>'+(totalWeight<100?'Zbývající oblasti jsou nezměřené a do skóre nevstupují.':'Skóre stále není zárukou bezpečnosti, právního souladu ani obchodního výsledku.')+'</small><br><small>Nálezy: '+criticalCount+' kritických · '+severeCount+' závažných · '+mediumCount+' středních · '+unverifiedCount+' neověřitelných kontrol · '+skippedCount+' neprovedených kontrol.</small></div></div><div class="report-actions"><button type="button" onclick="printAuditReport()">Uložit report jako PDF</button><button type="button" onclick="downloadAuditCsv()">Exportovat CSV</button><small class="pdf-export-note">V tiskovém okně zvolte „Uložit jako PDF“. Report obsahuje celý tento běh včetně všech nálezů a prověřených URL.</small></div>'+buildSourceAvailabilityHtml(crawlMeta)+'<h3>Skóre oblastí</h3>'+areaHtml+buildCoverageHtml(areas,findings)+priorityHtml+historyHtml+competitorHtml+pagesHtml+buildSkippedUrlsHtml(crawlMeta)+buildLinkGraphHtml(pages)+screenshotHtml+'<h3 style="margin-top:28px">Detailní nálezy a doporučení</h3><div class="finding-filters" id="finding-filters"><label>Oblast<select name="finding-area"><option value="all">Všechny oblasti</option>'+areaDefs.map(([name])=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('')+'</select></label><label>Závažnost<select name="finding-severity"><option value="all">Všechny úrovně</option>'+[...new Set(findings.map(item=>item.severity||(!Number.isFinite(item.points)?'Informační':item.points<50?'Závažná':item.points<80?'Střední':'Nízká')))].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Stav nápravy<select name="finding-status"><option value="all">Všechny stavy</option>'+['Nový','V řešení','Opraveno','Ignorováno','Znovu ověřit'].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Typ zjištění<select name="finding-kind"><option value="all">Všechny typy</option>'+[...new Set(findings.map(findingKind))].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Hledat v nálezech<input name="finding-query" type="search" placeholder="URL nebo text nálezu"></label><span class="finding-filter-summary" aria-live="polite"></span></div><div class="finding-list">'+findingHtml+'</div>'+(function(){try{return buildDetektiv(pages)}catch(detektivError){console.error('WEBAO detektiv render failed',detektivError);return '<section class="detektiv"><h3>Webový detektiv</h3><p class="detektiv-intro">Doplňkovou obchodní analýzu se nepodařilo sestavit. Ostatní výsledky auditu jsou dostupné.</p></section>'}})()+'<p class="audit-disclaimer">Procento je vážená úspěšnost automatických kontrol, které se podařilo změřit. Nejde o garanci bezpečnosti, souladu s právem ani pozic ve vyhledávání. Nezměřené oblasti se do skóre nezapočítávají. Doména a URL se předávají externím službám Jina Reader pro čtení veřejného webu, Google Public DNS pro DNS dotazy, Google PageSpeed Insights pro výkonové testy a RDAP registru pro registrační údaje. Audit nepřihlašuje do administrace a neodesílá formuláře.</p>';
+ out.innerHTML='<div class="print-only">WEBAO AUDIT · '+esc(host)+' · '+esc(reportDate)+' · Pravidla '+esc(ruleVersion)+' · Prověřeno '+pages.filter(pageTextWasFetched).length+' URL · Vážené pokrytí '+totalWeight+' %</div><h2>Výsledek auditu: '+esc(host)+'</h2>'+brandHtml+'<div class="score-head"><div class="score-big">'+(score===null?'—':(totalWeight<100?totalWeight:score)+'<small>%</small>')+'</div><div class="score-explain"><strong>'+(totalWeight<100?'VÁŽENÉ POKRYTÍ · ČÁSTEČNÝ AUDIT':'Známka '+grade)+'</strong><br>'+(totalWeight<100?'Tento běh pokryl '+totalWeight+' % váhy auditu. Průměr změřených kontrol je '+(score===null?'—':score+' %')+'. Nejde o skóre celého webu.':'Vážený průměr změřených oblastí; skóre platí pouze pro provedené kontroly.')+'<br><small>Změřeno '+measured+' kontrol; pokryto '+scored.length+' z '+areaDefs.length+' oblastí; váhové pokrytí '+totalWeight+' %.</small><br><small>'+(totalWeight<100?'Zbývající oblasti jsou nezměřené a do skóre nevstupují.':'Skóre stále není zárukou bezpečnosti, právního souladu ani obchodního výsledku.')+'</small><br><small>Nálezy: '+criticalCount+' kritických · '+severeCount+' závažných · '+mediumCount+' středních · '+unverifiedCount+' neověřitelných kontrol · '+skippedCount+' neprovedených kontrol.</small></div></div><div class="report-actions"><button type="button" onclick="printAuditReport()">Uložit report jako PDF</button><button type="button" onclick="downloadAuditCsv()">Exportovat CSV</button><small class="pdf-export-note">V tiskovém okně zvolte „Uložit jako PDF“. Report obsahuje celý tento běh včetně všech nálezů a prověřených URL.</small></div>'+buildSourceAvailabilityHtml(crawlMeta)+'<h3>Skóre oblastí</h3>'+areaHtml+buildCoverageHtml(areas,findings)+priorityHtml+historyHtml+competitorHtml+pagesHtml+buildSkippedUrlsHtml(crawlMeta)+buildLinkGraphHtml(pages)+screenshotHtml+'<h3 style="margin-top:28px">Detailní nálezy a doporučení</h3><div class="finding-filters" id="finding-filters"><label>Oblast<select name="finding-area"><option value="all">Všechny oblasti</option>'+areaDefs.map(([name])=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('')+'</select></label><label>Závažnost<select name="finding-severity"><option value="all">Všechny úrovně</option>'+[...new Set(findings.map(item=>item.severity||(!Number.isFinite(item.points)?'Informační':item.points<50?'Závažná':item.points<80?'Střední':'Nízká')))].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Stav nápravy<select name="finding-status"><option value="all">Všechny stavy</option>'+['Nový','V řešení','Opraveno','Ignorováno','Znovu ověřit'].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Typ zjištění<select name="finding-kind"><option value="all">Všechny typy</option>'+[...new Set(findings.map(findingKind))].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Hledat v nálezech<input name="finding-query" type="search" placeholder="URL nebo text nálezu"></label><span class="finding-filter-summary" aria-live="polite"></span></div><div class="finding-list">'+findingHtml+'</div>'+(function(){try{return buildDetektiv(pages)}catch(detektivError){console.error('WEBAO detektiv render failed',detektivError);return '<section class="detektiv"><h3>Webový detektiv</h3><p class="detektiv-intro">Doplňkovou obchodní analýzu se nepodařilo sestavit. Ostatní výsledky auditu jsou dostupné.</p></section>'}})()+'<p class="audit-disclaimer">Procento je vážená úspěšnost automatických kontrol, které se podařilo změřit. Nejde o garanci bezpečnosti, souladu s právem ani pozic ve vyhledávání. Nezměřené oblasti se do skóre nezapočítávají. Doména a URL se předávají externím službám Jina Reader pro čtení veřejného webu, Google Public DNS pro DNS dotazy, Google PageSpeed Insights pro výkonové testy a RDAP registru pro registrační údaje. Audit nepřihlašuje do administrace a neodesílá formuláře.</p>';
  initFindingWorkControls(host);
  initFindingFilters();
 }
@@ -874,7 +875,7 @@ function normalizeCrawlUrl(candidate,baseUrl){
 function discoverPageLinks(pages,baseUrl,isExcluded,robots){
  const found=new Map();
  for(const page of pages){
-  if(!page.raw||!Array.isArray(page.links))continue;
+  if(!pageTextWasFetched(page)||!Array.isArray(page.links))continue;
   for(const raw of page.links){
    const url=normalizeCrawlUrl(raw,baseUrl);if(!url||url===new URL('/',baseUrl).href)continue;
    const target=new URL(url);
@@ -912,7 +913,7 @@ function getSitemapUrls(text,host,protocol='https:'){
  return found;
 }
 function extractPublicContacts(pages){
- return pages.filter(page=>page.raw&&page.parsed).map(page=>{
+ return pages.filter(page=>pageTextWasFetched(page)&&page.parsed).map(page=>{
   const text=page.parsed.contactText??stripMarkdownInlineCode(stripMarkdownCode(page.parsed.body||''));
   const emails=[...new Set((text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[]).map(value=>value.toLowerCase()))];
   const matches=[...text.matchAll(/(^|[^\d])((?:\+420|00420)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{3}|\d{3}[\s.-]\d{3}[\s.-]\d{3})(?!\d)/gm)].map(match=>match[2]);
@@ -1142,7 +1143,7 @@ form.addEventListener('submit',async event=>{
   while(candidateUrls.length<pageLimit){
    const next=[];
    for(const page of pages){
-    if(!page.raw||!Array.isArray(page.links))continue;
+    if(!pageTextWasFetched(page)||!Array.isArray(page.links))continue;
     for(const raw of page.links){
      const candidate=normalizeCrawlUrl(raw,url);
      if(!candidate||candidate===rootUrl)continue;
@@ -1188,7 +1189,7 @@ form.addEventListener('submit',async event=>{
   crawlMeta.excludedUrlExamples=[...allExcluded].slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'Interní odkaz'}));
   crawlMeta.robotsExcludedUrlCount=allRobotsExcluded.size;
   crawlMeta.robotsExcludedUrlExamples=[...allRobotsExcluded].slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'Robots policy'}));
-  crawlMeta.scanned=pages.filter(page=>page.raw).length;
+  crawlMeta.scanned=pages.filter(pageTextWasFetched).length;
   crawlMeta.selected=candidateUrls.length;
   crawlMeta.discovered=crawlDiscovered.size;
   const allLinkedUrls=new Set([...linkUrls,...deepLinkedUrls]);
@@ -1211,12 +1212,12 @@ form.addEventListener('submit',async event=>{
    return{url:target.href,status:'Prověřeno'+robotsNote,title:parsed.title,headline:parsed.h1s[0]||'',price:priceSignalPattern().test(all),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(all),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(all)};
   });
   if(competitorUrls.length){
-   const ownPages=pages.filter(item=>item.raw);
+   const ownPages=pages.filter(pageTextWasFetched);
    const ownText=ownPages.map(auditVisibleText).join(' ').toLowerCase();
    const ownHome=ownPages.find(item=>item.type==='Úvodní stránka')||ownPages[0];
    competitors.unshift({url:'https://'+url.hostname,status:'Váš web',title:ownHome?.title||'',headline:ownHome?.h1||'',price:priceSignalPattern().test(ownText),contact:/kontakt|tel:|mailto:|poptáv|objednat|zavolejte/i.test(ownText),trust:/reference|recenze|realizace|certifik|hodnocení|zákazník/i.test(ownText)});
   }
-  crawlMeta.scanned=pages.filter(item=>item.raw).length;
+  crawlMeta.scanned=pages.filter(pageTextWasFetched).length;
   const findings=[
    {area:'SEO a obsah',name:'Titulek stránky',url:url.origin+'/',ok:titleLength>=15&&titleLength<=65,points:homepageLoadError||!title?null:(titleLength<15?65:titleLength>65?80:100),state:homepageLoadError?'NELZE OVĚŘIT':title?undefined:'NELZE OVĚŘIT',severity:homepageLoadError||!title?'Informační':titleLength<15?'Střední':'Nízká',detail:homepageLoadError?'Titulek homepage nelze posoudit, protože stránka nebyla načtena: '+homepageLoadError:title?'Načtený titulek ('+titleLength+' znaků): '+title:'Textová čtečka titulek nepotvrdila. Bez přímého čtení HTML nelze rozlišit chybějící titulek od omezení extrakce.',evidence:title||homepageLoadError||'Veřejný textový výstup neobsahuje rozpoznaný řádek Title.',confidence:homepageLoadError?'Nelze určit bez načtené homepage.':'Střední — textový výstup veřejné čtečky'},
    {area:'SEO a obsah',name:'Meta description',url:url.origin+'/',ok:descriptionLength>=70&&descriptionLength<=170,points:homepageLoadError||!descriptionLine?null:(descriptionLength<70||descriptionLength>170?80:100),state:homepageLoadError?'NELZE OVĚŘIT':descriptionLine?undefined:'NELZE OVĚŘIT',severity:homepageLoadError||!descriptionLine?'Informační':'Nízká',detail:homepageLoadError?'Meta description homepage nelze posoudit, protože stránka nebyla načtena: '+homepageLoadError:descriptionLine?'Meta description byla rozpoznána ('+descriptionLength+' znaků).':'Textová čtečka meta description nepotvrdila. Bez přímého čtení HTML nelze určit, zda chybí, nebo ji extrakce vynechala.',evidence:descriptionLine||homepageLoadError||'Veřejný textový výstup neobsahuje rozpoznaný řádek Description.',confidence:homepageLoadError?'Nelze určit bez načtené homepage.':'Střední — textový výstup veřejné čtečky'},
@@ -1265,7 +1266,7 @@ form.addEventListener('submit',async event=>{
    findings.push({area:'Technické SEO',name:'Expirace domény',url:'https://'+url.hostname,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejný RDAP registr nebo jeho odpověď nebyly dostupné. Neznamená to, že doména neexistuje.',evidence:rdapResult.reason&&rdapResult.reason.message||'RDAP služba neodpověděla.',confidence:'Nízká'});
   }
   for(const pageItem of pages){
-   if(!pageItem.raw){
+   if(!pageTextWasFetched(pageItem)){
     findings.push({area:'SEO a obsah',name:'Načtení stránky',url:pageItem.url,ok:false,points:null,state:'NELZE OVĚŘIT',detail:'Veřejná textová čtečka stránku nenačetla; nelze z toho samotného usuzovat na chybu serveru.',evidence:pageItem.loadError||'Není k dispozici další chybová informace.',confidence:'Nízká'});
     continue;
    }
@@ -1461,7 +1462,7 @@ form.addEventListener('submit',async event=>{
   findings.push(...pageSpeedRecommendations);
   window.currentAuditScreenshots=pageSpeedScreenshots;
   const titleGroups=new Map();
-  for(const item of pages.filter(page=>page.raw&&page.title)){
+  for(const item of pages.filter(page=>pageTextWasFetched(page)&&page.title)){
    const key=item.title.trim().toLowerCase();
    if(!titleGroups.has(key))titleGroups.set(key,[]);
    titleGroups.get(key).push(item);
@@ -1470,7 +1471,7 @@ form.addEventListener('submit',async event=>{
    for(const item of duplicateGroup)findings.push({area:'SEO a obsah',name:'Duplicitní titulek ve vzorku',url:item.url,ok:false,points:55,severity:'Střední',detail:'Stejný titulek byl rozpoznán na '+duplicateGroup.length+' kontrolovaných URL.',evidence:duplicateGroup.map(page=>page.url+' — '+page.title).join(' | '),confidence:'Vysoká v rámci načteného textu'});
   }
   const descriptionGroups=new Map();
-  for(const item of pages.filter(page=>page.raw&&page.parsed&&page.parsed.description)){
+  for(const item of pages.filter(page=>pageTextWasFetched(page)&&page.parsed&&page.parsed.description)){
    const key=item.parsed.description.trim().toLowerCase();
    if(!descriptionGroups.has(key))descriptionGroups.set(key,[]);
    descriptionGroups.get(key).push(item);
@@ -1480,7 +1481,7 @@ form.addEventListener('submit',async event=>{
    for(const item of group)findings.push({area:'SEO a obsah',name:'Duplicitní meta description ve vzorku',url:item.url,ok:false,points:55,severity:'Střední',detail:'Stejný meta popis byl rozpoznán na '+group.length+' kontrolovaných URL.',evidence,confidence:'Vysoká v rámci načteného textu'});
   }
   const bodyGroups=new Map();
-  for(const item of pages.filter(page=>page.raw&&page.parsed)){
+  for(const item of pages.filter(page=>pageTextWasFetched(page)&&page.parsed)){
    const words=item.parsed.wordCount||0;
    if(words<80)findings.push({area:'SEO a obsah',name:'Rozsah textu — orientační signál',url:item.url,ok:false,points:null,state:'ORIENTAČNÍ',severity:'K prověření',detail:'Ve veřejném textovém výstupu bylo rozpoznáno přibližně '+words+' slov. U kontaktu nebo právní stránky může být krátký text zcela v pořádku.',evidence:'Počet slov po normalizaci načteného textového výstupu; neodpovídá přesně počtu slov ve vykresleném HTML.',impact:'U obsahových a službových stránek může malý rozsah znamenat, že návštěvník nenajde potřebné informace.',confidence:'Nízká — textová extrakce a typ stránky mohou výsledek ovlivnit',effort:'Nelze určit'});
    const normalized=item.parsed.body.toLowerCase().replace(/\s+/g,' ').trim();
@@ -1491,10 +1492,10 @@ form.addEventListener('submit',async event=>{
    for(const item of group)findings.push({area:'SEO a obsah',name:'Stejný text na kontrolovaných URL — hypotéza',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'Veřejný textový výstup je po normalizaci shodný na '+group.length+' kontrolovaných URL. Může jít o duplicitní obsah, ale také o omezení textové čtečky.',evidence:arrayJoin(urls,' | '),impact:'Pokud jsou stránky skutečně obsahově stejné, návštěvník i vyhledávač mohou mít problém rozlišit jejich účel.',confidence:'Nízká — porovnává se textová extrakce, nikoli celé HTML',effort:'Střední'});
   }
   const inbound=buildInboundLinks(pages);
-  for(const item of pages)item.inboundLinks=item.raw?(inbound.get(auditLinkKey(item.url))??0):null;
-  for(const item of pages.filter(page=>page.raw&&page.type!=='Úvodní stránka')){
+  for(const item of pages)item.inboundLinks=pageTextWasFetched(item)?(inbound.get(auditLinkKey(item.url))??0):null;
+  for(const item of pages.filter(page=>pageTextWasFetched(page)&&page.type!=='Úvodní stránka')){
    const key=auditLinkKey(item.url);
-   if(item.links&&inbound.has(key)&&inbound.get(key)===0)findings.push({area:'Technické SEO',name:'Propojení stránky v omezeném vzorku',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'Informační',detail:'Ve veřejném textovém výstupu nebyl mezi prověřenými URL rozpoznán příchozí interní odkaz. Textová čtečka mohla vynechat navigaci nebo patičku; tento výsledek sám nepotvrzuje osiřelou stránku.',evidence:'Prověřeno '+pages.filter(page=>page.raw).length+' URL; v jejich textových výstupech rozpoznáno 0 příchozích odkazů z jiných stránek ve vzorku.',impact:'Pokud kontrola celého HTML potvrdí, že na stránku nevede žádný interní odkaz, může být hůře dostupná návštěvníkům. Sitemap může vyhledávačům stále pomoci URL objevit.',confidence:'Nízká — textový výstup a omezený vzorek URL',effort:'Nízká'});
+   if(item.links&&inbound.has(key)&&inbound.get(key)===0)findings.push({area:'Technické SEO',name:'Propojení stránky v omezeném vzorku',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'Informační',detail:'Ve veřejném textovém výstupu nebyl mezi prověřenými URL rozpoznán příchozí interní odkaz. Textová čtečka mohla vynechat navigaci nebo patičku; tento výsledek sám nepotvrzuje osiřelou stránku.',evidence:'Prověřeno '+pages.filter(pageTextWasFetched).length+' URL; v jejich textových výstupech rozpoznáno 0 příchozích odkazů z jiných stránek ve vzorku.',impact:'Pokud kontrola celého HTML potvrdí, že na stránku nevede žádný interní odkaz, může být hůře dostupná návštěvníkům. Sitemap může vyhledávačům stále pomoci URL objevit.',confidence:'Nízká — textový výstup a omezený vzorek URL',effort:'Nízká'});
   }
   const contactRegistry=extractPublicContacts(pages);
   const emailSet=new Set(contactRegistry.flatMap(item=>item.emails));

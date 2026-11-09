@@ -515,11 +515,7 @@ assert(script.includes('const finalAddress=pageSpeedFinalAddress(lighthouse);'),
 console.log('PASS: HTTP redirect audit falls back to Lighthouse finalUrl only when finalDisplayedUrl is absent');
 })();
 
-await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
-const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-const firstClose=html.indexOf('</script>'),scriptStart=html.indexOf('<script>',firstClose+9),script=html.slice(scriptStart+8,html.indexOf('</script>',scriptStart));
-const start=script.indexOf('function pageInventoryValue('),end=script.indexOf('const pageRows=',start);
+(()=>{,end=script.indexOf('const pageRows=',start);
 assert(start>=0&&end>start,'inventory values use a shared page availability helper');
 const c={};vm.createContext(c);vm.runInContext(script.slice(start,end)+';this.pageInventoryValue=pageInventoryValue;',c);
 const unavailable={raw:null,state:'Textová čtečka stránku nenačetla'};

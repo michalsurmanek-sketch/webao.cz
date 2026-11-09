@@ -545,3 +545,27 @@ const rows=script.slice(end,script.indexOf('function competitorSignalLabel(',end
 for(const key of ['title','h1','words','images','links','externalLinks','inbound'])assert(rows.includes("pageInventoryValue(page,'"+key+"')"),'inventory column uses helper: '+key);
 console.log('PASS: unavailable page inventory does not claim missing content; empty loaded content retains zero counts');
 })();
+
+(()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const start=html.indexOf('function auditCsvPageValue('),end=html.indexOf('function downloadAuditCsv(',start);
+assert(start>=0&&end>start,'CSV-specific availability helpers exist');
+const c={};vm.createContext(c);vm.runInContext(html.slice(start,end)+';this.auditCsvPageValue=auditCsvPageValue;this.auditCsvCompetitorSignal=auditCsvCompetitorSignal;',c);
+const unavailable={raw:null,title:'',h1:'',links:null,externalLinks:null,imageCount:undefined};
+for(const key of ['title','h1','words','images','links','externalLinks'])assert.equal(c.auditCsvPageValue(unavailable,key),'Nelze ověřit');
+const loadedEmpty={raw:'',title:'',h1:'',wordCount:0,imageCount:0,missingAltCount:0,links:[],externalLinks:[]};
+assert.equal(c.auditCsvPageValue(loadedEmpty,'title'),'Titulek nebyl rozpoznán');
+assert.equal(c.auditCsvPageValue(loadedEmpty,'h1'),'—');
+assert.equal(c.auditCsvPageValue(loadedEmpty,'words'),'0');
+assert.equal(c.auditCsvPageValue(loadedEmpty,'images'),'0 / chybí alt: 0');
+assert.equal(c.auditCsvPageValue(loadedEmpty,'links'),'0');
+assert.equal(c.auditCsvPageValue(loadedEmpty,'externalLinks'),'0');
+for(const status of ['Nelze načíst','Vynecháno podle robots.txt'])assert.equal(c.auditCsvCompetitorSignal({status,price:false},'price'),'Nelze ověřit');
+assert.equal(c.auditCsvCompetitorSignal({status:'Prověřeno · robots.txt se nepodařilo ověřit',contact:false},'contact'),'Nerozpoznáno ve vzorku');
+assert.equal(c.auditCsvCompetitorSignal({status:'Prověřeno',trust:true},'trust'),'Signál nalezen');
+const csv=html.slice(end,html.indexOf('function auditComparisonScope(',end));
+assert(csv.includes("auditCsvPageValue(page,'title')")&&csv.includes("auditCsvPageValue(page,'links')"),'CSV page rows use availability-aware values');
+assert(csv.includes("auditCsvCompetitorSignal(item,'price')")&&csv.includes("auditCsvCompetitorSignal(item,'trust')"),'CSV competitor signals use checked samples only');
+console.log('PASS: CSV distinguishes unavailable sources from checked absence and valid zero counts');
+})();

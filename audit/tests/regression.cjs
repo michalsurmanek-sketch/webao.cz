@@ -473,7 +473,15 @@ c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')throw Error('time
 result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');assert.equal(result.text,'page');assert.equal(result.robotsStatus,'Nelze ověřit robots.txt');
 c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')throw Error('Čtečka oznámila chybu cílového zdroje (404).');pageCalls++;return 'page';};
 result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');assert.equal(result.text,'page');assert.equal(result.robotsStatus,'robots.txt nebyl nalezen (HTTP 404)');
-console.log('PASS: competitor crawl distinguishes robots denial from unavailable rules');
+for(const status of ['403','500']){
+ c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')throw Error('Čtečka oznámila chybu cílového zdroje ('+status+').');pageCalls++;return 'page';};
+ result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');
+ assert.equal(result.text,'page');assert.equal(result.robotsStatus,'Nelze ověřit robots.txt (HTTP '+status+')');
+}
+c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')throw Error('proxy error 404 while retrieving target');pageCalls++;return 'page';};
+result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');
+assert.equal(result.robotsStatus,'Nelze ověřit robots.txt','proxy status must not be mistaken for target 404');
+console.log('PASS: competitor crawl distinguishes target robots errors from reader failures');
 })();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});

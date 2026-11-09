@@ -460,13 +460,16 @@ console.log('PASS: CrUX INP aliases fall through invalid preferred values withou
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-const start=html.indexOf('async function fetchRobotsAwarePage('),end=html.indexOf('async function queryRdap(',start),c={};vm.createContext(c);
+const start=html.indexOf('async function fetchRobotsAwarePage('),end=html.indexOf('async function queryRdap(',start),c={URL};vm.createContext(c);
 vm.runInContext(html.slice(start,end)+';this.fetchRobotsAwarePage=fetchRobotsAwarePage;',c);
-const base={URL,fetchReadablePage:async(_url,path)=>path==='/robots.txt'?'User-agent: *\nDisallow: /':'page',robotsAllowsPath:()=>false};
+let pageCalls=0,deny=true;
+c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')return deny?'User-agent: *\\nDisallow: /':'User-agent: *\\nAllow: /';pageCalls++;return 'page';};
+c.robotsAllowsPath=(_rules,path)=>deny&&path==='/'?false:true;
 let result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'));
-assert.equal(result.status,'Vynecháno podle robots.txt');assert.equal(result.robotsStatus,'Ověřeno');
-const denied={...base,robotsAllowsPath:()=>false};result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'));assert.equal(result.status,'Vynecháno podle robots.txt');
-const unavailable={...base,fetchReadablePage:async(_url,path)=>{if(path==='/robots.txt')throw Error('timeout');return 'page';},robotsAllowsPath:()=>true};
+assert.equal(result.status,'Vynecháno podle robots.txt');assert.equal(pageCalls,0);
+deny=false;result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'));
+assert.equal(result.text,'page');assert.equal(result.robotsStatus,'Ověřeno');assert.equal(pageCalls,1);
+c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')throw Error('timeout');pageCalls++;return 'page';};
 result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');assert.equal(result.text,'page');assert.equal(result.robotsStatus,'Nelze ověřit robots.txt');
 console.log('PASS: competitor crawl distinguishes robots denial from unavailable rules');
 })();

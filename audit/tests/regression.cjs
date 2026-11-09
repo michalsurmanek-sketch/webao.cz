@@ -483,6 +483,18 @@ result=await c.fetchRobotsAwarePage(new URL('https://example.cz/'),'/');
 assert.equal(result.robotsStatus,'Nelze ověřit robots.txt','proxy status must not be mistaken for target 404');
 console.log('PASS: competitor crawl distinguishes target robots errors from reader failures');
 })();
+await (async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),startScript=html.lastIndexOf('<script>'),script=html.slice(startScript+8,html.indexOf('</script>',startScript));
+const start=script.indexOf('function competitorSignalLabel('),end=script.indexOf('const competitorHtml=',start);
+assert(start>=0&&end>start,'competitor signal rendering helper exists');
+const c={};vm.createContext(c);vm.runInContext(script.slice(start,end)+';this.competitorSignalLabel=competitorSignalLabel;',c);
+assert.equal(c.competitorSignalLabel({status:'Nelze načíst',price:false},'price'),'Nelze ověřit');
+assert.equal(c.competitorSignalLabel({status:'Vynecháno podle robots.txt',contact:false},'contact'),'Nelze ověřit');
+assert.equal(c.competitorSignalLabel({status:'Prověřeno · robots.txt se nepodařilo ověřit',trust:false},'trust'),'Nerozpoznáno ve vzorku');
+assert.equal(c.competitorSignalLabel({status:'Prověřeno',price:true},'price'),'Signál nalezen');
+console.log('PASS: unavailable competitor pages do not appear to lack business signals');
+})();
 console.log('PASS: all audit regression suites');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

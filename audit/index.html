@@ -333,7 +333,7 @@ function initFindingWorkControls(host){
 }
 const coverageLimitations={
  'SEO a obsah':'Veřejný textový výstup a omezený vzorek stránek. Neověřuje indexaci v Google ani pozice; nerozpoznané meta údaje se označují jako neověřené. Opakované titulky, popisy a hlavní nadpisy jsou pouze signály v tomto vzorku, ne automatický důkaz SEO chyby.',
- 'Technické SEO':'Kontrola robots.txt, sitemap a odkazů jen mezi vybranými stránkami. Nejde o úplný crawl; neověřují se spolehlivě HTTP kódy všech URL, canonical, hreflang ani osiřelé stránky.',
+ 'Technické SEO':'Kontrola robots.txt, sitemap a odkazů jen mezi vybranými stránkami. Nejde o úplný crawl; neověřují se spolehlivě HTTP kódy všech URL, canonical na podstránkách, hreflang ani osiřelé stránky. Canonical homepage je pouze nehodnocený signál Lighthouse a nepotvrzuje správnost cílové URL.',
  'Bezpečnost a HTTPS':'PageSpeed Insights Lighthouse poskytuje jen vybrané signály HTTPS, známých zranitelných knihoven a CSP. Neměří se zde konfigurace TLS ani certifikační řetězec a neprověřují se cookie atributy ani kompletní zranitelnosti. Bezpečnostní hlavičky lze ověřit samostatným volitelným skenem MDN HTTP Observatory. Nejde o penetrační test.',
  'Rychlost a Core Web Vitals':'Lighthouse skóre a laboratorní LCP/CLS měří PageSpeed Insights v simulovaném prostředí. Terénní Core Web Vitals jsou k dispozici jen tehdy, pokud Google poskytne dost dat pro URL nebo origin.',
  'Přístupnost':'Zachytí automatické Lighthouse kontroly a alternativní texty v textovém vzorku. Neověřuje ručně klávesnici, čtečky obrazovky ani úplný soulad s WCAG.',
@@ -429,7 +429,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-06.150';
+ const ruleVersion='2026-11-10.151';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -540,6 +540,17 @@ function lighthouseAuditScored(audit){
 }
 function missingLighthouseFinding(area,name,auditId,url){
  return{area,name,url,ok:false,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Lighthouse v tomto běhu neposkytl audit '+auditId+'. Kontrola se proto nezapočítá jako vyhovující ani jako potvrzený problém.',evidence:'PageSpeed Insights / Lighthouse · audit '+auditId,confidence:'Nelze určit bez skórovaného výsledku Lighthouse.'};
+}
+function canonicalLighthouseFinding(audit,url){
+ if(!audit)return missingLighthouseFinding('Technické SEO','Canonical homepage — Lighthouse audit chybí','canonical',url);
+ if(!lighthouseAuditScored(audit)){
+  const finding=missingLighthouseFinding('Technické SEO','Canonical homepage — bez skórovaného auditu','canonical',url);
+  finding.detail='Lighthouse vrátil canonical audit bez skórovaného výsledku. Nelze určit, zda stránka publikuje canonical URL.';
+  finding.evidence='PageSpeed Insights / Lighthouse · audit canonical · '+url;
+  return finding;
+ }
+ const recognized=audit.score>=0.9;
+ return{area:'Technické SEO',name:'Canonical homepage — Lighthouse signál',url,ok:recognized,points:null,state:recognized?'SIGNÁL':'HYPOTÉZA',coverageExcluded:true,severity:'Informační',detail:(audit.title||'Canonical URL')+'. '+([audit.displayValue,audit.explanation].filter(Boolean).join(' ')|| (recognized?'Lighthouse rozpoznal canonical URL.':'Lighthouse canonical URL nerozpoznal.'))+' Jde pouze o signál pro homepage: automatická kontrola neověřuje, zda je cílová URL záměrná, dostupná, přesměrovaná nebo správná pro jazykovou či regionální variantu. Chybějící signál proto sám o sobě nepotvrzuje SEO chybu.',evidence:'PageSpeed Insights / Lighthouse audit canonical · '+url+(audit.displayValue?' · '+audit.displayValue:''),confidence:'Vysoká pouze pro to, co Lighthouse rozpoznal v tomto běhu; správnost cílové URL vyžaduje kontext webu.'};
 }
 function nonnegativeMetric(value){return Number.isFinite(value)&&value>=0?value:null;}
 function firstMetricPercentile(metricSet,keys){for(const key of keys){const percentile=metricSet?.[key]?.percentile;if(nonnegativeMetric(percentile)!==null)return percentile;}return null;}
@@ -1360,6 +1371,7 @@ form.addEventListener('submit',async event=>{
    }
    const payload=result.value||{},lighthouse=payload.lighthouseResult||{},categories=lighthouse.categories||{},audits=lighthouse.audits||{};
    if(strategy==='mobile'){
+    findings.push(canonicalLighthouseFinding(audits.canonical,payload.id||url.origin+'/'));
     for(const [auditId,findingName] of [['document-title','Titulek stránky'],['meta-description','Meta description']]){
      const audit=audits[auditId];
      const existing=findings.find(item=>item.area==='SEO a obsah'&&item.name===findingName&&!Number.isFinite(item.points));
@@ -1458,7 +1470,7 @@ form.addEventListener('submit',async event=>{
     const refs=categories[category]&&categories[category].auditRefs||[];
     for(const ref of refs){
      const audit=audits[ref.id];
-     if(['is-on-https','no-vulnerable-libraries','csp-xss'].includes(ref.id)||/third.?party.*cookies?|cookies?.*third.?party/i.test(ref.id))continue;
+     if(['canonical','is-on-https','no-vulnerable-libraries','csp-xss'].includes(ref.id)||/third.?party.*cookies?|cookies?.*third.?party/i.test(ref.id))continue;
      if(!lighthouseAuditScored(audit)||audit.score>=0.9||(ref.weight||0)<=0)continue;
      categoryRefs.push({category,area,label,ref,audit});
     }

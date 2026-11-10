@@ -392,21 +392,21 @@ function buildLinkGraphHtml(pages){
 function isPriorityFinding(item){
  return (Number.isFinite(item.points)&&item.points<100&&!item.ok)||Number.isFinite(item.priorityPoints)||item.requiresAction===true;
 }
-function measurementSourceStatuses({pages=[],robotsKnown=false,rootAllowed=true,dnsResults=[],rdapResult={},pageSpeedResults=[],httpVariantResults=[],observatoryResult={}}){
- const loaded=pages.filter(pageTextWasFetched).length,failed=pages.filter(page=>page.loadError&&page.state!=='Vynecháno podle robots.txt').length;
+function measurementSourceStatuses({pages=[],robotsKnown=false,rootAllowed=true,robotsServerError='',dnsResults=[],rdapResult={},pageSpeedResults=[],httpVariantResults=[],observatoryResult={}}){
+ const loaded=pages.filter(pageTextWasFetched).length,failed=pages.filter(page=>page.loadError&&!String(page.state||'').startsWith('Vynecháno')).length;
  const dnsAnswered=dnsResults.filter(dnsResultAvailable).length;
  const psiDone=pageSpeedResults.filter(result=>result.status==='fulfilled').length;
  const psiQuota=pageSpeedResults.some(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason));
  const firstPsiError=pageSpeedResults.find(result=>result.status==='rejected');
  const httpDone=httpVariantResults.filter(result=>result.status==='fulfilled').length;
- const mdnSkipped=observatoryResult.status==='skipped';
+ const mdnSkipped=observatoryResult.status==='skipped',robotsSkipped=robotsServerError?'Vynecháno — robots.txt nedostupný':'Vynecháno podle robots.txt';
  return[
   {name:'Textová čtečka stránek',status:!rootAllowed&&!loaded&&!failed?'Vynecháno':loaded?(failed?'Částečně dostupné':'Odpověď získána'):'Nelze načíst',detail:'Načteno '+loaded+' URL, selhalo načtení '+failed+' URL. Čtečka nemusí zpřístupnit úplné HTML ani všechny prvky stránky.'},
-  {name:'robots.txt',status:robotsKnown?'Odpověď získána':'Nelze ověřit',detail:robotsKnown?'Pravidla byla načtena; jejich vyhodnocení je uvedeno v nálezech.':'Pravidla přístupu nebylo možné potvrdit. Tento stav sám neprokazuje chybu robots.txt.'},
+  {name:'robots.txt',status:robotsKnown?'Odpověď získána':robotsServerError?'Chyba serveru HTTP '+robotsServerError:'Nelze ověřit',detail:robotsKnown?'Pravidla byla načtena; jejich vyhodnocení je uvedeno v nálezech.':robotsServerError?'Robots.txt při čtení vrátilo HTTP '+robotsServerError+'. Požadavky na stránky a sitemapu byly dočasně vynechány podle zásady fail-closed.':'Pravidla přístupu nebylo možné potvrdit. Tento stav sám neprokazuje chybu robots.txt.'},
   {name:'Google Public DNS',status:dnsAnswered===dnsResults.length&&dnsResults.length?'Odpovědi získány':dnsAnswered?'Částečně dostupné':'Nelze ověřit',detail:'Jednoznačně odpovědělo '+dnsAnswered+' z '+dnsResults.length+' dotazů. Odpověď bez záznamu je také odpověď; správnost konfigurace hodnotí jednotlivé kontroly.'},
   {name:'RDAP registr domény',status:rdapResult.status==='fulfilled'?'Odpověď získána':'Nelze ověřit',detail:rdapResult.status==='fulfilled'?'Odpověď registru byla získána. Přítomnost a platnost údaje o expiraci hodnotí samostatný nález.':String(rdapResult.reason?.message||'Registr neposkytl dostupnou odpověď.')},
-  {name:'PageSpeed — mobil a desktop',status:!rootAllowed?'Vynecháno podle robots.txt':psiDone===2?'Odpovědi získány':psiDone?'Částečně dostupné':psiQuota?'Limit služby':'Nelze ověřit',detail:'Získáno '+psiDone+' ze 2 laboratorních výsledků. '+(firstPsiError?pageSpeedErrorMessage(firstPsiError.reason):'Laboratorní výsledek neznamená, že jsou dostupné i terénní Core Web Vitals.')},
-  {name:'HTTP varianty přes PageSpeed',status:!rootAllowed?'Vynecháno podle robots.txt':httpDone===httpVariantResults.length&&httpVariantResults.length?'Odpovědi získány':httpDone?'Částečně dostupné':psiQuota?'Vynecháno — limit PageSpeed':'Nelze ověřit',detail:'Získáno '+httpDone+' z '+httpVariantResults.length+' výsledků HTTP variant. Bez výsledku nelze potvrdit přesměrování.'},
+  {name:'PageSpeed — mobil a desktop',status:!rootAllowed?robotsSkipped:psiDone===2?'Odpovědi získány':psiDone?'Částečně dostupné':psiQuota?'Limit služby':'Nelze ověřit',detail:'Získáno '+psiDone+' ze 2 laboratorních výsledků. '+(firstPsiError?pageSpeedErrorMessage(firstPsiError.reason):'Laboratorní výsledek neznamená, že jsou dostupné i terénní Core Web Vitals.')},
+  {name:'HTTP varianty přes PageSpeed',status:!rootAllowed?robotsSkipped:httpDone===httpVariantResults.length&&httpVariantResults.length?'Odpovědi získány':httpDone?'Částečně dostupné':psiQuota?'Vynecháno — limit PageSpeed':'Nelze ověřit',detail:'Získáno '+httpDone+' z '+httpVariantResults.length+' výsledků HTTP variant. Bez výsledku nelze potvrdit přesměrování.'},
   {name:'MDN HTTP Observatory',status:mdnSkipped?'Neprovedeno':observatoryResult.status==='fulfilled'?'Odpověď získána':'Nelze ověřit',detail:mdnSkipped?'Volitelná kontrola nebyla zvolena. Požadavek nebyl odeslán.':observatoryResult.status==='fulfilled'?'Externí sken odpověděl; jeho souhrn je uveden mezi nálezy.':String(observatoryResult.reason?.message||'Externí sken neposkytl dostupnou odpověď.')}
  ];
 }
@@ -429,7 +429,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-10.151';
+ const ruleVersion='2026-11-10.152';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -602,6 +602,7 @@ async function fetchRobotsAwarePage(url,path='/'){
  try{robots=await fetchReadablePage(url,'/robots.txt');}
  catch(error){
   const targetStatus=String(error&&error.message||'').match(/cílového zdroje \((\d{3})\)/);
+  if(targetStatus&&/^5/.test(targetStatus[1]))return{status:'Vynecháno — robots.txt dočasně nedostupný',robotsStatus:'robots.txt dočasně nedostupný (HTTP '+targetStatus[1]+')',text:''};
   if(targetStatus&&targetStatus[1]==='404')robotsStatus='robots.txt nebyl nalezen (HTTP 404)';
   else robotsStatus='Nelze ověřit robots.txt'+(targetStatus?' (HTTP '+targetStatus[1]+')':'');
  }
@@ -899,7 +900,7 @@ function sitemapUrlCandidates(text){
 function normalizeCrawlUrl(candidate,baseUrl){
  try{const parsed=new URL(candidate,baseUrl);if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password||parsed.port)return'';parsed.hash='';if(parsed.origin!==baseUrl.origin)return'';if(parsed.pathname.toLowerCase().startsWith('/cdn-cgi/'))return'';for(const key of [...parsed.searchParams.keys()]){const normalized=key.toLowerCase();if(normalized.startsWith('utm_')||['gclid','dclid','fbclid','msclkid','gbraid','wbraid','yclid','igshid','_ga','mc_cid','mc_eid'].includes(normalized))parsed.searchParams.delete(key)}return parsed.href}catch{return''}
 }
-function discoverPageLinks(pages,baseUrl,isExcluded,robots){
+function discoverPageLinks(pages,baseUrl,isExcluded,robots,allowsPath=robotsAllowsPath){
  const found=new Map();
  for(const page of pages){
   if(!pageTextWasFetched(page)||!Array.isArray(page.links))continue;
@@ -907,7 +908,7 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots){
    const url=normalizeCrawlUrl(raw,baseUrl);if(!url||url===new URL('/',baseUrl).href)continue;
    const target=new URL(url);
    if(!isSameSiteHost(target.hostname,baseUrl.hostname)||found.has(url))continue;
-   found.set(url,{url,source:page.url,excluded:isExcluded(url),robotsBlocked:!robotsAllowsPath(robots,target.pathname+target.search)});
+   found.set(url,{url,source:page.url,excluded:isExcluded(url),robotsBlocked:!allowsPath(robots,target.pathname+target.search)});
   }
  }
  return [...found.values()];
@@ -1024,7 +1025,9 @@ form.addEventListener('submit',async event=>{
   const robots=robotsPrefetchResult.status==='fulfilled'?robotsPrefetchResult.value:'';
   const robotsReadError=/^\s*(?:Title:\s*)?(?:HTTP(?:[ /][0-9.]+)?\s+|(?:401|403|404|429|500|502|503|504)\b|not found\b|could not fetch\b|forbidden\b|access denied\b|rate.?limit\b|timed?\s?out\b|timeout\b|error fetching\b)/i;
   const robotsKnown=robotsPrefetchResult.status==='fulfilled'&&!robotsReadError.test(robots);
-  const rootAllowed=!robotsKnown||robotsAllowsPath(robots,'/');
+  const robotsServerError=robotsPrefetchResult.status==='rejected'&&String(robotsPrefetchResult.reason&&robotsPrefetchResult.reason.message||'').match(/cílového zdroje \((5\d\d)\)/);
+  const robotsCrawlAllowed=path=>!robotsServerError&&(!robotsKnown||robotsAllowsPath(robots,path));
+  const rootAllowed=robotsCrawlAllowed('/');
   out.querySelector('.result-summary').textContent='Robots.txt je načteno nebo nedostupné. Spouštím souběžnou kontrolu homepage, DNS, registru domény a PageSpeed.';
   const pagePromise=rootAllowed?fetchReadablePage(url,'/').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason})):Promise.resolve({status:'fulfilled',value:''});
   const pageSpeedPromise=queryPageSpeedStrategies(url,rootAllowed);
@@ -1049,13 +1052,13 @@ form.addEventListener('submit',async event=>{
   const page=pageResult.status==='fulfilled'?pageResult.value:'';
   const homeParsed=parsePageText(page,new URL(url.origin+'/'));
   const title=homeParsed.title;
-  const homepageLoadError=pageResult.status!=='fulfilled'?(pageResult.reason&&pageResult.reason.message||'Veřejná textová čtečka homepage neodpověděla.'):(!rootAllowed?'Homepage byla vynechána podle robots.txt.':'');
+  const homepageLoadError=pageResult.status!=='fulfilled'?(pageResult.reason&&pageResult.reason.message||'Veřejná textová čtečka homepage neodpověděla.'):(!rootAllowed?(robotsServerError?'Homepage byla vynechána, protože robots.txt dočasně vrací chybu serveru HTTP '+robotsServerError[1]+'.':'Homepage byla vynechána podle robots.txt.'):'' );
   const titleLength=title.trim().length;
   const descriptionLine=homeParsed.description;
   const descriptionLength=descriptionLine.trim().length;
   const hasH1=homeParsed.h1s.length===1;
   out.querySelector('.result-summary').textContent='Základní zdroje jsou zpracované. Procházím sitemapu a ověřuji vybrané stránky.';
- const [sitemapResult]=await Promise.allSettled([robotsAllowsPath(robots,'/sitemap.xml')?fetchReadablePage(url,'/sitemap.xml'):Promise.reject(new Error('Sitemap vynechána podle robots.txt.'))]);
+ const [sitemapResult]=await Promise.allSettled([robotsCrawlAllowed('/sitemap.xml')?fetchReadablePage(url,'/sitemap.xml'):Promise.reject(new Error(robotsServerError?'Sitemap vynechána, protože robots.txt dočasně vrací chybu serveru.':'Sitemap vynechána podle robots.txt.'))]);
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
   const robotsBlocksSite=robotsKnown&&!robotsAllowsPath(robots,'/');
@@ -1067,7 +1070,7 @@ form.addEventListener('submit',async event=>{
   let sitemapKnown=sitemapResult.status==='fulfilled'&&isSitemapDocument(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;
   const rootSitemapUrl=new URL('/sitemap.xml',url.origin).href;
-  const declaredSitemaps=[...new Set(getSitemapLocations(robots,url.hostname,url.protocol))].filter(raw=>{const target=new URL(raw);return raw!==rootSitemapUrl&&robotsAllowsPath(robots,target.pathname+target.search)});
+  const declaredSitemaps=[...new Set(getSitemapLocations(robots,url.hostname,url.protocol))].filter(raw=>{const target=new URL(raw);return raw!==rootSitemapUrl&&robotsCrawlAllowed(target.pathname+target.search)});
   const rootUrl=url.origin+'/';
   const sitemapFailures=[];
   if(!sitemapKnown)sitemapFailures.push({url:new URL('/sitemap.xml',url.origin).href,reason:sitemapResult.status!=='fulfilled'?(sitemapResult.reason&&sitemapResult.reason.message||'Sitemap se nepodařilo načíst.'):'Odpověď neobsahovala rozpoznatelnou sitemapu nebo čtečka vrátila chybu.'});
@@ -1087,7 +1090,7 @@ form.addEventListener('submit',async event=>{
   }
   if(!sitemapKnown){
    const sitemapCandidates=['/sitemap_index.xml','/wp-sitemap.xml','/sitemap-index.xml','/sitemap1.xml'];
-   const fallbackPaths=sitemapCandidates.filter(path=>robotsAllowsPath(robots,path)&&!declaredSitemaps.some(raw=>{try{return new URL(raw).pathname===path}catch{return false}}));
+   const fallbackPaths=sitemapCandidates.filter(path=>robotsCrawlAllowed(path)&&!declaredSitemaps.some(raw=>{try{return new URL(raw).pathname===path}catch{return false}}));
    fallbackPaths.forEach(path=>attemptedSitemaps.add(new URL(path,url.origin).href));
    const results=await Promise.allSettled(fallbackPaths.map(async path=>({path,text:await fetchReadablePage(url,path)})));
    const found=results.find(result=>result.status==='fulfilled'&&isSitemapDocument(result.value.text));
@@ -1108,7 +1111,7 @@ form.addEventListener('submit',async event=>{
    while(sitemapQueue.length&&batch.length<3&&sitemapAttempts+batch.length<8){
     const raw=sitemapQueue.shift();
     if(seenSitemaps.has(raw))continue;
-    seenSitemaps.add(raw);const target=new URL(raw);if(!robotsAllowsPath(robots,target.pathname+target.search))continue;batch.push(raw);
+    seenSitemaps.add(raw);const target=new URL(raw);if(!robotsCrawlAllowed(target.pathname+target.search))continue;batch.push(raw);
    }
    if(!batch.length)continue;
    sitemapAttempts+=batch.length;
@@ -1140,13 +1143,13 @@ form.addEventListener('submit',async event=>{
   }
   const isExcluded=candidate=>excludedPaths.some(path=>{const normalized=path.replace(/\/+$/,'')||'/';const pathname=new URL(candidate).pathname;return pathname===normalized||pathname.startsWith(normalized==='/'?'/':normalized+'/')});
   const excludedUrls=discoveredUrls.filter(isExcluded);
-  const robotsExcludedUrls=[...new Set([...discoveredUrls.filter(candidate=>!isExcluded(candidate)&&(()=>{const target=new URL(candidate);return !robotsAllowsPath(robots,target.pathname+target.search)})()),...(!rootAllowed?[rootUrl]:[])])];
-  const eligibleUrls=[...new Set([...(rootAllowed?[rootUrl]:[]),...discoveredUrls.filter(candidate=>!isExcluded(candidate)&&(()=>{const target=new URL(candidate);return robotsAllowsPath(robots,target.pathname+target.search)})())])];
+  const robotsExcludedUrls=[...new Set([...discoveredUrls.filter(candidate=>!isExcluded(candidate)&&(()=>{const target=new URL(candidate);return !robotsCrawlAllowed(target.pathname+target.search)})()),...(!rootAllowed?[rootUrl]:[])])];
+  const eligibleUrls=[...new Set([...(rootAllowed?[rootUrl]:[]),...discoveredUrls.filter(candidate=>!isExcluded(candidate)&&(()=>{const target=new URL(candidate);return robotsCrawlAllowed(target.pathname+target.search)})())])];
   const candidateUrls=eligibleUrls.slice(0,pageLimit);
   const eligibleDiscoveredUrls=new Set(eligibleUrls);
   const discoveredCount=discoveredUrls.length;
   const omittedByLimit=Math.max(0,eligibleUrls.length-candidateUrls.length);
-  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,sitemapDiscovered:sitemapDiscoveredCount,linkDiscovered:linkDiscoveredCount,selected:candidateUrls.length,omitted:omittedByLimit,omittedByLimit,excludedUrlCount:excludedUrls.length,excludedUrlExamples:excludedUrls.slice(0,100).map(candidate=>({url:candidate,source:(sourceKindByUrl.get(candidate)||'Veřejný zdroj')+' · '+(sitemapSourceByUrl.get(candidate)||'neznámá zdrojová URL')})),robotsExcludedUrlCount:robotsExcludedUrls.length,robotsExcludedUrlExamples:robotsExcludedUrls.slice(0,100).map(candidate=>({url:candidate,source:(sourceKindByUrl.get(candidate)||'Robots policy')+' · '+(sitemapSourceByUrl.get(candidate)||'neznámá zdrojová URL')})),omittedUrlExamples:eligibleUrls.slice(pageLimit,pageLimit+100).map(candidate=>({url:candidate,source:(sourceKindByUrl.get(candidate)||arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'XML sitemap')+' · '+(sitemapSourceByUrl.get(candidate)||'neznámá zdrojová URL')})),sitemapFiles,sitemapFailures,note:'Automatické procházení je omezené na stejný protokol a hostitele jako zadaný web; jiné subdomény a protokoly vyžadují samostatný audit s vlastními pravidly robots.txt. Homepage se prověřuje, pokud ji pravidla robots.txt dovolují; jinak je vynechána. '+(robotsKnown?'':'robots.txt nebylo možné ověřit, takže pravidla přístupu nelze potvrdit. ')+'Další URL pocházejí z veřejných sitemap a rozpoznaných interních odkazů všech načtených stránek; rozpoznaná pravidla robots.txt se u nich respektují. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
+  const crawlMeta={scanned:0,limit:pageLimit,excludedPaths,discovered:discoveredCount,sitemapDiscovered:sitemapDiscoveredCount,linkDiscovered:linkDiscoveredCount,selected:candidateUrls.length,omitted:omittedByLimit,omittedByLimit,excludedUrlCount:excludedUrls.length,excludedUrlExamples:excludedUrls.slice(0,100).map(candidate=>({url:candidate,source:(sourceKindByUrl.get(candidate)||'Veřejný zdroj')+' · '+(sitemapSourceByUrl.get(candidate)||'neznámá zdrojová URL')})),robotsExcludedUrlCount:robotsExcludedUrls.length,robotsExcludedUrlExamples:robotsExcludedUrls.slice(0,100).map(candidate=>({url:candidate,source:(sourceKindByUrl.get(candidate)||'Robots policy')+' · '+(sitemapSourceByUrl.get(candidate)||'neznámá zdrojová URL')})),omittedUrlExamples:eligibleUrls.slice(pageLimit,pageLimit+100).map(candidate=>({url:candidate,source:(sourceKindByUrl.get(candidate)||arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'XML sitemap')+' · '+(sitemapSourceByUrl.get(candidate)||'neznámá zdrojová URL')})),sitemapFiles,sitemapFailures,note:'Automatické procházení je omezené na stejný protokol a hostitele jako zadaný web; jiné subdomény a protokoly vyžadují samostatný audit s vlastními pravidly robots.txt. Homepage se prověřuje, pokud ji pravidla robots.txt dovolují; jinak je vynechána. '+(robotsServerError?'Robots.txt vrátilo chybu serveru HTTP '+robotsServerError[1]+', proto byly URL vynechány podle zásady fail-closed. ':(robotsKnown?'':'robots.txt nebylo možné ověřit, takže pravidla přístupu nelze potvrdit. '))+'Další URL pocházejí z veřejných sitemap a rozpoznaných interních odkazů všech načtených stránek; rozpoznaná pravidla robots.txt se u nich respektují. Nejde o úplný procházeč všech odkazů ani o důkaz osiřelých stránek.'};
   out.querySelector('h2').textContent='Procházím '+candidateUrls.length+' stránek…';
   out.querySelector('.result-summary').textContent='Kontroluji sitemapu, metadata a veřejné DNS údaje.';
   const pageResults=await mapLimit(candidateUrls,4,candidate=>{
@@ -1175,7 +1178,7 @@ form.addEventListener('submit',async event=>{
      const candidate=normalizeCrawlUrl(raw,url);
      if(!candidate||candidate===rootUrl)continue;
      const target=new URL(candidate);
-     if(isExcluded(candidate)||!robotsAllowsPath(robots,target.pathname+target.search))continue;
+     if(isExcluded(candidate)||!robotsCrawlAllowed(target.pathname+target.search))continue;
      deepLinkedUrls.add(candidate);
      eligibleDiscoveredUrls.add(candidate);
      const kinds=new Set(sourceKindByUrl.get(candidate)||[]);kinds.add('Interní odkaz z prověřené stránky');sourceKindByUrl.set(candidate,[...kinds]);
@@ -1202,7 +1205,7 @@ form.addEventListener('submit',async event=>{
    });
   }
   // Inventory links even when the page limit was reached before another crawl pass.
-  const finalLinks=discoverPageLinks(pages,url,isExcluded,robots);
+  const finalLinks=discoverPageLinks(pages,url,isExcluded,robots,(_rules,path)=>robotsCrawlAllowed(path));
   const allExcluded=new Set(excludedUrls),allRobotsExcluded=new Set(robotsExcludedUrls);
   for(const item of finalLinks){
    crawlDiscovered.add(item.url);deepLinkedUrls.add(item.url);
@@ -1228,11 +1231,11 @@ form.addEventListener('submit',async event=>{
   crawlMeta.omittedUrlExamples=omittedUrls.slice(0,100).map(candidate=>({url:candidate,source:arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'Interní odkaz z prověřené stránky'}));
   crawlMeta.linkDiscovered=allLinkedUrls.size;
   crawlMeta.note=(crawlMeta.note||'')+' Crawl také sleduje rozpoznané interní odkazy z každé načtené stránky až do nastaveného limitu; výsledek stále není důkazem úplného indexu webu.'; if(crawlMeta.sitemapFailures.length)crawlMeta.note+=' Selhalo načtení '+crawlMeta.sitemapFailures.length+' sitemap souborů; jejich URL nebylo možné zahrnout.';
-  if(!rootAllowed)pages.unshift({url:rootUrl,type:'Úvodní stránka',title:'',h1:'',source:'Homepage',sourceUrl:'',state:'Vynecháno podle robots.txt',loadError:'Stránka nebyla načtena, protože přístup zakazují pravidla robots.txt.',raw:null,links:null,externalLinks:null,inboundLinks:null});
+  if(!rootAllowed)pages.unshift({url:rootUrl,type:'Úvodní stránka',title:'',h1:'',source:'Homepage',sourceUrl:'',state:robotsServerError?'Vynecháno — robots.txt nedostupný':'Vynecháno podle robots.txt',loadError:robotsServerError?'Stránka nebyla načtena, protože robots.txt dočasně vrátil chybu serveru HTTP '+robotsServerError[1]+'.':'Stránka nebyla načtena, protože přístup zakazují pravidla robots.txt.',raw:null,links:null,externalLinks:null,inboundLinks:null});
   const competitors=competitorResults.map((result,index)=>{
    const target=competitorUrls[index];
    if(result.status!=='fulfilled')return{url:target.href,status:'Nelze načíst',title:'',headline:'',price:false,contact:false,trust:false};
-   if(result.value.status==='Vynecháno podle robots.txt')return{url:target.href,status:'Vynecháno podle robots.txt',title:'',headline:'',price:false,contact:false,trust:false};
+   if(String(result.value.status||'').startsWith('Vynecháno'))return{url:target.href,status:result.value.status,title:'',headline:'',price:false,contact:false,trust:false};
    const parsed=parsePageText(result.value.text,target);
    const all=auditVisibleText({parsed}).toLowerCase();
    const robotsNote=result.value.robotsStatus!=='Ověřeno'?' · '+result.value.robotsStatus:'';
@@ -1253,7 +1256,7 @@ form.addEventListener('submit',async event=>{
    {area:'Technické SEO',name:'Přístup homepage podle robots.txt',ok:robotsKnown&&!robotsBlocksSite,points:robotsKnown?(robotsBlocksSite?20:100):null,state:robotsKnown?undefined:'NELZE OVĚŘIT',severity:robotsBlocksSite?'Kritická':'Nízká',detail:!robotsKnown?'Přístup homepage podle robots.txt nelze ověřit, protože soubor nebyl spolehlivě načten. Načtení stránky nepotvrzuje povolení v robots.txt.':robotsBlocksSite?'Pravidla robots.txt blokují načtení homepage pro auditní crawler. URL nebyla požadována.':'Homepage není podle rozpoznaných pravidel zakázána. Ostatní URL se filtrují samostatně podle pravidel.',evidence:!robotsKnown?'Není dostupný spolehlivý obsah robots.txt.':robotsBlocksSite?'Použitelná pravidla robots.txt zakazují cestu /.':'Veřejný text robots.txt byl porovnán s cestou homepage a identifikátorem WEBAOAudit.',confidence:robotsKnown?'Střední — parser textového výstupu robots.txt':'Nelze určit bez načteného robots.txt.'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown&&sitemapFound?100:null,state:!sitemapKnown?'NELZE OVĚŘIT':sitemapFound?undefined:'DOPORUČENÍ',detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml ani v robots.txt nebyla sitemap rozpoznána. Její absence sama o sobě neprokazuje chybu; ověřte, zda ji web potřebuje a zda není na jiné adrese.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
-  for(const page of pages.filter(item=>item.loadError&&item.state!=='Vynecháno podle robots.txt')){
+  for(const page of pages.filter(item=>item.loadError&&!String(item.state||'').startsWith('Vynecháno'))){
    findings.push({area:'Technické SEO',name:'Veřejná čtečka stránku neověřila',url:page.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Externí textová čtečka stránku nenačetla: '+page.loadError+' Tento výsledek nepotvrzuje, že stránka vrací chybu; může jít o blokaci nebo výpadek čtečky.',evidence:'URL: '+page.url+' · Zdroj objevení: '+(page.source||'neznámý'),impact:'Obsah, metadata a odkazy této stránky se do auditu nezapočítaly.',confidence:'Nelze určit stav stránky jen podle selhání textové čtečky.',action:'Ověřte URL v běžném prohlížeči a zopakujte audit. Pokud stránka funguje, čtečka nebo ochrana hostingu může blokovat auditní požadavek.'});
   }
   const crawlerGroups=[
@@ -1540,7 +1543,7 @@ form.addEventListener('submit',async event=>{
    if(!findings.some(item=>item.area===area))findings.push({area,name:'Kontrola oblasti: '+area,ok:false,points:null,detail:'V tomto běhu nebyl získán skórovaný výsledek této oblasti. Do celkového procenta nevstupuje; dostupnost externího měření a rozsah kontroly jsou uvedeny v reportu.'});
   }
   out.querySelector('.result-summary').textContent='Dokončuji vyhodnocení '+findings.length+' nálezů a připravuji report.';
-  crawlMeta.sourceStatuses=measurementSourceStatuses({pages,robotsKnown,rootAllowed,dnsResults,rdapResult,pageSpeedResults,httpVariantResults,observatoryResult});
+  crawlMeta.sourceStatuses=measurementSourceStatuses({pages,robotsKnown,rootAllowed,robotsServerError:robotsServerError&&robotsServerError[1]||'',dnsResults,rdapResult,pageSpeedResults,httpVariantResults,observatoryResult});
   const branding=await getReportBranding();
   renderReport(url.hostname,findings,pages,crawlMeta,competitors,branding);
   const scenarioData=window.currentAuditScenarios||[];

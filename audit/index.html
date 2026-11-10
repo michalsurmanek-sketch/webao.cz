@@ -332,7 +332,7 @@ function initFindingWorkControls(host){
  });
 }
 const coverageLimitations={
- 'SEO a obsah':'Veřejný textový výstup a omezený vzorek stránek. Neověřuje indexaci v Google ani pozice; nerozpoznané meta údaje se označují jako neověřené.',
+ 'SEO a obsah':'Veřejný textový výstup a omezený vzorek stránek. Neověřuje indexaci v Google ani pozice; nerozpoznané meta údaje se označují jako neověřené. Opakované titulky, popisy a hlavní nadpisy jsou pouze signály v tomto vzorku, ne automatický důkaz SEO chyby.',
  'Technické SEO':'Kontrola robots.txt, sitemap a odkazů jen mezi vybranými stránkami. Nejde o úplný crawl; neověřují se spolehlivě HTTP kódy všech URL, canonical, hreflang ani osiřelé stránky.',
  'Bezpečnost a HTTPS':'PageSpeed Insights Lighthouse poskytuje jen vybrané signály HTTPS, známých zranitelných knihoven a CSP. Neměří se zde konfigurace TLS ani certifikační řetězec a neprověřují se cookie atributy ani kompletní zranitelnosti. Bezpečnostní hlavičky lze ověřit samostatným volitelným skenem MDN HTTP Observatory. Nejde o penetrační test.',
  'Rychlost a Core Web Vitals':'Lighthouse skóre a laboratorní LCP/CLS měří PageSpeed Insights v simulovaném prostředí. Terénní Core Web Vitals jsou k dispozici jen tehdy, pokud Google poskytne dost dat pro URL nebo origin.',
@@ -813,6 +813,18 @@ function parsePageText(text,url){
 
 function pageInventoryState(parsed){
  return parsed&&(parsed.title||parsed.description||parsed.h1s.length||parsed.wordCount>0||parsed.images.length||parsed.links.length||parsed.externalLinks.length)?'Prověřeno':'Obsah nerozpoznán';
+}
+function findDuplicateH1Groups(pages){
+ const groups=new Map();
+ for(const page of pages.filter(item=>pageTextWasFetched(item)&&item.parsed&&Array.isArray(item.parsed.h1s))){
+  const heading=String(page.parsed.h1s[0]||'').replace(/\s+/g,' ').trim();
+  const key=heading.toLocaleLowerCase('cs-CZ');
+  if(!key)continue;
+  if(!groups.has(key))groups.set(key,{heading,pages:[]});
+  const group=groups.get(key);
+  if(!group.pages.some(item=>item.url===page.url))group.pages.push(page);
+ }
+ return [...groups.values()].filter(group=>group.pages.length>1);
 }
 function findPlaceholderExamples(text){
  const visible=stripMarkdownInlineCode(stripMarkdownCode(String(text)));
@@ -1473,6 +1485,10 @@ form.addEventListener('submit',async event=>{
   }
   for(const duplicateGroup of titleGroups.values())if(duplicateGroup.length>1){
    for(const item of duplicateGroup)findings.push({area:'SEO a obsah',name:'Duplicitní titulek ve vzorku',url:item.url,ok:false,points:55,severity:'Střední',detail:'Stejný titulek byl rozpoznán na '+duplicateGroup.length+' kontrolovaných URL.',evidence:duplicateGroup.map(page=>page.url+' — '+page.title).join(' | '),confidence:'Vysoká v rámci načteného textu'});
+  }
+  for(const group of findDuplicateH1Groups(pages)){
+   const urls=group.pages.map(page=>page.url);
+   for(const item of group.pages)findings.push({area:'SEO a obsah',name:'Opakovaný hlavní nadpis ve vzorku — hypotéza',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'Stejný první H1 byl rozpoznán na '+group.pages.length+' kontrolovaných URL. Může jít o záměrný název kategorie nebo společnou šablonu; ověřte, zda nadpis vystihuje účel každé stránky. Samotné opakování nemění skóre.',evidence:'H1: '+group.heading+' · '+urls.join(' | '),impact:'Pokud nadpisy nerozlišují obsah různých stránek, mohou návštěvníkům ztížit orientaci. Automatické srovnání textu ale nepotvrzuje problém.',confidence:'Nízká — porovnává se pouze první H1 z veřejného textového výstupu omezeného vzorku URL.',effort:'Nízká'});
   }
   const descriptionGroups=new Map();
   for(const item of pages.filter(page=>pageTextWasFetched(page)&&page.parsed&&page.parsed.description)){

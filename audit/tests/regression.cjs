@@ -178,12 +178,16 @@ console.log('PASS: 3 unsupported crawl URL cases');
 
 })();
 await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function assertReadableSource('),s.indexOf('async function fetchReadablePage('))+s.slice(s.indexOf('async function fetchReadablePage('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,clearTimeout,TextEncoder,TextDecoder,timedResponseControllers:{get:()=>null,delete(){}},window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function readTimedTextResponse('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
 vm.runInContext(s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts(')),c);
 assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReadableSource('Title: Missing\nWarning: Target URL returned error 404: Not found\nMarkdown Content:\nError'),/404/);
 assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503: unavailable'),/503/);
 const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
 assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-agent: *\nDisallow: /private');
+const makeStream=(chunks,onCancel=()=>{})=>({getReader:()=>{let index=0;return{async read(){return index<chunks.length?{done:false,value:chunks[index++]}:{done:true}},async cancel(){onCancel()}}}});
+assert.equal(await c.readTimedTextResponse({body:makeStream([Buffer.from([0x41,0xc5]),Buffer.from([0xbe])])},3),'Až','UTF-8 sequences split across stream chunks should decode correctly');
+let oversizedStreamCancelled=false;await assert.rejects(c.readTimedTextResponse({body:makeStream([Buffer.from('ab'),Buffer.from('cd')],()=>{oversizedStreamCancelled=true})},3),/limit 3 bajtů/);assert(oversizedStreamCancelled,'oversized response stream must be cancelled immediately');
+await assert.rejects(c.readTimedTextResponse({body:null,text:async()=>'long response'},3),/limit 3 bajtů/,'fallback response readers must still reject oversized text');
 assert.throws(()=>c.assertPageSpeedResult({}));
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'ERRORED_DOCUMENT_REQUEST',message:'failed'}}}),/ERRORED_DOCUMENT_REQUEST/);
 const payload={lighthouseResult:{audits:{}}};assert.equal(c.assertPageSpeedResult(payload),payload);
@@ -197,6 +201,7 @@ assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalDisplayedUrl:'
 let calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,timeout});return{ok:true,status:200,text:async()=> 'Title: Example\nMarkdown Content:\nPage text'}};c.readTimedResponse=async response=>response.text();
 const pageUrl=new URL('https://example.cz/');const page=await c.fetchReadablePage(pageUrl,'/a?x=1#section');assert.match(page,/Page text/);assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].timeout,20000);
 calls=[];await assert.rejects(()=>c.fetchReadablePage(pageUrl,'//outside.cz/a'),/požadovaný původ/);assert.equal(calls.length,0);
+c.fetchTimed=async()=>({ok:true,status:200,body:makeStream([Buffer.alloc(2*1024*1024+1,0x61)],()=>{oversizedStreamCancelled=true})});await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/large-page'),/limit 2 MiB/,'oversized public pages must fail as unreadable instead of being parsed or scored');assert(oversizedStreamCancelled);
 c.fetchTimed=async target=>{calls.push(target);throw Error('TLS unavailable')};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/robots.txt'),/TLS unavailable/);assert.equal(calls.length,1);assert(!calls[0].includes('/http://'));
 c.fetchTimed=async target=>{calls.push(target);return{ok:false,status:503,text:async()=> 'unavailable'}};await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/'),/503/);
 let pageSpeedRequests=0,pageSpeedCacheWrites=0,cachedPageSpeed=null;
@@ -300,7 +305,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const checked={area:'SEO a obsah',name:'Title',points:100,ok:true};const recommendation={area:'SEO a obsah',name:'Lighthouse recommendation',points:null,priorityPoints:50,state:'DOPORUČENÍ',coverageExcluded:true};const unverified={area:'SEO a obsah',name:'Meta description',points:null,state:'NELZE OVĚŘIT'};
 const base=c.scoreAuditAreas([checked])[0],withRecommendation=c.scoreAuditAreas([checked,recommendation])[0],withUnverified=c.scoreAuditAreas([checked,unverified])[0];assert.equal(withRecommendation.tests,base.tests);assert.equal(withRecommendation.effectiveWeight,base.effectiveWeight);assert.equal(withRecommendation.score,base.score);assert.equal(withUnverified.coverage,0.5);assert.equal(withUnverified.effectiveWeight,12.5);
 assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,recommendation],[{url:'https://example.cz/',raw:'page'}]));assert.notEqual(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,unverified],[{url:'https://example.cz/',raw:'page'}]));
-assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-10\.152'/);
+assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-10\.153'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
 
@@ -623,6 +628,6 @@ assert.equal(c.scoreAuditAreas([absent])[0].tests,1);assert.equal(c.scoreAuditAr
 assert.match(script,/findings\.push\(canonicalLighthouseFinding\(audits\.canonical/);
 assert.match(script,/\['canonical','is-on-https','no-vulnerable-libraries','csp-xss'\]/);
 assert.match(script,/canonical homepage je pouze nehodnocený signál Lighthouse/i);
-assert.match(script,/const ruleVersion='2026-11-10\.152'/);
+assert.match(script,/const ruleVersion='2026-11-10\.153'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();

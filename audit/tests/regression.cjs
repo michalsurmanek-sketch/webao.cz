@@ -179,11 +179,33 @@ console.log('PASS: 3 unsupported crawl URL cases');
 })();
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,clearTimeout,TextEncoder,TextDecoder,timedResponseControllers:{get:()=>null,delete(){}},window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function readTimedTextResponse('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
+let calls=[];
 vm.runInContext(s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts(')),c);
 assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReadableSource('Title: Missing\nWarning: Target URL returned error 404: Not found\nMarkdown Content:\nError'),/404/);
 assert.throws(()=>c.assertReadableSource('Warning: Target URL returned error 503: unavailable'),/503/);
 const article='Title: Article\nMarkdown Content:\nWarning: Target URL returned error 404: example from documentation';assert.equal(c.assertReadableSource(article),article);
 assert.equal(c.assertReadableSource('User-agent: *\nDisallow: /private'),'User-agent: *\nDisallow: /private');
+const metadataLinks=[
+ {getAttribute:name=>({rel:'ALTERNATE',hreflang:'cs',href:'/cs'}[name]||null)},
+ {getAttribute:name=>({rel:'alternate',hreflang:'CS',href:'/cs-2'}[name]||null)},
+ {getAttribute:name=>({rel:'canonical',href:'https://example.cz/a'}[name]||null)},
+ {getAttribute:name=>({rel:'canonical',href:'https://example.cz/b'}[name]||null)},
+ {getAttribute:name=>({rel:'icon',href:'/favicon.ico'}[name]||null)}
+];
+c.DOMParser=class{parseFromString(html,type){assert.match(html,/<html/i);assert.equal(type,'text/html');return{head:{querySelectorAll:selector=>{assert.equal(selector,'link[rel]');return metadataLinks}}}}};
+calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,options,timeout});return{ok:true,status:200,text:async()=> '<!doctype html><html><head><title>Example</title></head></html>'}};
+const htmlMeta=await c.fetchPageHtmlMetadata(new URL('https://example.cz/a?x=1#fragment'));
+assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].options.headers['X-Respond-With'],'html');assert.equal(calls[0].timeout,20000);
+assert.deepEqual(Array.from(htmlMeta.canonical),['https://example.cz/a','https://example.cz/b']);assert.deepEqual(Array.from(htmlMeta.hreflang,item=>[item.lang,item.href]),[['cs','/cs'],['CS','/cs-2']]);
+const metadataContext={pageTextWasFetched:page=>page?.raw!==null&&page?.raw!==undefined,areaDefs:[['Technické SEO',20]]};vm.createContext(metadataContext);vm.runInContext(s.slice(s.indexOf('function extractHeadMetadata('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function htmlMetadataFindings('),s.indexOf('function pageInventoryState('))+s.slice(s.indexOf('function scoreAuditAreas('),s.indexOf('function renderReport(')),metadataContext);
+const metadataFindings=metadataContext.htmlMetadataFindings([{url:'https://example.cz/a',raw:'page',htmlMetadata:htmlMeta},{url:'https://example.cz/b',raw:'page',htmlMetadataError:'timeout'},{url:'https://example.cz/c',raw:null}]);
+assert.equal(metadataFindings[0].points,null);assert.equal(metadataFindings[0].coverageExcluded,true);assert.match(metadataFindings[0].detail,/1 z 2 načtených stránek/);assert.match(metadataFindings[0].detail,/správnost canonical cíle/);
+assert(metadataFindings.some(item=>item.name==='Více odlišných canonical deklarací — hypotéza'&&item.points===null&&item.coverageExcluded));assert(metadataFindings.some(item=>item.name==='Odlišné hreflang cíle pro stejný jazyk — hypotéza'&&item.points===null&&item.coverageExcluded));
+assert.equal(metadataContext.scoreAuditAreas(metadataFindings)[0].tests,0,'HTML metadata signals and hypotheses must stay outside the score');
+assert(metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>Array.from({length:205},()=>metadataLinks[4])}}).truncated,'large HTML heads must disclose the metadata collection cap');
+c.fetchTimed=async()=>({ok:false,status:503,text:async()=>'unavailable'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/bad')),/HTML metadata stránky:.*503/);
+c.fetchTimed=async()=>({ok:true,status:200,text:async()=>'Warning: Target URL returned error 404: Not found'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/not-found')),/HTML metadata stránky:.*404/);
+console.log('PASS: HTML metadata fetch/extraction is bounded, explicit, conflict-only, and excluded from score');
 const makeStream=(chunks,onCancel=()=>{})=>({getReader:()=>{let index=0;return{async read(){return index<chunks.length?{done:false,value:chunks[index++]}:{done:true}},async cancel(){onCancel()}}}});
 assert.equal(await c.readTimedTextResponse({body:makeStream([Buffer.from([0x41,0xc5]),Buffer.from([0xbe])])},3),'Až','UTF-8 sequences split across stream chunks should decode correctly');
 let oversizedStreamCancelled=false;await assert.rejects(c.readTimedTextResponse({body:makeStream([Buffer.from('ab'),Buffer.from('cd')],()=>{oversizedStreamCancelled=true})},3),/limit 3 bajtů/);assert(oversizedStreamCancelled,'oversized response stream must be cancelled immediately');
@@ -198,7 +220,7 @@ assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{requestedUrl:'https
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalUrl:'not a valid URL',audits:{}}},expectedPageUrl),/neplatnou adresu/);
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalDisplayedUrl:'not a valid URL',audits:{}}},expectedPageUrl),/neplatnou adresu/);
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{finalDisplayedUrl:'https://attacker.example/',audits:{}}},expectedPageUrl),/jinou doménu/);
-let calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,timeout});return{ok:true,status:200,text:async()=> 'Title: Example\nMarkdown Content:\nPage text'}};c.readTimedResponse=async response=>response.text();
+calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,timeout});return{ok:true,status:200,text:async()=> 'Title: Example\nMarkdown Content:\nPage text'}};c.readTimedResponse=async response=>response.text();
 const pageUrl=new URL('https://example.cz/');const page=await c.fetchReadablePage(pageUrl,'/a?x=1#section');assert.match(page,/Page text/);assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].timeout,20000);
 calls=[];await assert.rejects(()=>c.fetchReadablePage(pageUrl,'//outside.cz/a'),/požadovaný původ/);assert.equal(calls.length,0);
 c.fetchTimed=async()=>({ok:true,status:200,body:makeStream([Buffer.alloc(2*1024*1024+1,0x61)],()=>{oversizedStreamCancelled=true})});await assert.rejects(()=>c.fetchReadablePage(pageUrl,'/large-page'),/limit 2 MiB/,'oversized public pages must fail as unreadable instead of being parsed or scored');assert(oversizedStreamCancelled);
@@ -281,6 +303,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const quota={status:'rejected',reason:new Error('quota exceeded')},success={status:'fulfilled',value:{}},dns={status:'fulfilled',value:{Status:0,Answer:[]}};
 let sources=c.measurementSourceStatuses({pages:[{raw:'ok'},{loadError:'failed'}],robotsKnown:true,dnsResults:[dns,quota],rdapResult:quota,pageSpeedResults:[quota,quota],httpVariantResults:[quota,quota],observatoryResult:{status:'skipped'}});
 assert.equal(sources.find(x=>x.name==='Google Public DNS').status,'Částečně dostupné');assert.equal(sources.find(x=>x.name==='PageSpeed — mobil a desktop').status,'Limit služby');assert.equal(sources.find(x=>x.name==='MDN HTTP Observatory').status,'Neprovedeno');assert.equal(sources[0].status,'Částečně dostupné');
+sources=c.measurementSourceStatuses({pages:[{raw:'ok',htmlMetadata:{canonical:[],hreflang:[]}},{raw:'ok',htmlMetadataError:'reader timeout'}]});const metadataSource=sources.find(x=>x.name==='HTML hlavičky — canonical a hreflang');assert.equal(metadataSource.status,'Částečně dostupné');assert.match(metadataSource.detail,/1 z 2/);assert.equal(c.findingKind({state:'SIGNÁL'}),'Informace');
 sources=c.measurementSourceStatuses({rootAllowed:false,pages:[],pageSpeedResults:[quota,quota],httpVariantResults:[quota,quota],observatoryResult:{status:'skipped'}});assert.equal(sources[0].status,'Vynecháno');assert.equal(sources.find(x=>x.name==='PageSpeed — mobil a desktop').status,'Vynecháno podle robots.txt');
 sources=c.measurementSourceStatuses({pages:[{raw:'ok'}],robotsKnown:true,dnsResults:[dns],rdapResult:success,pageSpeedResults:[success,success],httpVariantResults:[success,success],observatoryResult:success});assert.equal(sources.find(x=>x.name==='Google Public DNS').status,'Odpovědi získány');assert.equal(sources.find(x=>x.name==='PageSpeed — mobil a desktop').status,'Odpovědi získány');assert.equal(sources.find(x=>x.name==='RDAP registr domény').status,'Odpověď získána');
 const html=c.buildSourceAvailabilityHtml({sourceStatuses:[{name:'<script>x</script>',status:'OK',detail:'a&b'}]});assert(!html.includes('<script>x</script>'));assert(html.includes('&lt;script&gt;'));assert(html.includes('a&amp;b'));assert.equal(c.buildSourceAvailabilityHtml({}),'');
@@ -305,7 +328,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const checked={area:'SEO a obsah',name:'Title',points:100,ok:true};const recommendation={area:'SEO a obsah',name:'Lighthouse recommendation',points:null,priorityPoints:50,state:'DOPORUČENÍ',coverageExcluded:true};const unverified={area:'SEO a obsah',name:'Meta description',points:null,state:'NELZE OVĚŘIT'};
 const base=c.scoreAuditAreas([checked])[0],withRecommendation=c.scoreAuditAreas([checked,recommendation])[0],withUnverified=c.scoreAuditAreas([checked,unverified])[0];assert.equal(withRecommendation.tests,base.tests);assert.equal(withRecommendation.effectiveWeight,base.effectiveWeight);assert.equal(withRecommendation.score,base.score);assert.equal(withUnverified.coverage,0.5);assert.equal(withUnverified.effectiveWeight,12.5);
 assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,recommendation],[{url:'https://example.cz/',raw:'page'}]));assert.notEqual(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,unverified],[{url:'https://example.cz/',raw:'page'}]));
-assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-10\.153'/);
+assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-10\.154'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
 
@@ -627,7 +650,8 @@ assert.equal(c.scoreAuditAreas([found])[0].tests,0);
 assert.equal(c.scoreAuditAreas([absent])[0].tests,1);assert.equal(c.scoreAuditAreas([absent])[0].measured,0);
 assert.match(script,/findings\.push\(canonicalLighthouseFinding\(audits\.canonical/);
 assert.match(script,/\['canonical','is-on-https','no-vulnerable-libraries','csp-xss'\]/);
-assert.match(script,/canonical homepage je pouze nehodnocený signál Lighthouse/i);
-assert.match(script,/const ruleVersion='2026-11-10\.153'/);
+assert.match(script,/canonical homepage Lighthouse je pouze doplňkový signál/i);
+assert.match(script,/HTML hlavičky pro canonical\/hreflang byly samostatně načteny/i);
+assert.match(script,/const ruleVersion='2026-11-10\.154'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();

@@ -154,7 +154,7 @@ function findingKind(item){
  if(item.state==='ORIENTAČNÍ')return'Orientační signál';
  if(item.state==='K PROVĚŘENÍ')return'K ruční kontrole';
  if(item.state==='ALT ROZPOZNÁN'||item.state==='ROZPOZNÁNO'||item.state==='ZACHYCENO')return'Rozpoznáno ve výstupu';
- if(item.state==='INFORMATIVNÍ'||item.state==='NEPOUŽITO')return'Informace';
+ if(item.state==='INFORMATIVNÍ'||item.state==='NEPOUŽITO'||item.state==='SIGNÁL')return'Informace';
  if(Number.isFinite(item.points))return'Měřený signál';
  return'Nelze ověřit';
 }
@@ -333,7 +333,7 @@ function initFindingWorkControls(host){
 }
 const coverageLimitations={
  'SEO a obsah':'Veřejný textový výstup a omezený vzorek stránek. Neověřuje indexaci v Google ani pozice; nerozpoznané meta údaje se označují jako neověřené. Opakované titulky, popisy a hlavní nadpisy jsou pouze signály v tomto vzorku, ne automatický důkaz SEO chyby.',
- 'Technické SEO':'Kontrola robots.txt, sitemap a odkazů jen mezi vybranými stránkami. Nejde o úplný crawl; neověřují se spolehlivě HTTP kódy všech URL, canonical na podstránkách, hreflang ani osiřelé stránky. Canonical homepage je pouze nehodnocený signál Lighthouse a nepotvrzuje správnost cílové URL.',
+ 'Technické SEO':'Kontrola robots.txt, sitemap a odkazů jen mezi vybranými stránkami. Jina Reader vrací také HTML hlavičky pro canonical/hreflang signály u načteného vzorku; jejich výskyt ani konfliktní hodnoty nejsou samy skórovány a správnost cílů či úplnost jazykových vazeb se neověřují. HTTP kódy všech URL ani osiřelé stránky nejsou potvrzeny. Canonical homepage Lighthouse je pouze doplňkový signál.',
  'Bezpečnost a HTTPS':'PageSpeed Insights Lighthouse poskytuje jen vybrané signály HTTPS, známých zranitelných knihoven a CSP. Neměří se zde konfigurace TLS ani certifikační řetězec a neprověřují se cookie atributy ani kompletní zranitelnosti. Bezpečnostní hlavičky lze ověřit samostatným volitelným skenem MDN HTTP Observatory. Nejde o penetrační test.',
  'Rychlost a Core Web Vitals':'Lighthouse skóre a laboratorní LCP/CLS měří PageSpeed Insights v simulovaném prostředí. Terénní Core Web Vitals jsou k dispozici jen tehdy, pokud Google poskytne dost dat pro URL nebo origin.',
  'Přístupnost':'Zachytí automatické Lighthouse kontroly a alternativní texty v textovém vzorku. Neověřuje ručně klávesnici, čtečky obrazovky ani úplný soulad s WCAG.',
@@ -394,6 +394,7 @@ function isPriorityFinding(item){
 }
 function measurementSourceStatuses({pages=[],robotsKnown=false,rootAllowed=true,robotsServerError='',dnsResults=[],rdapResult={},pageSpeedResults=[],httpVariantResults=[],observatoryResult={}}){
  const loaded=pages.filter(pageTextWasFetched).length,failed=pages.filter(page=>page.loadError&&!String(page.state||'').startsWith('Vynecháno')).length;
+ const htmlInspected=pages.filter(page=>pageTextWasFetched(page)&&page.htmlMetadata).length,htmlFailed=pages.filter(page=>pageTextWasFetched(page)&&page.htmlMetadataError).length;
  const dnsAnswered=dnsResults.filter(dnsResultAvailable).length;
  const psiDone=pageSpeedResults.filter(result=>result.status==='fulfilled').length;
  const psiQuota=pageSpeedResults.some(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason));
@@ -402,6 +403,7 @@ function measurementSourceStatuses({pages=[],robotsKnown=false,rootAllowed=true,
  const mdnSkipped=observatoryResult.status==='skipped',robotsSkipped=robotsServerError?'Vynecháno — robots.txt nedostupný':'Vynecháno podle robots.txt';
  return[
   {name:'Textová čtečka stránek',status:!rootAllowed&&!loaded&&!failed?'Vynecháno':loaded?(failed?'Částečně dostupné':'Odpověď získána'):'Nelze načíst',detail:'Načteno '+loaded+' URL, selhalo načtení '+failed+' URL. Čtečka nemusí zpřístupnit úplné HTML ani všechny prvky stránky.'},
+  {name:'HTML hlavičky — canonical a hreflang',status:htmlInspected===loaded&&loaded?'HTML získáno':htmlInspected?'Částečně dostupné':loaded?'Nelze ověřit':'Vynecháno',detail:'HTML hlavička rozpoznána u '+htmlInspected+' z '+loaded+' textově načtených URL; selhalo '+htmlFailed+'. Zjišťují se jen deklarace ve vzorku, ne jejich správnost.'},
   {name:'robots.txt',status:robotsKnown?'Odpověď získána':robotsServerError?'Chyba serveru HTTP '+robotsServerError:'Nelze ověřit',detail:robotsKnown?'Pravidla byla načtena; jejich vyhodnocení je uvedeno v nálezech.':robotsServerError?'Robots.txt při čtení vrátilo HTTP '+robotsServerError+'. Požadavky na stránky a sitemapu byly dočasně vynechány podle zásady fail-closed.':'Pravidla přístupu nebylo možné potvrdit. Tento stav sám neprokazuje chybu robots.txt.'},
   {name:'Google Public DNS',status:dnsAnswered===dnsResults.length&&dnsResults.length?'Odpovědi získány':dnsAnswered?'Částečně dostupné':'Nelze ověřit',detail:'Jednoznačně odpovědělo '+dnsAnswered+' z '+dnsResults.length+' dotazů. Odpověď bez záznamu je také odpověď; správnost konfigurace hodnotí jednotlivé kontroly.'},
   {name:'RDAP registr domény',status:rdapResult.status==='fulfilled'?'Odpověď získána':'Nelze ověřit',detail:rdapResult.status==='fulfilled'?'Odpověď registru byla získána. Přítomnost a platnost údaje o expiraci hodnotí samostatný nález.':String(rdapResult.reason?.message||'Registr neposkytl dostupnou odpověď.')},
@@ -429,7 +431,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-10.153';
+ const ruleVersion='2026-11-10.154';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -619,6 +621,51 @@ async function fetchReadablePage(url,path='/'){
   if(!response.ok)throw new Error('Veřejný zdroj stránky neodpověděl ('+response.status+').');
   return assertReadableSource(text);
  }catch(error){throw new Error('Čtečka stránky: '+(error&&error.message?error.message:'zdroj neodpověděl.'));}
+}
+async function fetchPageHtmlMetadata(url){
+ const target=new URL(url.href);
+ if(!['http:','https:'].includes(target.protocol)||target.username||target.password)throw new Error('Čtečka odmítla neplatnou adresu stránky.');
+ target.hash='';
+ try{
+  const response=await fetchTimed('https://r.jina.ai/'+target.href,{headers:{Accept:'text/plain','X-Respond-With':'html'}},20000);
+  const html=await readTimedTextResponse(response,2*1024*1024,20000);
+  if(!response.ok)throw new Error('HTML zdroj stránky neodpověděl ('+response.status+').');
+  assertReadableSource(html);
+  if(!/<(?:!doctype\s+html|html\b|head\b)/i.test(html))throw new Error('Čtečka nevrátila rozpoznatelný HTML dokument.');
+  return extractHeadMetadata(new DOMParser().parseFromString(html,'text/html'));
+ }catch(error){throw new Error('HTML metadata stránky: '+(error&&error.message?error.message:'zdroj neodpověděl.'));}
+}
+function extractHeadMetadata(document){
+ if(!document||!document.head||typeof document.head.querySelectorAll!=='function')throw new Error('HTML dokument neobsahuje čitelnou hlavičku.');
+ const allLinks=Array.from(document.head.querySelectorAll('link[rel]'));
+ const links=allLinks.slice(0,200);
+ const canonical=links.filter(link=>(link.getAttribute('rel')||'').toLowerCase().split(/\s+/).includes('canonical')).map(link=>(link.getAttribute('href')||'').trim());
+ const hreflang=links.filter(link=>{
+  const rel=(link.getAttribute('rel')||'').toLowerCase().split(/\s+/);
+  return rel.includes('alternate')&&!!(link.getAttribute('hreflang')||'').trim();
+ }).map(link=>({lang:(link.getAttribute('hreflang')||'').trim(),href:(link.getAttribute('href')||'').trim()}));
+ return{canonical,hreflang,truncated:allLinks.length>links.length};
+}
+function htmlMetadataFindings(pages){
+ const readable=pages.filter(pageTextWasFetched),inspected=readable.filter(page=>page.htmlMetadata),failed=readable.filter(page=>!page.htmlMetadata);
+ const canonicalPages=inspected.filter(page=>page.htmlMetadata.canonical.length);
+ const hreflangPages=inspected.filter(page=>page.htmlMetadata.hreflang.length);
+ const examples=inspected.map(page=>{
+  const short=value=>value.length>160?value.slice(0,160)+'…':value;
+  const canonical=page.htmlMetadata.canonical.map(href=>'canonical="'+short(href||'(bez href)')+'"');
+  const hreflang=page.htmlMetadata.hreflang.map(item=>'hreflang="'+short(item.lang)+'" → "'+short(item.href||'(bez href)')+'"');
+  return page.url+' · '+[...canonical,...hreflang].join(' · ')+(page.htmlMetadata.truncated?' · výpis značek zkrácen na 200':'');
+ }).filter(item=>!item.endsWith(' · ')).slice(0,5);
+ const findings=[{area:'Technické SEO',name:'Canonical a hreflang — signály z HTML vzorku',url:'',points:null,state:inspected.length?'SIGNÁL':'NELZE OVĚŘIT',severity:'Informační',coverageExcluded:true,detail:inspected.length?'HTML hlavička byla rozpoznána u '+inspected.length+' z '+readable.length+' načtených stránek. Canonical byl deklarován na '+canonicalPages.length+' stránkách a hreflang na '+hreflangPages.length+'. '+(failed.length?'U '+failed.length+' stránek se HTML nepodařilo ověřit. ':'')+'Jde pouze o výskyt veřejných deklarací: absence canonical není automaticky chyba, správnost canonical cíle ani jazykových variant se neposuzuje.':'HTML hlavičku nebylo možné získat u žádné z '+readable.length+' načtených stránek. Canonical a hreflang proto nelze ověřit; chybějící výstup není důkazem chybějících značek.',evidence:examples.join(' | ')||'Ve zkoumaném HTML vzorku nebyly rozpoznány žádné canonical ani hreflang deklarace.'+(failed.length?' · Selhalo HTML načtení '+failed.length+' z '+readable.length+' stránek.':''),confidence:inspected.length?'Vysoká pouze pro rozpoznané značky v načtených HTML hlavičkách; nejde o ověření SEO správnosti.':'Nelze určit bez načteného HTML.'}];
+ for(const page of inspected){
+  const canonical=[...new Set(page.htmlMetadata.canonical)];
+  if(canonical.length>1)findings.push({area:'Technické SEO',name:'Více odlišných canonical deklarací — hypotéza',url:page.url,points:null,state:'HYPOTÉZA',severity:'Informační',coverageExcluded:true,detail:'V HTML hlavičce byly rozpoznány různé hodnoty canonical. Může jít o konflikt, ale bez kontextu webu nelze určit zamýšlený kanonický cíl; nález nemění skóre.',evidence:canonical.join(' · '),action:'Ověřte všechny canonical deklarace v původním HTML a určete, zda stránka má mít právě jeden záměrný cíl.',confidence:'Střední — konfliktní hodnoty jsou ve vráceném HTML, jejich správnost vyžaduje kontext.'});
+  const byLanguage=new Map();
+  for(const item of page.htmlMetadata.hreflang){const key=item.lang.toLowerCase();if(!byLanguage.has(key))byLanguage.set(key,new Set());byLanguage.get(key).add(item.href);}
+  const conflicts=[...byLanguage].filter(([,targets])=>targets.size>1);
+  if(conflicts.length)findings.push({area:'Technické SEO',name:'Odlišné hreflang cíle pro stejný jazyk — hypotéza',url:page.url,points:null,state:'HYPOTÉZA',severity:'Informační',coverageExcluded:true,detail:'HTML obsahuje pro stejný jazyk více různých hreflang cílů. Bez znalosti jazykových a regionálních variant nelze určit, zda jde o chybu; nález nemění skóre.',evidence:conflicts.map(([lang,targets])=>lang+': '+[...targets].join(' · ')).join(' | '),action:'Ověřte zamýšlené jazykové a regionální URL i vzájemné odkazy mezi variantami.',confidence:'Střední — shoda atributu jazyka a rozdílné href jsou pozorovatelné, správnost variant vyžaduje kontext.'});
+ }
+ return findings;
 }
 async function fetchRobotsAwarePage(url,path='/'){
  let robots='',robotsStatus='Ověřeno';
@@ -1254,6 +1301,19 @@ form.addEventListener('submit',async event=>{
   crawlMeta.omittedUrlExamples=omittedUrls.slice(0,100).map(candidate=>({url:candidate,source:arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'Interní odkaz z prověřené stránky'}));
   crawlMeta.linkDiscovered=allLinkedUrls.size;
   crawlMeta.note=(crawlMeta.note||'')+' Crawl také sleduje rozpoznané interní odkazy z každé načtené stránky až do nastaveného limitu; výsledek stále není důkazem úplného indexu webu.'; if(crawlMeta.sitemapFailures.length)crawlMeta.note+=' Selhalo načtení '+crawlMeta.sitemapFailures.length+' sitemap souborů; jejich URL nebylo možné zahrnout.';
+  const htmlMetadataPages=pages.filter(pageTextWasFetched);
+  if(htmlMetadataPages.length){
+   out.querySelector('.result-summary').textContent='Ověřuji HTML hlavičky u '+htmlMetadataPages.length+' načtených stránek…';
+   const htmlMetadataResults=await mapLimit(htmlMetadataPages,4,page=>fetchPageHtmlMetadata(new URL(page.url)),(completed,total)=>{
+    out.querySelector('.result-summary').textContent='HTML hlavičky: '+completed+' z '+total+' stránek.';
+   });
+   htmlMetadataResults.forEach((result,index)=>{
+    if(result.status==='fulfilled')htmlMetadataPages[index].htmlMetadata=result.value;
+    else htmlMetadataPages[index].htmlMetadataError=result.reason?.message||'HTML hlavičku se nepodařilo načíst.';
+   });
+   crawlMeta.htmlMetadata={attempted:htmlMetadataPages.length,inspected:htmlMetadataResults.filter(result=>result.status==='fulfilled').length,failed:htmlMetadataResults.filter(result=>result.status==='rejected').length};
+   crawlMeta.note+=' HTML hlavičky pro canonical/hreflang byly samostatně načteny u '+crawlMeta.htmlMetadata.inspected+' z '+crawlMeta.htmlMetadata.attempted+' stránek; jejich správnost se automaticky nehodnotí.';
+  }else crawlMeta.htmlMetadata={attempted:0,inspected:0,failed:0};
   if(!rootAllowed)pages.unshift({url:rootUrl,type:'Úvodní stránka',title:'',h1:'',source:'Homepage',sourceUrl:'',state:robotsServerError?'Vynecháno — robots.txt nedostupný':'Vynecháno podle robots.txt',loadError:robotsServerError?'Stránka nebyla načtena, protože robots.txt dočasně vrátil chybu serveru HTTP '+robotsServerError[1]+'.':'Stránka nebyla načtena, protože přístup zakazují pravidla robots.txt.',raw:null,links:null,externalLinks:null,inboundLinks:null});
   const competitors=competitorResults.map((result,index)=>{
    const target=competitorUrls[index];
@@ -1279,6 +1339,7 @@ form.addEventListener('submit',async event=>{
    {area:'Technické SEO',name:'Přístup homepage podle robots.txt',ok:robotsKnown&&!robotsBlocksSite,points:robotsKnown?(robotsBlocksSite?20:100):null,state:robotsKnown?undefined:'NELZE OVĚŘIT',severity:robotsBlocksSite?'Kritická':'Nízká',detail:!robotsKnown?'Přístup homepage podle robots.txt nelze ověřit, protože soubor nebyl spolehlivě načten. Načtení stránky nepotvrzuje povolení v robots.txt.':robotsBlocksSite?'Pravidla robots.txt blokují načtení homepage pro auditní crawler. URL nebyla požadována.':'Homepage není podle rozpoznaných pravidel zakázána. Ostatní URL se filtrují samostatně podle pravidel.',evidence:!robotsKnown?'Není dostupný spolehlivý obsah robots.txt.':robotsBlocksSite?'Použitelná pravidla robots.txt zakazují cestu /.':'Veřejný text robots.txt byl porovnán s cestou homepage a identifikátorem WEBAOAudit.',confidence:robotsKnown?'Střední — parser textového výstupu robots.txt':'Nelze určit bez načteného robots.txt.'},
    {area:'Technické SEO',name:'XML sitemap',ok:sitemapFound,points:sitemapKnown&&sitemapFound?100:null,state:!sitemapKnown?'NELZE OVĚŘIT':sitemapFound?undefined:'DOPORUČENÍ',detail:sitemapKnown?(sitemapFound?'Sitemap byla nalezena nebo deklarována v robots.txt.':'Na /sitemap.xml ani v robots.txt nebyla sitemap rozpoznána. Její absence sama o sobě neprokazuje chybu; ověřte, zda ji web potřebuje a zda není na jiné adrese.'):'Sitemap se nepodařilo spolehlivě načíst.'}
   ];
+  findings.push(...htmlMetadataFindings(pages));
   for(const page of pages.filter(item=>item.loadError&&!String(item.state||'').startsWith('Vynecháno'))){
    findings.push({area:'Technické SEO',name:'Veřejná čtečka stránku neověřila',url:page.url,points:null,state:'NELZE OVĚŘIT',severity:'Informační',detail:'Externí textová čtečka stránku nenačetla: '+page.loadError+' Tento výsledek nepotvrzuje, že stránka vrací chybu; může jít o blokaci nebo výpadek čtečky.',evidence:'URL: '+page.url+' · Zdroj objevení: '+(page.source||'neznámý'),impact:'Obsah, metadata a odkazy této stránky se do auditu nezapočítaly.',confidence:'Nelze určit stav stránky jen podle selhání textové čtečky.',action:'Ověřte URL v běžném prohlížeči a zopakujte audit. Pokud stránka funguje, čtečka nebo ochrana hostingu může blokovat auditní požadavek.'});
   }

@@ -197,11 +197,14 @@ calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,options
 const htmlMeta=await c.fetchPageHtmlMetadata(new URL('https://example.cz/a?x=1#fragment'));
 assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].options.headers['X-Respond-With'],'html');assert.equal(calls[0].timeout,20000);
 assert.deepEqual(Array.from(htmlMeta.canonical),['https://example.cz/a','https://example.cz/b']);assert.deepEqual(Array.from(htmlMeta.hreflang,item=>[item.lang,item.href]),[['cs','/cs'],['CS','/cs-2']]);
-const metadataContext={pageTextWasFetched:page=>page?.raw!==null&&page?.raw!==undefined,areaDefs:[['Technické SEO',20]]};vm.createContext(metadataContext);vm.runInContext(s.slice(s.indexOf('function extractHeadMetadata('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function htmlMetadataFindings('),s.indexOf('function pageInventoryState('))+s.slice(s.indexOf('function scoreAuditAreas('),s.indexOf('function renderReport(')),metadataContext);
+const metadataContext={URL,pageTextWasFetched:page=>page?.raw!==null&&page?.raw!==undefined,areaDefs:[['Technické SEO',20]]};vm.createContext(metadataContext);vm.runInContext(s.slice(s.indexOf('function extractHeadMetadata('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function htmlMetadataFindings('),s.indexOf('function pageInventoryState('))+s.slice(s.indexOf('function scoreAuditAreas('),s.indexOf('function renderReport(')),metadataContext);
 const metadataFindings=metadataContext.htmlMetadataFindings([{url:'https://example.cz/a',raw:'page',htmlMetadata:htmlMeta},{url:'https://example.cz/b',raw:'page',htmlMetadataError:'timeout'},{url:'https://example.cz/c',raw:null}]);
 assert.equal(metadataFindings[0].points,null);assert.equal(metadataFindings[0].coverageExcluded,true);assert.match(metadataFindings[0].detail,/1 z 2 načtených stránek/);assert.match(metadataFindings[0].detail,/správnost canonical cíle/);
 assert(metadataFindings.some(item=>item.name==='Více odlišných canonical deklarací — hypotéza'&&item.points===null&&item.coverageExcluded));assert(metadataFindings.some(item=>item.name==='Odlišné hreflang cíle pro stejný jazyk — hypotéza'&&item.points===null&&item.coverageExcluded));
 assert.equal(metadataContext.scoreAuditAreas(metadataFindings)[0].tests,0,'HTML metadata signals and hypotheses must stay outside the score');
+const equivalentTargets=metadataContext.htmlMetadataFindings([{url:'https://example.cz/page',raw:'page',htmlMetadata:{canonical:['/canonical','https://EXAMPLE.cz:443/canonical'],hreflang:[{lang:'cs',href:'/cs'},{lang:'CS',href:'https://EXAMPLE.cz:443/cs'}]}}]);
+assert(!equivalentTargets.some(item=>/Více odlišných canonical|Odlišné hreflang cíle/.test(item.name)),'relative and absolute links resolving to the same normalized target must not be reported as conflicts');
+assert.equal(metadataContext.scoreAuditAreas(equivalentTargets)[0].tests,0,'normalized metadata signals must remain excluded from score');
 assert(metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>Array.from({length:205},()=>metadataLinks[4])}}).truncated,'large HTML heads must disclose the metadata collection cap');
 c.fetchTimed=async()=>({ok:false,status:503,text:async()=>'unavailable'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/bad')),/HTML metadata stránky:.*503/);
 c.fetchTimed=async()=>({ok:true,status:200,text:async()=>'Warning: Target URL returned error 404: Not found'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/not-found')),/HTML metadata stránky:.*404/);
@@ -328,7 +331,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const checked={area:'SEO a obsah',name:'Title',points:100,ok:true};const recommendation={area:'SEO a obsah',name:'Lighthouse recommendation',points:null,priorityPoints:50,state:'DOPORUČENÍ',coverageExcluded:true};const unverified={area:'SEO a obsah',name:'Meta description',points:null,state:'NELZE OVĚŘIT'};
 const base=c.scoreAuditAreas([checked])[0],withRecommendation=c.scoreAuditAreas([checked,recommendation])[0],withUnverified=c.scoreAuditAreas([checked,unverified])[0];assert.equal(withRecommendation.tests,base.tests);assert.equal(withRecommendation.effectiveWeight,base.effectiveWeight);assert.equal(withRecommendation.score,base.score);assert.equal(withUnverified.coverage,0.5);assert.equal(withUnverified.effectiveWeight,12.5);
 assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,recommendation],[{url:'https://example.cz/',raw:'page'}]));assert.notEqual(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,unverified],[{url:'https://example.cz/',raw:'page'}]));
-assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.156'/);
+assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.157'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
 
@@ -652,6 +655,6 @@ assert.match(script,/findings\.push\(canonicalLighthouseFinding\(audits\.canonic
 assert.match(script,/\['canonical','is-on-https','no-vulnerable-libraries','csp-xss'\]/);
 assert.match(script,/canonical homepage Lighthouse je pouze doplňkový signál/i);
 assert.match(script,/HTML hlavičky pro canonical\/hreflang byly samostatně načteny/i);
-assert.match(script,/const ruleVersion='2026-11-11\.156'/);
+assert.match(script,/const ruleVersion='2026-11-11\.157'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();

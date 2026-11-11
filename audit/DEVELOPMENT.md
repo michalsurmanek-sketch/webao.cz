@@ -2,13 +2,14 @@
 
 ## Priority a kritéria dokončení
 
-1. Spolehlivost zdrojů: každá chyba čtení nebo neúplná odpověď skončí jako neověřená; nesmí blokovat dokončení auditu ani penalizovat skóre. Další úkol: prověřit stejnou chybu čekání na cancel v backendové čtečce.
+1. Spolehlivost zdrojů: každá chyba čtení nebo neúplná odpověď skončí jako neověřená; nesmí blokovat dokončení auditu ani penalizovat skóre. Frontendová čtečka i healthcheck mají neblokující zrušení přenosu. Další úkol: ověřit dokončení reportu při výpadcích zdrojů v prohlížeči.
 2. Ověření celého běhu v prohlížeči: audit s dostupnými i nedostupnými externími zdroji dokončí report a obnoví tlačítko; potvrdit mobilní zobrazení.
 3. HTML metadata: regresní případy pro neúplnou hlavičku a přesměrování; neověřená metadata bez bodového dopadu.
 
-## Poslední změna — 2026-11-11
+## Poslední změna — 2026-11-12
 
-- Odpověď větší než limit už nečeká na dokončení zrušení proudu. Zrušení se vyžádá a případná chyba úklidu se zachytí; původní chyba velikosti se ihned předá volajícímu.
-- Regresní scénář simuluje cancel, který nikdy neskončí, a vyžaduje odmítnutí původní chybou limitu.
-- Ověření: node audit/tests/regression.cjs; git diff --check.
-- Limit 2 MiB už byl na main, starý lokální commit se znovu nepřenášel. Předchozí prázdný cherry-pick byl bezpečně ukončen.
+- Produkční healthcheck už při chybě čtení nebo překročení limitu nečeká na zrušení proudu; požádá o zrušení jednou a zachová původní chybu.
+- Regrese pokrývá nikdy nedokončený cancel a odmítnutý cancel, který nesmí přepsat původní chybu.
+- Ověření: node audit/tests/regression.cjs; node audit/tests/healthcheck.cjs; git diff --check.
+- Backend neobsahuje samostatnou čtečku odpovědí. Potvrzená obdobná chyba byla v audit/tests/healthcheck.cjs.
+- Další úkol: prohlížečový scénář částečně nedostupných externích zdrojů a obnovení ovládacích prvků.

@@ -56,14 +56,13 @@ async function readResponseText(response, maxBytes = maxResponseBytes) {
       if (done) break;
       size += value.byteLength;
       if (size > maxBytes) {
-        await reader.cancel();
         throw new Error(`response body exceeds ${maxBytes} bytes`);
       }
       text += decoder.decode(value, { stream: true });
     }
     return text + decoder.decode();
   } catch (error) {
-    try { await reader.cancel(); } catch {}
+    try { Promise.resolve(reader.cancel()).catch(() => {}); } catch {}
     throw error;
   }
 }

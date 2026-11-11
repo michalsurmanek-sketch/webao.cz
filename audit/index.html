@@ -548,7 +548,7 @@ async function readTimedTextResponse(response,maxBytes,timeoutMs=12000){
     parts.push(decoder.decode(chunk.value,{stream:true}));
    }
    parts.push(decoder.decode());return parts.join('');
-  }catch(error){try{await reader.cancel()}catch{}throw error}
+  }catch(error){try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}throw error}
  }finally{if(timer)clearTimeout(timer);timedResponseControllers.delete(response)}
 }
 function assertReadableSource(text){

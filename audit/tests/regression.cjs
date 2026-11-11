@@ -11,6 +11,9 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const c={URL,TextEncoder,pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined)};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function queryPageSpeedStrategies('),s.indexOf('async function queryDns('))+s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
 assert(c.isSameSiteHost('example.cz','example.cz'));
 assert(c.isSameSiteHost('www.example.cz','example.cz'));
+assert(c.isSameSiteHost('example.cz','www.example.cz'),'www and apex hosts should be treated symmetrically');
+assert(c.isSameSiteHost('example.cz.','example.cz'),'DNS trailing-dot notation should normalize to the same host');
+assert(c.isSameSiteHost('example.cz','example.cz.'),'DNS trailing-dot normalization should be symmetric');
 assert(c.isSameSiteHost('shop.example.cz','example.cz'));
 assert(!c.isSameSiteHost('example.cz','shop.example.cz'));
 assert(!c.isSameSiteHost('co.uk','shop.co.uk'));
@@ -331,7 +334,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const checked={area:'SEO a obsah',name:'Title',points:100,ok:true};const recommendation={area:'SEO a obsah',name:'Lighthouse recommendation',points:null,priorityPoints:50,state:'DOPORUČENÍ',coverageExcluded:true};const unverified={area:'SEO a obsah',name:'Meta description',points:null,state:'NELZE OVĚŘIT'};
 const base=c.scoreAuditAreas([checked])[0],withRecommendation=c.scoreAuditAreas([checked,recommendation])[0],withUnverified=c.scoreAuditAreas([checked,unverified])[0];assert.equal(withRecommendation.tests,base.tests);assert.equal(withRecommendation.effectiveWeight,base.effectiveWeight);assert.equal(withRecommendation.score,base.score);assert.equal(withUnverified.coverage,0.5);assert.equal(withUnverified.effectiveWeight,12.5);
 assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,recommendation],[{url:'https://example.cz/',raw:'page'}]));assert.notEqual(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,unverified],[{url:'https://example.cz/',raw:'page'}]));
-assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.159'/);
+assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.160'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
 
@@ -659,6 +662,6 @@ assert.match(script,/findings\.push\(canonicalLighthouseFinding\(audits\.canonic
 assert.match(script,/\['canonical','is-on-https','no-vulnerable-libraries','csp-xss'\]/);
 assert.match(script,/canonical homepage Lighthouse je pouze doplňkový signál/i);
 assert.match(script,/HTML hlavičky pro canonical\/hreflang byly samostatně načteny/i);
-assert.match(script,/const ruleVersion='2026-11-11\.159'/);
+assert.match(script,/const ruleVersion='2026-11-11\.160'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();

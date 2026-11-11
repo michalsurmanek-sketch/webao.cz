@@ -331,7 +331,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const checked={area:'SEO a obsah',name:'Title',points:100,ok:true};const recommendation={area:'SEO a obsah',name:'Lighthouse recommendation',points:null,priorityPoints:50,state:'DOPORUČENÍ',coverageExcluded:true};const unverified={area:'SEO a obsah',name:'Meta description',points:null,state:'NELZE OVĚŘIT'};
 const base=c.scoreAuditAreas([checked])[0],withRecommendation=c.scoreAuditAreas([checked,recommendation])[0],withUnverified=c.scoreAuditAreas([checked,unverified])[0];assert.equal(withRecommendation.tests,base.tests);assert.equal(withRecommendation.effectiveWeight,base.effectiveWeight);assert.equal(withRecommendation.score,base.score);assert.equal(withUnverified.coverage,0.5);assert.equal(withUnverified.effectiveWeight,12.5);
 assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,recommendation],[{url:'https://example.cz/',raw:'page'}]));assert.notEqual(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,unverified],[{url:'https://example.cz/',raw:'page'}]));
-assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.158'/);
+assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.159'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
 
@@ -501,6 +501,9 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=req
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const start=html.indexOf('function robotsResponseLooksLikeError('),end=html.indexOf('async function queryRdap(',start),c={URL};vm.createContext(c);
 vm.runInContext(html.slice(start,end)+';this.fetchRobotsAwarePage=fetchRobotsAwarePage;',c);
+assert.equal(c.robotsResponseLooksLikeError('HTTP/1.1 200 OK\nUser-agent: *\nAllow: /'),false,'successful HTTP status lines must not be treated as reader errors');
+assert.equal(c.robotsResponseLooksLikeError('HTTP/1.1 404 Not Found'),true);
+assert.equal(c.robotsResponseLooksLikeError('HTTP 503 Service Unavailable'),true);
 let pageCalls=0,deny=true;
 c.fetchReadablePage=async(_url,path)=>{if(path==='/robots.txt')return deny?'User-agent: *\\nDisallow: /':'User-agent: *\\nAllow: /';pageCalls++;return 'page';};
 c.robotsAllowsPath=(_rules,path)=>deny&&path==='/'?false:true;
@@ -656,6 +659,6 @@ assert.match(script,/findings\.push\(canonicalLighthouseFinding\(audits\.canonic
 assert.match(script,/\['canonical','is-on-https','no-vulnerable-libraries','csp-xss'\]/);
 assert.match(script,/canonical homepage Lighthouse je pouze doplňkový signál/i);
 assert.match(script,/HTML hlavičky pro canonical\/hreflang byly samostatně načteny/i);
-assert.match(script,/const ruleVersion='2026-11-11\.158'/);
+assert.match(script,/const ruleVersion='2026-11-11\.159'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();

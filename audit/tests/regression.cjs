@@ -195,7 +195,7 @@ const metadataLinks=[
 c.DOMParser=class{parseFromString(html,type){assert.match(html,/<html/i);assert.equal(type,'text/html');return{head:{querySelectorAll:selector=>{assert.equal(selector,'link[rel]');return metadataLinks}}}}};
 calls=[];c.fetchTimed=async(target,options,timeout)=>{calls.push({target,options,timeout});return{ok:true,status:200,text:async()=> '<!doctype html><html><head><title>Example</title></head></html>'}};
 const htmlMeta=await c.fetchPageHtmlMetadata(new URL('https://example.cz/a?x=1#fragment'));
-assert.equal(calls[0].target,'https://r.jina.ai/?url=https%3A%2F%2Fexample.cz%2Fa%3Fx%3D1&respondWith=html');assert.equal(calls[0].options.headers.Accept,'text/plain');assert.equal(Object.keys(calls[0].options.headers).join(','),'Accept','metadata fetch must not send a custom header that triggers CORS preflight');assert.equal(calls[0].timeout,20000);
+assert.equal(calls[0].target,'https://r.jina.ai/https://example.cz/a?x=1');assert.equal(calls[0].options.headers['X-Respond-With'],'html');assert.equal(calls[0].timeout,20000);
 assert.deepEqual(Array.from(htmlMeta.canonical),['https://example.cz/a','https://example.cz/b']);assert.deepEqual(Array.from(htmlMeta.hreflang,item=>[item.lang,item.href]),[['cs','/cs'],['CS','/cs-2']]);
 const metadataContext={pageTextWasFetched:page=>page?.raw!==null&&page?.raw!==undefined,areaDefs:[['Technické SEO',20]]};vm.createContext(metadataContext);vm.runInContext(s.slice(s.indexOf('function extractHeadMetadata('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function htmlMetadataFindings('),s.indexOf('function pageInventoryState('))+s.slice(s.indexOf('function scoreAuditAreas('),s.indexOf('function renderReport(')),metadataContext);
 const metadataFindings=metadataContext.htmlMetadataFindings([{url:'https://example.cz/a',raw:'page',htmlMetadata:htmlMeta},{url:'https://example.cz/b',raw:'page',htmlMetadataError:'timeout'},{url:'https://example.cz/c',raw:null}]);
@@ -328,7 +328,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const checked={area:'SEO a obsah',name:'Title',points:100,ok:true};const recommendation={area:'SEO a obsah',name:'Lighthouse recommendation',points:null,priorityPoints:50,state:'DOPORUČENÍ',coverageExcluded:true};const unverified={area:'SEO a obsah',name:'Meta description',points:null,state:'NELZE OVĚŘIT'};
 const base=c.scoreAuditAreas([checked])[0],withRecommendation=c.scoreAuditAreas([checked,recommendation])[0],withUnverified=c.scoreAuditAreas([checked,unverified])[0];assert.equal(withRecommendation.tests,base.tests);assert.equal(withRecommendation.effectiveWeight,base.effectiveWeight);assert.equal(withRecommendation.score,base.score);assert.equal(withUnverified.coverage,0.5);assert.equal(withUnverified.effectiveWeight,12.5);
 assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,recommendation],[{url:'https://example.cz/',raw:'page'}]));assert.notEqual(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,unverified],[{url:'https://example.cz/',raw:'page'}]));
-assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.155'/);
+assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-11\.156'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
 
@@ -652,6 +652,6 @@ assert.match(script,/findings\.push\(canonicalLighthouseFinding\(audits\.canonic
 assert.match(script,/\['canonical','is-on-https','no-vulnerable-libraries','csp-xss'\]/);
 assert.match(script,/canonical homepage Lighthouse je pouze doplňkový signál/i);
 assert.match(script,/HTML hlavičky pro canonical\/hreflang byly samostatně načteny/i);
-assert.match(script,/const ruleVersion='2026-11-11\.155'/);
+assert.match(script,/const ruleVersion='2026-11-11\.156'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();

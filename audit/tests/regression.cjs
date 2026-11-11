@@ -372,6 +372,14 @@ let cancelled=false;
 const streamedLarge={headers:{get:()=>null},body:makeStream([Buffer.from('ab'),Buffer.from('cd')],()=>{cancelled=true})};
 await assert.rejects(streamContext.readResponseText(streamedLarge,3),/exceeds 3 bytes/);
 assert(cancelled,'stream should be cancelled as soon as the byte limit is exceeded');
+let cancellationCalls=0,cleanupTimer;
+const stuckCleanup={body:{getReader:()=>({read:async()=>({done:false,value:Buffer.from('oversized')}),cancel(){cancellationCalls++;return new Promise(()=>{})}})}};
+try{
+ await assert.rejects(Promise.race([streamContext.readResponseText(stuckCleanup,3),new Promise((_,reject)=>{cleanupTimer=setTimeout(()=>reject(new Error('healthcheck cleanup blocked')),100)})]),/exceeds 3 bytes/);
+ assert.equal(cancellationCalls,1,'healthcheck requests cancellation once without waiting for cleanup');
+}finally{clearTimeout(cleanupTimer)}
+const rejectedCleanup={body:{getReader:()=>({read:async()=>{throw new Error('original read failure')},cancel:async()=>{throw new Error('cleanup failure')}})}};
+await assert.rejects(streamContext.readResponseText(rejectedCleanup,3),/original read failure/);
 const utf8={headers:{get:()=>null},body:makeStream([Buffer.from([0x41,0xc5]),Buffer.from([0xbe])])};
 assert.equal(await streamContext.readResponseText(utf8,3),'Až','UTF-8 sequences split across chunks should decode correctly');
 await assert.rejects(streamContext.readResponseText({body:null,text:async()=>''},3),/stream is unavailable/);

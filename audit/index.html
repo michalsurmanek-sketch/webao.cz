@@ -431,7 +431,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-11.155';
+ const ruleVersion='2026-11-11.156';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -627,10 +627,7 @@ async function fetchPageHtmlMetadata(url){
  if(!['http:','https:'].includes(target.protocol)||target.username||target.password)throw new Error('Čtečka odmítla neplatnou adresu stránky.');
  target.hash='';
  try{
-  const readerUrl=new URL('https://r.jina.ai/');
-  readerUrl.searchParams.set('url',target.href);
-  readerUrl.searchParams.set('respondWith','html');
-  const response=await fetchTimed(readerUrl.href,{headers:{Accept:'text/plain'}},20000);
+  const response=await fetchTimed('https://r.jina.ai/'+target.href,{headers:{Accept:'text/plain','X-Respond-With':'html'}},20000);
   const html=await readTimedTextResponse(response,2*1024*1024,20000);
   if(!response.ok)throw new Error('HTML zdroj stránky neodpověděl ('+response.status+').');
   assertReadableSource(html);

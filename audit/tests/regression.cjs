@@ -215,6 +215,13 @@ console.log('PASS: HTML metadata fetch/extraction is bounded, explicit, conflict
 const makeStream=(chunks,onCancel=()=>{})=>({getReader:()=>{let index=0;return{async read(){return index<chunks.length?{done:false,value:chunks[index++]}:{done:true}},async cancel(){onCancel()}}}});
 assert.equal(await c.readTimedTextResponse({body:makeStream([Buffer.from([0x41,0xc5]),Buffer.from([0xbe])])},3),'Až','UTF-8 sequences split across stream chunks should decode correctly');
 let oversizedStreamCancelled=false;await assert.rejects(c.readTimedTextResponse({body:makeStream([Buffer.from('ab'),Buffer.from('cd')],()=>{oversizedStreamCancelled=true})},3),/limit 3 bajtů/);assert(oversizedStreamCancelled,'oversized response stream must be cancelled immediately');
+let cancelRequested=false;
+const stuckCancel={body:{getReader:()=>({read:async()=>({done:false,value:Buffer.from('oversized')}),cancel(){cancelRequested=true;return new Promise(()=>{})}})}};
+let cancelTimer;
+try{
+ await assert.rejects(Promise.race([c.readTimedTextResponse(stuckCancel,3),new Promise((_,reject)=>{cancelTimer=setTimeout(()=>reject(new Error('cancellation blocked audit')),100)})]),/limit 3 bajtů/);
+ assert(cancelRequested,'oversized streams must request cancellation even when cleanup never settles');
+}finally{clearTimeout(cancelTimer)}
 await assert.rejects(c.readTimedTextResponse({body:null,text:async()=>'long response'},3),/limit 3 bajtů/,'fallback response readers must still reject oversized text');
 assert.throws(()=>c.assertPageSpeedResult({}));
 assert.throws(()=>c.assertPageSpeedResult({lighthouseResult:{runtimeError:{code:'ERRORED_DOCUMENT_REQUEST',message:'failed'}}}),/ERRORED_DOCUMENT_REQUEST/);

@@ -203,7 +203,7 @@ assert.deepEqual(Array.from(htmlMeta.canonical),['https://example.cz/a','https:/
 const metadataContext={URL,pageTextWasFetched:page=>page?.raw!==null&&page?.raw!==undefined,areaDefs:[['Technické SEO',20]]};vm.createContext(metadataContext);vm.runInContext(s.slice(s.indexOf('function extractHeadMetadata('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function htmlMetadataFindings('),s.indexOf('function pageInventoryState('))+s.slice(s.indexOf('function scoreAuditAreas('),s.indexOf('function renderReport(')),metadataContext);
 const metadataFindings=metadataContext.htmlMetadataFindings([{url:'https://example.cz/a',raw:'page',htmlMetadata:htmlMeta},{url:'https://example.cz/b',raw:'page',htmlMetadataError:'timeout'},{url:'https://example.cz/c',raw:null}]);
 assert.equal(metadataFindings[0].points,null);assert.equal(metadataFindings[0].coverageExcluded,true);assert.match(metadataFindings[0].detail,/1 z 2 načtených stránek/);assert.match(metadataFindings[0].detail,/správnost canonical cíle/);
-assert(metadataFindings.some(item=>item.name==='Více odlišných canonical deklarací — hypotéza'&&item.points===null&&item.coverageExcluded));assert(metadataFindings.some(item=>item.name==='Odlišné hreflang cíle pro stejný jazyk — hypotéza'&&item.points===null&&item.coverageExcluded));
+assert(metadataFindings.some(item=>item.name==='Více odlišných canonical deklarací — hypotéza'&&item.points===null&&item.coverageExcluded));assert(metadataFindings.some(item=>item.name==='Relativní metadata — základ nelze ověřit'&&item.points===null&&item.coverageExcluded));
 assert.equal(metadataContext.scoreAuditAreas(metadataFindings)[0].tests,0,'HTML metadata signals and hypotheses must stay outside the score');
 const equivalentTargets=metadataContext.htmlMetadataFindings([{url:'https://example.cz/page',raw:'page',htmlMetadata:{canonical:['/canonical','https://EXAMPLE.cz:443/canonical'],hreflang:[{lang:'cs',href:'/cs'},{lang:'CS',href:'https://EXAMPLE.cz:443/cs'}]}}]);
 assert(!equivalentTargets.some(item=>/Více odlišných canonical|Odlišné hreflang cíle/.test(item.name)),'relative and absolute links resolving to the same normalized target must not be reported as conflicts');
@@ -216,8 +216,13 @@ for(const baseHref of ['/localized/','https://cdn.example.cz/localized/']){
  assert(!findings.some(item=>item.state==='HYPOTÉZA'),'equivalent targets must respect base href');
  assert.equal(metadataContext.scoreAuditAreas(findings)[0].tests,0);
 }
-const distinctBaseTargets=metadataContext.htmlMetadataFindings([{url:'https://example.cz/page',raw:'page',htmlMetadata:{baseHref:'/localized/',canonical:['target','https://example.cz/other'],hreflang:[]}}]);
+const distinctBaseTargets=metadataContext.htmlMetadataFindings([{url:'https://example.cz/page',raw:'page',htmlMetadata:{baseHref:'https://example.cz/localized/',canonical:['target','https://example.cz/other'],hreflang:[]}}]);
 assert(distinctBaseTargets.some(item=>item.state==='HYPOTÉZA'),'genuinely different targets remain visible');
+const redirectUnknown=metadataContext.htmlMetadataFindings([{url:'https://example.cz/old/',raw:'page',htmlMetadata:{canonical:['target','https://example.cz/new/target'],hreflang:[{lang:'cs',href:'target'},{lang:'cs',href:'https://example.cz/new/target'}]}}]);
+assert(!redirectUnknown.some(item=>item.state==='HYPOTÉZA'),'unknown final URL must not create relative target conflicts');
+assert(redirectUnknown.some(item=>item.state==='NELZE OVĚŘIT'));
+assert.equal(metadataContext.scoreAuditAreas(redirectUnknown)[0].tests,0);
+
 
 assert(metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>Array.from({length:205},()=>metadataLinks[4])}}).truncated,'large HTML heads must disclose the metadata collection cap');
 c.fetchTimed=async()=>({ok:false,status:503,text:async()=>'unavailable'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/bad')),/HTML metadata stránky:.*503/);

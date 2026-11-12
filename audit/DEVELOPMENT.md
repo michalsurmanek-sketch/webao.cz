@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Canonical a hreflang relativní cíle se porovnávají vůči prvnímu base[href] v hlavičce, pokud je přítomný. Dříve ignorovaný základ mohl vyvolat falešný konflikt se stejným absolutním cílem.
-- Regrese ověřuje relativní i externí absolutní base, stejné cíle bez hypotézy a skutečně odlišné cíle s hypotézou. Signály zůstávají bez dopadu na skóre.
-- Ověření: regresní sada a git diff --check; CI PR zahrnuje produkční healthcheck a prohlížečové testy.
-- PR #9 a #10 jsou sloučené, jejich CI včetně prohlížečových scénářů prošlo. Ověřování reportu při výpadcích je dokončeno.
-- Další úkol: cílová URL po přesměrování není spolehlivě známá z HTML čtečky; ověřit zdroj této informace před vyhodnocením relativních cílů po redirectu.
+- Čtečka HTML nepotvrzuje konečnou adresu po přesměrování. Požadovaná URL proto už není automaticky považována za ověřený základ pro porovnávání relativních metadat.
+- Absolutní cíle se dál porovnávají; relativní cíle se porovnávají pouze s použitelným absolutním base[href]. Neznámé/relativní základy a neplatné cíle se vykazují jako neověřené bez bodového dopadu.
+- Regrese pokrývá falešný konflikt po možném redirectu, dostupný absolutní base i skutečně různé cíle.
+- Ověření: regresní sada, git diff --check a CI PR s prohlížečovými scénáři.
+- Další úkol: rozšířit prohlížečové testy metadat o reálný DOMParser a base elementy (dosavadní extrakční regrese používají zjednodušený DOM).

@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Čtečka HTML nepotvrzuje konečnou adresu po přesměrování. Požadovaná URL proto už není automaticky považována za ověřený základ pro porovnávání relativních metadat.
-- Absolutní cíle se dál porovnávají; relativní cíle se porovnávají pouze s použitelným absolutním base[href]. Neznámé/relativní základy a neplatné cíle se vykazují jako neověřené bez bodového dopadu.
-- Regrese pokrývá falešný konflikt po možném redirectu, dostupný absolutní base i skutečně různé cíle.
-- Ověření: regresní sada, git diff --check a CI PR s prohlížečovými scénáři.
-- Další úkol: rozšířit prohlížečové testy metadat o reálný DOMParser a base elementy (dosavadní extrakční regrese používají zjednodušený DOM).
+- Doplněn browser-metadata.cjs: skutečný DOMParser a produkční fetchPageHtmlMetadata s řízenými odpověďmi bez externích požadavků.
+- Pokryto první base[href], dekódování HTML entit, ekvivalentní canonical/hreflang, značky v body, neověřený relativní základ, skutečně odlišné absolutní cíle a neúplné odpovědi.
+- Všechny metadata signály musí zůstat mimo skóre. Test je součástí browser CI jobu.
+- Lokální ověření: syntaxe, regresní sada, git diff --check. Skutečný prohlížeč ověřuje CI, protože místní prostředí blokuje Chromium.
+- Další úkol: prověřit falešné značky head uvnitř komentářů a scriptů při kontrole úplnosti vstupu, kterou nyní provádí regulární výraz.

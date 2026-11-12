@@ -33,15 +33,24 @@ const { chromium } = require('playwright');
           busy: document.querySelector('#audit-form button[type="submit"]').hasAttribute('aria-busy'),
           text: document.querySelector('#result').textContent,
           score: window.currentAuditData.score,
+          coverage: window.currentAuditData.coverage,
+          scoredFindings: window.currentAuditData.findings.filter(item => Number.isFinite(item.points)).map(item => ({ name: item.name, points: item.points })),
           requests: window.fixtureRequests
         }));
         assert.equal(state.busy, false);
         assert.match(state.text, /Nelze ověřit|NELZE OVĚŘIT/);
         assert(!state.text.includes('Kontrolu se nepodařilo dokončit'));
-        assert.equal(state.score, null, 'unavailable sources must not create a score');
+        if (robotsAvailable) {
+          assert(state.scoredFindings.length > 0, 'available robots rules should remain measurable');
+          assert(state.scoredFindings.every(item => /robots/i.test(item.name)), JSON.stringify(state.scoredFindings));
+          assert(state.coverage < 100, 'outage report must show partial coverage');
+        } else {
+          assert.equal(state.score, null, 'unavailable sources must not create a score');
+          assert.equal(state.scoredFindings.length, 0);
+        }
         assert.deepEqual(errors, []);
         if (!robotsAvailable) assert(!state.requests.some(url => /pagespeedonline|respondWith|example.cz\/$/.test(url)), 'unknown robots policy must suppress page requests');
-        console.log(`PASS failure report: width=${width}, robotsAvailable=${robotsAvailable}, controls restored and score absent`);
+        console.log(`PASS failure report: width=${width}, robotsAvailable=${robotsAvailable}, controls restored and unavailable sources unscored`);
         await page.close();
       }
     }

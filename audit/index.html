@@ -1013,6 +1013,20 @@ function decodeSitemapLoc(value){
 function sitemapSourceWithoutComments(text){
  return String(text||'').replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<!--[\s\S]*?(?:-->|$)/g,part=>part.startsWith('<![CDATA[')?part:'');
 }
+function isSitemapDocument(value){
+ const original=String(value||'').trim();
+ const source=sitemapSourceWithoutComments(original);
+ if(/<(?:urlset|sitemapindex|loc)\b/i.test(source)){
+  // Reader envelopes are transport metadata, not part of the XML document.
+  let xml=original.replace(/^[\s\S]*?^Markdown Content:\s*\n/im,'').trim();
+  if(/^```(?:xml)?\s*\n/i.test(xml))xml=xml.replace(/^```(?:xml)?\s*\n/i,'').replace(/\n```\s*$/,'').trim();
+  try{
+   const parsed=new DOMParser().parseFromString(xml,'application/xml');
+   return !parsed.querySelector('parsererror')&&['urlset','sitemapindex'].includes(parsed.documentElement.localName);
+  }catch{return false}
+ }
+ return /^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source)&&sitemapUrlCandidates(source).length>0;
+}
 function sitemapUrlCandidates(text){
  const source=sitemapSourceWithoutComments(text),candidates=[],seen=new Set();
  const add=raw=>{const value=String(raw||'').trim();if(value&&!seen.has(value)){seen.add(value);candidates.push(value)}};
@@ -1201,11 +1215,6 @@ form.addEventListener('submit',async event=>{
   let sitemap=sitemapResult.status==='fulfilled'?sitemapResult.value:'';
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
   const robotsBlocksSite=rootBlockedByRobots;
-  const isSitemapDocument=value=>{
-    const source=sitemapSourceWithoutComments(value);
-    if(/<(?:urlset|sitemapindex|loc)\b/i.test(source))return true;
-    return /^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source)&&sitemapUrlCandidates(source).length>0;
-   };
   let sitemapKnown=sitemapResult.status==='fulfilled'&&isSitemapDocument(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;
   const rootSitemapUrl=new URL('/sitemap.xml',url.origin).href;

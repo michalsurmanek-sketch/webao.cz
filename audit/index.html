@@ -1206,9 +1206,11 @@ form.addEventListener('submit',async event=>{
   let sitemapKnown=sitemapResult.status==='fulfilled'&&isSitemapDocument(sitemap);
   let sitemapSource=new URL('/sitemap.xml',url.origin).href;
   const rootSitemapUrl=new URL('/sitemap.xml',url.origin).href;
-  const declaredSitemaps=[...new Set(getSitemapLocations(robots,url.hostname,url.protocol))].filter(raw=>{const target=new URL(raw);return raw!==rootSitemapUrl&&robotsCrawlAllowed(target.pathname+target.search)});
+  const allDeclaredSitemaps=[...new Set(getSitemapLocations(robots,url.hostname,url.protocol))].filter(raw=>raw!==rootSitemapUrl);
+  const declaredSitemaps=allDeclaredSitemaps.filter(raw=>{const target=new URL(raw);return robotsCrawlAllowed(target.pathname+target.search)});
   const rootUrl=url.origin+'/';
   const sitemapFailures=[],sitemapSkipped=[];
+  for(const raw of allDeclaredSitemaps){const target=new URL(raw);if(!robotsCrawlAllowed(target.pathname+target.search))sitemapSkipped.push({url:raw,reason:robotsSkipMessage});}
   if(!sitemapKnown){const rootSitemapError=sitemapResult.status!=='fulfilled'?(sitemapResult.reason&&sitemapResult.reason.message||'Sitemap se nepodařilo načíst.'):'Odpověď neobsahovala rozpoznatelnou sitemapu nebo čtečka vrátila chybu.';if(/^Sitemap vynechána/.test(rootSitemapError))sitemapSkipped.push({url:new URL('/sitemap.xml',url.origin).href,reason:rootSitemapError});else sitemapFailures.push({url:new URL('/sitemap.xml',url.origin).href,reason:rootSitemapError});}
   const sitemapTexts=[],sitemapSources=[];
   const attemptedSitemaps=new Set([rootSitemapUrl]);

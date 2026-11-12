@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Sitemap zakázaná robots.txt uvnitř indexu se nově zapisuje do sitemapSkipped. Stejně se evidují zakázané soubory ve zbytku fronty po vyčerpání rozpočtu.
-- Report obsahuje samostatnou skupinu s důvodem vynechání a CSV samostatný počet; nezaměňují se za chyby čtení ani vynechání rozpočtem. Duplicity se nezapočítávají vícekrát.
-- Chromium integrační scénář rozšířen o blokovaný soubor před i za hranicí rozpočtu a jejich duplicity; požaduje nulové požadavky na oba, dva záznamy v reportu i CSV, pět rozpočtových vynechání a jedinou skutečnou chybu čtení.
-- Ověření: syntaxe browser testu, regresní sada a git diff --check; nativní scénář spouští CI PR.
-- Další úkol: obdobně prověřit sitemap deklarace z robots.txt, které filtr vyřadí ještě před vložením do fronty.
+- Zakázané sitemap deklarace z robots.txt se před filtrováním povolených požadavků ukládají do evidence vynechaných souborů.
+- Integrační Chromium scénář obsahuje duplicitní zakázanou deklaraci dostupnou pouze z robots.txt a deklaraci současně uvedenou v indexu. Vyžaduje přesně tři unikátní vynechání v reportu/CSV a žádné požadavky na zakázané soubory.
+- Počty rozpočtových vynechání a skutečných chyb zůstávají oddělené. Povolené požadavky a skóre se nemění.
+- Ověření: syntaxe prohlížečového testu, regresní sada, git diff --check; integrační scénář provádí CI.
+- Další priorita: prověřit, že výpadek nebo neúplný sitemap index nevytváří falešné potvrzení úplnosti inventáře a že se rozpoznání XML neopírá o značky v komentářích.

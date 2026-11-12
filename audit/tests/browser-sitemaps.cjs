@@ -19,10 +19,10 @@ const { chromium } = require('playwright');
         const raw = String(input), prefix = 'https://r.jina.ai/https://example.cz';
         if (!raw.startsWith(prefix)) throw new TypeError('Fixture external outage');
         const pathname = new URL(raw.slice('https://r.jina.ai/'.length)).pathname;
-        if (pathname === '/robots.txt') return new Response('User-agent: *\nAllow: /\nDisallow: /blocked.xml');
+        if (pathname === '/robots.txt') return new Response('User-agent: *\nAllow: /\nDisallow: /blocked.xml\nDisallow: /blocked-late.xml');
         if (pathname.endsWith('.xml')) window.sitemapRequests.push(pathname);
         if (pathname === '/sitemap.xml') {
-          const entries = ['/sitemap.xml', '/blocked.xml', ...Array.from({ length: 12 }, (_, i) => '/child-' + i + '.xml'), '/child-11.xml'];
+          const entries = ['/sitemap.xml', '/blocked.xml', ...Array.from({ length: 12 }, (_, i) => '/child-' + i + '.xml'), '/child-11.xml', '/blocked-late.xml', '/blocked.xml', '/blocked-late.xml'];
           return new Response('<sitemapindex>' + entries.map(url => '<sitemap><loc>https://example.cz' + url + '</loc></sitemap>').join('') + '</sitemapindex>');
         }
         if (/^\/child-\d+\.xml$/.test(pathname)) {
@@ -47,6 +47,10 @@ const { chromium } = require('playwright');
     assert.equal(result.requests.length, 8, 'root plus seven child requests must exhaust the budget');
     assert.equal(new Set(result.requests).size, 8, 'cycles and duplicates must not waste requests');
     assert(!result.requests.includes('/blocked.xml'));
+    assert(!result.requests.includes('/blocked-late.xml'));
+    assert.deepEqual(result.meta.sitemapSkipped.map(item=>new URL(item.url).pathname).sort(), ['/blocked-late.xml','/blocked.xml']);
+    assert.match(result.csv, /sitemapy vynechané robots.txt: 2/);
+    assert.match(result.report, /Sitemapy vynechané kvůli robots.txt · 2/);
     assert.equal(result.meta.sitemapFiles, 7, 'one of eight requested files failed');
     assert.equal(result.meta.sitemapFailures.length, 1);
     assert.equal(result.meta.sitemapBudgetOmittedCount, 5);

@@ -76,6 +76,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Check rendered audit page and console errors
         run: node audit/tests/browser-smoke.cjs
+      - name: Check audit completion during external source failures
+        run: node audit/tests/browser-failures.cjs
       - name: Store browser screenshots and log
         if: always()
         uses: actions/upload-artifact@v4

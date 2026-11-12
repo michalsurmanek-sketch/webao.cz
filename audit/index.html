@@ -1009,8 +1009,8 @@ function decodeSitemapLoc(value){
  });
 }
 function sitemapUrlCandidates(text){
- const source=String(text||''),candidates=[];
- const add=raw=>{const value=String(raw||'').trim();if(value&&!candidates.includes(value))candidates.push(value)};
+ const source=String(text||''),candidates=[],seen=new Set();
+ const add=raw=>{const value=String(raw||'').trim();if(value&&!seen.has(value)){seen.add(value);candidates.push(value)}};
  // XML loc values are authoritative. Do not mix links from reader annotations into XML.
  for(const match of source.matchAll(/<loc\b[^>]*>\s*(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))\s*<\/loc\s*>/gi)){
   add(match[1]!==undefined?match[1]:decodeSitemapLoc(match[2]));
@@ -1042,13 +1042,13 @@ function getSitemapLocations(text,host,protocol='https:'){
  const sitemapIndex=/<sitemapindex\b/i.test(source);
  const declared=[...source.matchAll(/^\s*sitemap\s*:\s*(https?:\/\/[^\s<]+)/gim)].map(match=>match[1]);
  const candidates=sitemapIndex?sitemapUrlCandidates(source):declared.length?declared:sitemapUrlCandidates(source);
- const baseUrl=new URL(protocol+'//'+host+'/'),found=[];
+ const baseUrl=new URL(protocol+'//'+host+'/'),found=[],seen=new Set();
  for(const raw of candidates){
   const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;
   try{
    const u=new URL(normalized),sameHost=isSameSiteHost(u.hostname,host);
    const looksLikeSitemap=/\.xml(?:$|\?)/i.test(u.pathname+u.search);
-   if(sameHost&&(sitemapIndex||declared.includes(raw)||looksLikeSitemap)&&!found.includes(u.href))found.push(u.href);
+   if(sameHost&&(sitemapIndex||declared.includes(raw)||looksLikeSitemap)&&!seen.has(u.href)){seen.add(u.href);found.push(u.href);}
   }catch{}
  }
  return found;
@@ -1059,8 +1059,8 @@ function getSitemapUrls(text,host,protocol='https:'){
  const candidates=sitemapUrlCandidates(source);
  const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source);
  if(readerSitemap&&candidates.length&&candidates.every(raw=>{try{return /\.xml(?:$|\?)/i.test(new URL(raw).pathname+new URL(raw).search)}catch{return false}}))return[];
- const baseUrl=new URL(protocol+'//'+host+'/'),found=[];
- for(const raw of candidates){const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;try{const u=new URL(normalized);if(isSameSiteHost(u.hostname,host)&&!found.includes(u.href))found.push(u.href)}catch{}}
+ const baseUrl=new URL(protocol+'//'+host+'/'),found=[],seen=new Set();
+ for(const raw of candidates){const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;try{const u=new URL(normalized);if(isSameSiteHost(u.hostname,host)&&!seen.has(u.href)){seen.add(u.href);found.push(u.href);}}catch{}}
  return found;
 }
 function extractPublicContacts(pages){

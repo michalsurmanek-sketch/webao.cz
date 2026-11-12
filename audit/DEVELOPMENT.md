@@ -8,8 +8,9 @@
 
 ## Poslední změna — 2026-11-12
 
-- Evidence HTML metadat má nejvýše 10 ukázek po 160 znacích s výslovným označením zkrácení a počtem položek. Platí pro souhrn, canonical/hreflang konflikty i neověřené cíle.
-- Úplné hodnoty se zachovávají při porovnávání a ve zpracovaných metadatech; zkrácení zobrazení neslučuje cíle a nemění skóre.
-- Regrese s 200 dlouhými cíli potvrzuje oba konflikty a evidence pod 2000 znaků na nález. Pokryt i výpis neověřených cílů.
-- Ověření: regresní sada a git diff --check; CI ověřuje produkční dostupnost i prohlížečové scénáře.
-- Další úkol: prověřit limity inventáře URL a evidence u velkých sitemap; zkrácení musí být odlišeno od úplného pokrytí webu.
+- Odstraněno opakované lineární hledání duplicit v extrakci kandidátů sitemap a normalizovaných URL/indexů; množiny Set zachovávají pořadí prvního výskytu.
+- Regrese: 15 000 unikátních URL s duplicitami a 2 000 sitemap indexů s duplicitami, bez ztráty adres a změny pořadí.
+- Orientační místní měření stejného XML (588 907 bajtů, 15 000 URL): před změnou 2 105 ms, po změně 96 ms. Nejde o garantované časy v prohlížeči.
+- Limity počtu auditovaných stránek a požadavků se nemění; inventář se nezkracuje a skórování není dotčeno.
+- Ověření: regresní sada a git diff --check; CI ověřuje browser scénáře a produkční dostupnost.
+- Další úkol: explicitně vykázat sitemap soubory vynechané kvůli limitu požadavků, odlišit je od chyb načítání.

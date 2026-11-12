@@ -175,6 +175,11 @@ assert.equal(context.decodeSitemapLoc('&#x110000; &#xD800;'),'&#x110000; &#xD800
 assert.deepEqual(urls('<urlset><loc>https://outside.cz/a</loc><loc>https://example.cz/a</loc><loc>https://example.cz/a</loc></urlset>'),['https://example.cz/a']);
 assert.deepEqual(Array.from(context.getSitemapLocations('<sitemapindex><sitemap><loc>https://example.cz/sitemap.xml?a=1&amp;b=2</loc></sitemap></sitemapindex>','example.cz')),['https://example.cz/sitemap.xml?a=1&b=2']);
 assert.deepEqual(urls('[Page](https://example.cz/markdown)'),['https://example.cz/markdown']);
+const manyUrls=Array.from({length:15000},(_,i)=>'https://example.cz/page/'+i);
+const largeXml='<urlset>'+[...manyUrls,...manyUrls.slice(0,200)].map(url=>'<loc>'+url+'</loc>').join('')+'</urlset>';
+assert.deepEqual(urls(largeXml),manyUrls,'large sitemap deduplication must preserve every distinct URL and source order');
+const indexUrls=manyUrls.slice(0,2000).map(url=>url+'.xml');
+assert.deepEqual(Array.from(context.getSitemapLocations('<sitemapindex>'+[...indexUrls,...indexUrls.slice(0,100)].map(url=>'<loc>'+url+'</loc>').join('')+'</sitemapindex>','example.cz')),indexUrls,'sitemap index deduplication must preserve discovery order');
 console.log('PASS: JavaScript syntax and 9 sitemap regression cases');
 for(const candidate of ['ftp://example.cz/a','https://user:password@example.cz/a','https://example.cz:8443/a'])assert.equal(context.normalizeCrawlUrl(candidate,new URL('https://example.cz/')),'');
 console.log('PASS: 3 unsupported crawl URL cases');

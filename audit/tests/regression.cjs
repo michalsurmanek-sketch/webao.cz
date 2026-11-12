@@ -185,6 +185,11 @@ assert.deepEqual(Array.from(remainder),['https://example.cz/b.xml'],'budget omis
 assert.deepEqual(Array.from(context.sitemapBudgetRemainder([],new Set(),()=>true)),[]);
 assert.match(script,/sitemapBudgetOmittedCount:sitemapBudgetOmitted.length/);
 assert.match(script,/Sitemapy nevyžádané kvůli limitu požadavků/);
+assert.deepEqual(urls('<urlset><!-- <loc>https://example.cz/fake</loc> --><loc>https://example.cz/real</loc></urlset>'),['https://example.cz/real']);
+assert.deepEqual(Array.from(context.getSitemapLocations('<!-- <urlset><loc>https://example.cz/fake.xml</loc></urlset> --><sitemapindex><loc>https://example.cz/real.xml</loc></sitemapindex>','example.cz')),['https://example.cz/real.xml']);
+assert.deepEqual(urls('<!-- <urlset><loc>https://example.cz/fake</loc></urlset> -->'),[]);
+assert.deepEqual(urls('<urlset><loc>https://example.cz/real</loc><!-- <loc>https://example.cz/fake</loc>'),['https://example.cz/real']);
+assert.deepEqual(Array.from(context.sitemapUrlCandidates('<urlset><loc><![CDATA[https://example.cz/a?literal=<!--text-->]]></loc></urlset>')),['https://example.cz/a?literal=<!--text-->'],'CDATA content must not be stripped as a comment');
 console.log('PASS: JavaScript syntax and 9 sitemap regression cases');
 for(const candidate of ['ftp://example.cz/a','https://user:password@example.cz/a','https://example.cz:8443/a'])assert.equal(context.normalizeCrawlUrl(candidate,new URL('https://example.cz/')),'');
 console.log('PASS: 3 unsupported crawl URL cases');

@@ -1010,8 +1010,11 @@ function decodeSitemapLoc(value){
   return code>0&&code<=0x10ffff&&!(code>=0xd800&&code<=0xdfff)?String.fromCodePoint(code):entity;
  });
 }
+function sitemapSourceWithoutComments(text){
+ return String(text||'').replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<!--[\s\S]*?(?:-->|$)/g,part=>part.startsWith('<![CDATA[')?part:'');
+}
 function sitemapUrlCandidates(text){
- const source=String(text||''),candidates=[],seen=new Set();
+ const source=sitemapSourceWithoutComments(text),candidates=[],seen=new Set();
  const add=raw=>{const value=String(raw||'').trim();if(value&&!seen.has(value)){seen.add(value);candidates.push(value)}};
  // XML loc values are authoritative. Do not mix links from reader annotations into XML.
  for(const match of source.matchAll(/<loc\b[^>]*>\s*(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))\s*<\/loc\s*>/gi)){
@@ -1039,7 +1042,7 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots,allowsPath=robotsAllo
  return [...found.values()];
 }
 function getSitemapLocations(text,host,protocol='https:'){
- const source=String(text||'');
+ const source=sitemapSourceWithoutComments(text);
  if(/<urlset\b/i.test(source))return[];
  const sitemapIndex=/<sitemapindex\b/i.test(source);
  const declared=[...source.matchAll(/^\s*sitemap\s*:\s*(https?:\/\/[^\s<]+)/gim)].map(match=>match[1]);
@@ -1056,7 +1059,7 @@ function getSitemapLocations(text,host,protocol='https:'){
  return found;
 }
 function getSitemapUrls(text,host,protocol='https:'){
- const source=String(text||'');
+ const source=sitemapSourceWithoutComments(text);
  if(/<sitemapindex\b/i.test(source))return[];
  const candidates=sitemapUrlCandidates(source);
  const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source);
@@ -1199,7 +1202,7 @@ form.addEventListener('submit',async event=>{
   const robotsRules=robotsKnown&&/user-agent\s*:/i.test(robots);
   const robotsBlocksSite=rootBlockedByRobots;
   const isSitemapDocument=value=>{
-    const source=String(value||'');
+    const source=sitemapSourceWithoutComments(value);
     if(/<(?:urlset|sitemapindex|loc)\b/i.test(source))return true;
     return /^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source)&&sitemapUrlCandidates(source).length>0;
    };

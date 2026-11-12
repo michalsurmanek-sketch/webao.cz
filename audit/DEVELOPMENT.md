@@ -8,7 +8,7 @@
 
 ## Poslední změna — 2026-11-12
 
-- Textové URL se extrahují jen za Markdown Content, pokud je přítomna čtečková obálka. URL Source již nemůže potvrdit prázdnou sitemapu ani se přidat mezi stránky nebo indexy.
-- Chromium pokrývá prázdnou obálku, skutečnou stránku a skutečný child index s ignorováním adresy zdroje.
-- Ověření: místní regrese, syntaxe, diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit falešné XML značky v čtečkových anotacích před Markdown Content.
+- Sdílené oddělení Markdown Content se používá před detekcí typu sitemap, validací i XML/textovou extrakcí. Falešný sitemapindex/loc v anotaci již nemůže změnit typ dokumentu ani vyřadit použitelný textový obsah.
+- Chromium pokrývá anotaci s falešným indexem před textovou i XML sitemapou, zachování skutečné URL a prázdnou frontu indexů.
+- Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
+- Další priorita: přidat měření výkonu velkých sitemap v nativním browser parseru a stanovit ověřitelné limity odezvy.

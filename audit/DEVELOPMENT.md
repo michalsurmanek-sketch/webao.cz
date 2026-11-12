@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Falešné head značky v komentářích, obsahu script/style/title/textarea/noscript, template a citovaných atributech už nepotvrzují úplnost hlavičky.
-- Přidán konzervativní průchod zdrojovými značkami; skutečnou extrakci dál provádí DOMParser. Nejde o obecný validátor HTML.
-- Regrese pokrývá falešné uzavření v neúplných zdrojích i platnou hlavičku obsahující zavádějící text. Nativní browser test odmítá stejné neúplné zdroje.
-- Ověření: regresní sada, syntaxe browser testu a git diff --check; CI PR ověřuje skutečný Chromium parser.
-- Další priorita: prověřit omezení počtu nálezů a velikosti evidence u velmi rozsáhlých sitemap a metadat, aby report zůstal použitelný.
+- Evidence HTML metadat má nejvýše 10 ukázek po 160 znacích s výslovným označením zkrácení a počtem položek. Platí pro souhrn, canonical/hreflang konflikty i neověřené cíle.
+- Úplné hodnoty se zachovávají při porovnávání a ve zpracovaných metadatech; zkrácení zobrazení neslučuje cíle a nemění skóre.
+- Regrese s 200 dlouhými cíli potvrzuje oba konflikty a evidence pod 2000 znaků na nález. Pokryt i výpis neověřených cílů.
+- Ověření: regresní sada a git diff --check; CI ověřuje produkční dostupnost i prohlížečové scénáře.
+- Další úkol: prověřit limity inventáře URL a evidence u velkých sitemap; zkrácení musí být odlišeno od úplného pokrytí webu.

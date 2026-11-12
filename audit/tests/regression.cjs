@@ -222,6 +222,14 @@ const redirectUnknown=metadataContext.htmlMetadataFindings([{url:'https://exampl
 assert(!redirectUnknown.some(item=>item.state==='HYPOTÉZA'),'unknown final URL must not create relative target conflicts');
 assert(redirectUnknown.some(item=>item.state==='NELZE OVĚŘIT'));
 assert.equal(metadataContext.scoreAuditAreas(redirectUnknown)[0].tests,0);
+const longTargets=Array.from({length:200},(_,i)=>'https://example.cz/?value='+'x'.repeat(8000)+i);
+const largeMetadata=metadataContext.htmlMetadataFindings([{url:'https://example.cz/',raw:'page',htmlMetadata:{canonical:longTargets,hreflang:longTargets.map(href=>({lang:'cs',href}))}}]);
+assert(largeMetadata.filter(item=>item.state==='HYPOTÉZA').length===2,'full target identities must still detect both conflicts');
+for(const item of largeMetadata){assert(item.evidence.length<2000,'metadata evidence must stay bounded');assert.match(item.evidence,/Ukázka zkrácena/);}
+assert.equal(metadataContext.scoreAuditAreas(largeMetadata)[0].tests,0);
+const unresolvedLarge=metadataContext.htmlMetadataFindings([{url:'https://example.cz/',raw:'page',htmlMetadata:{canonical:longTargets.map(href=>'/relative/'+href),hreflang:[]}}]);
+assert(unresolvedLarge.every(item=>item.evidence.length<2000));
+
 
 
 assert(metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>Array.from({length:205},()=>metadataLinks[4])}}).truncated,'large HTML heads must disclose the metadata collection cap');

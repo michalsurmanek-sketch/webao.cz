@@ -8,7 +8,7 @@
 
 ## Poslední změna — 2026-11-12
 
-- Rozpoznávání sitemap, typ index/urlset a extrakce loc podporují XML namespace prefixy. Platná prefixed sitemap dříve nebyla rozpoznána nebo se URL načítaly náhradním textovým regexem bez dekódování entit.
-- Chromium integrační fixture používá prefixované child sitemapy s amp entitou; kontroluje zachování počtu URL. Parser nadále odmítá neúplné XML.
-- Ověření: místní regresní sada, syntaxe testu, diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: omezit extrakci loc na přímé položky sitemap, aby se URL rozšíření (např. obrázků) nezaměňovaly za stránky.
+- V prohlížeči extrakce používá XML DOM a pouze přímé položky url/sitemap a jejich loc ve stejném namespace jako kořen. Obrázkové a další rozšiřující loc se nezařazují mezi stránky ani do fronty sitemap.
+- Chromium kontroluje vnořené i přímé image:loc, zachování XML entit a počty v celém auditu s obrázky v každé child sitemapě.
+- Ověření: místní regresní sada, syntaxe a diff kontrola; nativní parser a produkční kontroly v CI. Node bez DOMParser ponechává dosavadní pomocnou extrakci, produkční prohlížeč používá DOM.
+- Další priorita: sjednotit parsování XML mezi validací a extrakcí, aby se velké dokumenty neparsovaly opakovaně.

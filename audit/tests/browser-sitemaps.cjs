@@ -13,6 +13,8 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const extensionUrls=await page.evaluate(()=>getSitemapUrls('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><url><loc>https://example.cz/page?a=1&amp;b=2</loc><image:image><image:loc>https://example.cz/image.jpg</image:loc></image:image><image:loc>https://example.cz/direct-image.jpg</image:loc></url></urlset>','example.cz'));
+    assert.deepEqual(extensionUrls,['https://example.cz/page?a=1&b=2']);
     const recognition = await page.evaluate(() => {
       const valid='<urlset><url><loc>https://example.cz/page</loc></url></urlset>';
       return {
@@ -44,7 +46,7 @@ const { chromium } = require('playwright');
         }
         if (/^\/child-\d+\.xml$/.test(pathname)) {
           if (pathname === '/child-0.xml') return new Response('<urlset><url><loc>https://example.cz/truncated-page</loc></url>');
-          return new Response('<s:urlset xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9"><s:url><s:loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '?a=1&amp;b=2</s:loc></s:url></s:urlset>');
+          return new Response('<s:urlset xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9"><s:url><s:loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '?a=1&amp;b=2</s:loc><image:image xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><image:loc>https://example.cz/image.jpg</image:loc></image:image></s:url></s:urlset>');
         }
         throw new TypeError('Fixture page unavailable');
       };

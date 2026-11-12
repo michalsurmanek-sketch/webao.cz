@@ -8,7 +8,7 @@
 
 ## Poslední změna — 2026-11-12
 
-- V prohlížeči extrakce používá XML DOM a pouze přímé položky url/sitemap a jejich loc ve stejném namespace jako kořen. Obrázkové a další rozšiřující loc se nezařazují mezi stránky ani do fronty sitemap.
-- Chromium kontroluje vnořené i přímé image:loc, zachování XML entit a počty v celém auditu s obrázky v každé child sitemapě.
-- Ověření: místní regresní sada, syntaxe a diff kontrola; nativní parser a produkční kontroly v CI. Node bez DOMParser ponechává dosavadní pomocnou extrakci, produkční prohlížeč používá DOM.
-- Další priorita: sjednotit parsování XML mezi validací a extrakcí, aby se velké dokumenty neparsovaly opakovaně.
+- Validace a extrakce XML používají společný parser s omezenou cache posledního dokumentu. Opakované čtení stejného zdroje znovu nespouští DOMParser; paměť uchovává nejvýše jeden pár zdroj/dokument, včetně neplatného výsledku.
+- Chromium měří počet volání parseru při validaci a dvou extrakcích: očekává právě jedno. Stávající scénáře nadále ověřují neúplné XML, namespace, entity a ignorování obrázků.
+- Ověření: místní regrese, syntaxe testu, diff kontrola; nativní Chromium a produkční kontroly v CI.
+- Další priorita: prověřit, zda čtečkové textové sitemapy nesměšují anotace čtečky s vlastními URL.

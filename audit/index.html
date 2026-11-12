@@ -1013,17 +1013,24 @@ function decodeSitemapLoc(value){
 function sitemapSourceWithoutComments(text){
  return String(text||'').replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<!--[\s\S]*?(?:-->|$)/g,part=>part.startsWith('<![CDATA[')?part:'');
 }
+let lastSitemapXmlSource=null,lastSitemapXmlDocument=null;
+function parseSitemapXml(value){
+ const original=String(value||'').trim();
+ if(original===lastSitemapXmlSource)return lastSitemapXmlDocument;
+ let xml=original.replace(/^[\s\S]*?^Markdown Content:\s*\n/im,'').trim();
+ if(/^```(?:xml)?\s*\n/i.test(xml))xml=xml.replace(/^```(?:xml)?\s*\n/i,'').replace(/\n```\s*$/,'').trim();
+ let parsed=null;
+ try{const doc=new DOMParser().parseFromString(xml,'application/xml');if(!doc.querySelector('parsererror'))parsed=doc;}catch{}
+ // Keep at most one source/document pair; never retain an unbounded audit history.
+ lastSitemapXmlSource=original;lastSitemapXmlDocument=parsed;
+ return parsed;
+}
 function isSitemapDocument(value){
  const original=String(value||'').trim();
  const source=sitemapSourceWithoutComments(original);
  if(/<(?:[A-Za-z_][\w.-]*:)?(?:urlset|sitemapindex|loc)\b/i.test(source)){
-  // Reader envelopes are transport metadata, not part of the XML document.
-  let xml=original.replace(/^[\s\S]*?^Markdown Content:\s*\n/im,'').trim();
-  if(/^```(?:xml)?\s*\n/i.test(xml))xml=xml.replace(/^```(?:xml)?\s*\n/i,'').replace(/\n```\s*$/,'').trim();
-  try{
-   const parsed=new DOMParser().parseFromString(xml,'application/xml');
-   return !parsed.querySelector('parsererror')&&['urlset','sitemapindex'].includes(parsed.documentElement.localName);
-  }catch{return false}
+  const parsed=parseSitemapXml(original);
+  return Boolean(parsed&&['urlset','sitemapindex'].includes(parsed.documentElement.localName));
  }
  return /^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source)&&sitemapUrlCandidates(source).length>0;
 }
@@ -1033,11 +1040,9 @@ function sitemapUrlCandidates(text){
  // In browsers, read only direct sitemap entries in the root namespace.
  // Extension loc elements (image/video/etc.) are not page URLs.
  if(typeof DOMParser!=='undefined'&&/<(?:[A-Za-z_][\w.-]*:)?(?:urlset|sitemapindex)\b/i.test(source)){
-  let xml=String(text||'').replace(/^[\s\S]*?^Markdown Content:\s*\n/im,'').trim();
-  if(/^```(?:xml)?\s*\n/i.test(xml))xml=xml.replace(/^```(?:xml)?\s*\n/i,'').replace(/\n```\s*$/,'').trim();
   try{
-   const doc=new DOMParser().parseFromString(xml,'application/xml'),root=doc.documentElement;
-   if(doc.querySelector('parsererror'))return [];
+   const doc=parseSitemapXml(text);if(!doc)return [];
+   const root=doc.documentElement;
    const entryName=root.localName==='urlset'?'url':root.localName==='sitemapindex'?'sitemap':'';
    if(!entryName)return [];
    for(const entry of root.children){

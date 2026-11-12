@@ -2,15 +2,14 @@
 
 ## Priority a kritéria dokončení
 
-1. Spolehlivost zdrojů: každá chyba čtení nebo neúplná odpověď skončí jako neověřená; nesmí blokovat dokončení auditu ani penalizovat skóre. Frontendová čtečka i healthcheck mají neblokující zrušení přenosu. Další úkol: ověřit dokončení reportu při výpadcích zdrojů v prohlížeči.
+1. Spolehlivost zdrojů: každá chyba čtení nebo neúplná odpověď skončí jako neověřená; nesmí blokovat dokončení auditu ani penalizovat skóre. Frontendová čtečka i healthcheck mají neblokující zrušení přenosu. Report při výpadcích ověřen CI PR #9.
 2. Ověření celého běhu v prohlížeči: audit s dostupnými i nedostupnými externími zdroji dokončí report a obnoví tlačítko; potvrdit mobilní zobrazení.
 3. HTML metadata: regresní případy pro neúplnou hlavičku a přesměrování; neověřená metadata bez bodového dopadu.
 
 ## Poslední změna — 2026-11-12
 
-- PR #9 byl sloučen po úspěšném CI běhu 43143912520: regrese, produkční healthcheck, prohlížečový smoke a desktopové/mobilní scénáře výpadků.
-- HTML metadata nově vyžadují explicitně otevřenou a uzavřenou hlavičku. Samotný doctype, HTML fragment nebo nedokončená hlavička neprokazují úplnost; výsledek je neověřený bez vlivu na skóre.
-- Konzervativní omezení: dokument s volitelně vynechanými značkami head může být platný HTML, ale tato čtečka jeho úplnost nepotvrdí, proto jej nehodnotí.
-- Regresní scénáře: doctype bez hlavičky, useknutá hlavička s canonical, body fragment; existující úplný dokument zůstává podporován.
-- Ověření: regresní sada a git diff --check; prohlížečové scénáře ověřuje CI PR.
-- Další priorita: ověřit relativní metadata při přesměrování a použití base href; nepředpokládat, že požadovaná URL je vždy základ výsledného dokumentu.
+- Canonical a hreflang relativní cíle se porovnávají vůči prvnímu base[href] v hlavičce, pokud je přítomný. Dříve ignorovaný základ mohl vyvolat falešný konflikt se stejným absolutním cílem.
+- Regrese ověřuje relativní i externí absolutní base, stejné cíle bez hypotézy a skutečně odlišné cíle s hypotézou. Signály zůstávají bez dopadu na skóre.
+- Ověření: regresní sada a git diff --check; CI PR zahrnuje produkční healthcheck a prohlížečové testy.
+- PR #9 a #10 jsou sloučené, jejich CI včetně prohlížečových scénářů prošlo. Ověřování reportu při výpadcích je dokončeno.
+- Další úkol: cílová URL po přesměrování není spolehlivě známá z HTML čtečky; ověřit zdroj této informace před vyhodnocením relativních cílů po redirectu.

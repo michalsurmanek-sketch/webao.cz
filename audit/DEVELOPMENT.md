@@ -20,3 +20,9 @@
 - PR #9 dosud neměl žádný běh spuštěný událostí pull_request. Workflow podporovalo pouze push, plán a ruční spuštění.
 - Doplněn pull_request trigger pro audit/assets/workflow a povolen browser job i pro tuto událost. Prohlížečové ověření zůstává podmínkou sloučení.
 - CLI nemá přihlášení a GitHub konektor neposkytuje workflow_dispatch; automatické spuštění událostí PR je proto důležité pro další ověřování.
+
+### Výsledek prvního prohlížečového běhu
+
+- CI úspěšně spustilo Chromium a produkční smoke test. Nový scénář selhal na nesprávném očekávání prázdného skóre při dostupném robots.txt.
+- Test nyní vyžaduje, aby při částečném výpadku pocházely všechny bodované nálezy pouze z dostupného robots.txt a pokrytí bylo menší než 100 %. Při výpadku všech zdrojů dál vyžaduje nulový počet bodovaných nálezů a score=null.
+- Sloučení stále čeká na úspěšné prohlížečové ověření aktualizované verze.

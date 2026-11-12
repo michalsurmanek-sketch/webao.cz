@@ -85,6 +85,8 @@ jobs:
         run: node audit/tests/browser-failures.cjs
       - name: Check HTML metadata with native DOMParser
         run: node audit/tests/browser-metadata.cjs
+      - name: Check sitemap budget and CSV integration
+        run: node audit/tests/browser-sitemaps.cjs
       - name: Store browser screenshots and log
         if: always()
         uses: actions/upload-artifact@v4

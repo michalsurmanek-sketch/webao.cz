@@ -8,9 +8,7 @@
 
 ## Poslední změna — 2026-11-12
 
-- Po vyčerpání rozpočtu sitemap se vykazuje počet unikátních dosud nevyžádaných, robots-povolených souborů a nejvýše 100 příkladů.
-- Report i CSV odlišují tento stav od chyb načítání a od limitu auditovaných stránek. Poznámka vysvětluje, že URL z nevyžádaných sitemap nejsou v inventáři.
-- Testováno odstranění duplicit, již vyžádaných souborů, neplatných adres a robots-zakázaných cest; prázdná fronta nevytváří vynechání.
-- Rozpočet požadavků ani skóre se nemění.
-- Ověření: regresní sada a git diff --check; CI ověřuje prohlížečové scénáře a produkční dostupnost.
-- Další úkol: prohlížečový integrační scénář rozsáhlého sitemap indexu, který vyčerpá rozpočet a ověří počty i export.
+- Přidán browser-sitemaps.cjs: celý formulář s řízeným indexem 12 podřízených sitemap, cyklem na kořen, duplicitou, robots-zakázaným souborem a jedním výpadkem.
+- Ověřuje rozpočet osmi požadavků, sedm načtených souborů, jednu chybu, pět nevyžádaných souborů a šest objevených URL. Kontroluje shodu počtu v reportu i skutečně vytvořeném CSV blobu.
+- Test zapojen do browser CI jobu; lokální syntaxe, regrese a diff check procházejí. Provedení skutečného Chromium testu ověřuje CI.
+- Další priorita: sledovat případná selhání nového integračního scénáře a potom prověřit klasifikaci sitemap blokovaných robots.txt uvnitř indexů.

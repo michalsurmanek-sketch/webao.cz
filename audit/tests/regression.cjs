@@ -208,6 +208,17 @@ assert.equal(metadataContext.scoreAuditAreas(metadataFindings)[0].tests,0,'HTML 
 const equivalentTargets=metadataContext.htmlMetadataFindings([{url:'https://example.cz/page',raw:'page',htmlMetadata:{canonical:['/canonical','https://EXAMPLE.cz:443/canonical'],hreflang:[{lang:'cs',href:'/cs'},{lang:'CS',href:'https://EXAMPLE.cz:443/cs'}]}}]);
 assert(!equivalentTargets.some(item=>/Více odlišných canonical|Odlišné hreflang cíle/.test(item.name)),'relative and absolute links resolving to the same normalized target must not be reported as conflicts');
 assert.equal(metadataContext.scoreAuditAreas(equivalentTargets)[0].tests,0,'normalized metadata signals must remain excluded from score');
+const extractedBase=metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>[],querySelector:selector=>{assert.equal(selector,'base[href]');return{getAttribute:()=>'/localized/'}}}});
+assert.equal(extractedBase.baseHref,'/localized/');
+for(const baseHref of ['/localized/','https://cdn.example.cz/localized/']){
+ const destination=new URL('target',new URL(baseHref,'https://example.cz/page')).href;
+ const findings=metadataContext.htmlMetadataFindings([{url:'https://example.cz/page',raw:'page',htmlMetadata:{baseHref,canonical:['target',destination],hreflang:[{lang:'cs',href:'target'},{lang:'CS',href:destination}]}}]);
+ assert(!findings.some(item=>item.state==='HYPOTÉZA'),'equivalent targets must respect base href');
+ assert.equal(metadataContext.scoreAuditAreas(findings)[0].tests,0);
+}
+const distinctBaseTargets=metadataContext.htmlMetadataFindings([{url:'https://example.cz/page',raw:'page',htmlMetadata:{baseHref:'/localized/',canonical:['target','https://example.cz/other'],hreflang:[]}}]);
+assert(distinctBaseTargets.some(item=>item.state==='HYPOTÉZA'),'genuinely different targets remain visible');
+
 assert(metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>Array.from({length:205},()=>metadataLinks[4])}}).truncated,'large HTML heads must disclose the metadata collection cap');
 c.fetchTimed=async()=>({ok:false,status:503,text:async()=>'unavailable'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/bad')),/HTML metadata stránky:.*503/);
 c.fetchTimed=async()=>({ok:true,status:200,text:async()=>'Warning: Target URL returned error 404: Not found'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/not-found')),/HTML metadata stránky:.*404/);

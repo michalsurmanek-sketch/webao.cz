@@ -647,7 +647,8 @@ function extractHeadMetadata(document){
   const rel=(link.getAttribute('rel')||'').toLowerCase().split(/\s+/);
   return rel.includes('alternate')&&!!(link.getAttribute('hreflang')||'').trim();
  }).map(link=>({lang:(link.getAttribute('hreflang')||'').trim(),href:(link.getAttribute('href')||'').trim()}));
- return{canonical,hreflang,truncated:allLinks.length>links.length};
+ const baseElement=typeof document.head.querySelector==='function'?document.head.querySelector('base[href]'):null;
+ return{canonical,hreflang,baseHref:baseElement?baseElement.getAttribute('href'):null,truncated:allLinks.length>links.length};
 }
 function htmlMetadataFindings(pages){
  const readable=pages.filter(pageTextWasFetched),inspected=readable.filter(page=>page.htmlMetadata),failed=readable.filter(page=>!page.htmlMetadata);
@@ -662,11 +663,13 @@ function htmlMetadataFindings(pages){
  const findings=[{area:'Technické SEO',name:'Canonical a hreflang — signály z HTML vzorku',url:'',points:null,state:inspected.length?'SIGNÁL':'NELZE OVĚŘIT',severity:'Informační',coverageExcluded:true,detail:inspected.length?'HTML hlavička byla rozpoznána u '+inspected.length+' z '+readable.length+' načtených stránek. Canonical byl deklarován na '+canonicalPages.length+' stránkách a hreflang na '+hreflangPages.length+'. '+(failed.length?'U '+failed.length+' stránek se HTML nepodařilo ověřit. ':'')+'Jde pouze o výskyt veřejných deklarací: absence canonical není automaticky chyba, správnost canonical cíle ani jazykových variant se neposuzuje.':'HTML hlavičku nebylo možné získat u žádné z '+readable.length+' načtených stránek. Canonical a hreflang proto nelze ověřit; chybějící výstup není důkazem chybějících značek.',evidence:examples.join(' | ')||'Ve zkoumaném HTML vzorku nebyly rozpoznány žádné canonical ani hreflang deklarace.'+(failed.length?' · Selhalo HTML načtení '+failed.length+' z '+readable.length+' stránek.':''),confidence:inspected.length?'Vysoká pouze pro rozpoznané značky v načtených HTML hlavičkách; nejde o ověření SEO správnosti.':'Nelze určit bez načteného HTML.'}];
  const targetIdentity=(href,pageUrl)=>{try{return new URL(href,pageUrl).href;}catch{return href.trim();}};
  for(const page of inspected){
-  const canonicalTargets=new Set(page.htmlMetadata.canonical.map(href=>targetIdentity(href,page.url)));
+  let metadataBase=page.url;
+  if(page.htmlMetadata.baseHref!==null&&page.htmlMetadata.baseHref!==undefined){try{metadataBase=new URL(page.htmlMetadata.baseHref,page.url).href;}catch{}}
+  const canonicalTargets=new Set(page.htmlMetadata.canonical.map(href=>targetIdentity(href,metadataBase)));
   const canonical=[...new Set(page.htmlMetadata.canonical)];
   if(canonicalTargets.size>1)findings.push({area:'Technické SEO',name:'Více odlišných canonical deklarací — hypotéza',url:page.url,points:null,state:'HYPOTÉZA',severity:'Informační',coverageExcluded:true,detail:'V HTML hlavičce byly rozpoznány různé canonical cíle po normalizaci URL. Může jít o konflikt, ale bez kontextu webu nelze určit zamýšlený kanonický cíl; nález nemění skóre.',evidence:canonical.join(' · '),action:'Ověřte všechny canonical deklarace v původním HTML a určete, zda stránka má mít právě jeden záměrný cíl.',confidence:'Střední — konfliktní cíle jsou ve vráceném HTML, jejich správnost vyžaduje kontext.'});
   const byLanguage=new Map();
-  for(const item of page.htmlMetadata.hreflang){const key=item.lang.toLowerCase();if(!byLanguage.has(key))byLanguage.set(key,{identities:new Set(),raw:new Map()});const group=byLanguage.get(key),identity=targetIdentity(item.href,page.url);group.identities.add(identity);if(!group.raw.has(identity))group.raw.set(identity,new Set());group.raw.get(identity).add(item.href);}
+  for(const item of page.htmlMetadata.hreflang){const key=item.lang.toLowerCase();if(!byLanguage.has(key))byLanguage.set(key,{identities:new Set(),raw:new Map()});const group=byLanguage.get(key),identity=targetIdentity(item.href,metadataBase);group.identities.add(identity);if(!group.raw.has(identity))group.raw.set(identity,new Set());group.raw.get(identity).add(item.href);}
   const conflicts=[...byLanguage].filter(([,group])=>group.identities.size>1).map(([lang,group])=>[lang,[...group.raw.values()].flatMap(values=>[...values])]);
   if(conflicts.length)findings.push({area:'Technické SEO',name:'Odlišné hreflang cíle pro stejný jazyk — hypotéza',url:page.url,points:null,state:'HYPOTÉZA',severity:'Informační',coverageExcluded:true,detail:'HTML obsahuje pro stejný jazyk více různých cílů i po normalizaci relativních a absolutních URL. Bez znalosti jazykových a regionálních variant nelze určit, zda jde o chybu; nález nemění skóre.',evidence:conflicts.map(([lang,targets])=>lang+': '+targets.join(' · ')).join(' | '),action:'Ověřte zamýšlené jazykové a regionální URL i vzájemné odkazy mezi variantami.',confidence:'Střední — konfliktní cíle jsou ve vráceném HTML, jejich správnost vyžaduje kontext.'});
  }

@@ -1035,7 +1035,7 @@ function isSitemapDocument(value){
   const parsed=parseSitemapXml(original);
   return Boolean(parsed&&['urlset','sitemapindex'].includes(parsed.documentElement.localName));
  }
- return /^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(original)&&sitemapUrlCandidates(source).length>0;
+ return /^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(original)&&sitemapUrlCandidates(original).length>0;
 }
 function sitemapUrlCandidates(text){
  const source=sitemapSourceWithoutComments(sitemapReaderContent(text)),candidates=[],seen=new Set();
@@ -1086,7 +1086,7 @@ function getSitemapLocations(text,host,protocol='https:'){
  if(/<(?:[A-Za-z_][\w.-]*:)?urlset\b/i.test(source))return[];
  const sitemapIndex=/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source);
  const declared=[...source.matchAll(/^\s*sitemap\s*:\s*(https?:\/\/[^\s<]+)/gim)].map(match=>match[1]);
- const candidates=sitemapIndex?sitemapUrlCandidates(source):declared.length?declared:sitemapUrlCandidates(source);
+ const candidates=sitemapIndex?sitemapUrlCandidates(text):declared.length?declared:sitemapUrlCandidates(text);
  const baseUrl=new URL(protocol+'//'+host+'/'),found=[],seen=new Set();
  for(const raw of candidates){
   const normalized=normalizeCrawlUrl(raw,baseUrl);if(!normalized)continue;
@@ -1101,7 +1101,7 @@ function getSitemapLocations(text,host,protocol='https:'){
 function getSitemapUrls(text,host,protocol='https:'){
  const source=sitemapSourceWithoutComments(sitemapReaderContent(text));
  if(/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source))return[];
- const candidates=sitemapUrlCandidates(source);
+ const candidates=sitemapUrlCandidates(text);
  const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(String(text||''));
  if(readerSitemap&&candidates.length&&candidates.every(raw=>{try{return /\.xml(?:$|\?)/i.test(new URL(raw).pathname+new URL(raw).search)}catch{return false}}))return[];
  const baseUrl=new URL(protocol+'//'+host+'/'),found=[],seen=new Set();

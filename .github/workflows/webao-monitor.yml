@@ -21,7 +21,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: webao-webmetr-monitor
+  group: webao-webmetr-monitor-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:

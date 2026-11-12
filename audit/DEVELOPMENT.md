@@ -8,9 +8,9 @@
 
 ## Poslední změna — 2026-11-12
 
-- Odstraněno opakované lineární hledání duplicit v extrakci kandidátů sitemap a normalizovaných URL/indexů; množiny Set zachovávají pořadí prvního výskytu.
-- Regrese: 15 000 unikátních URL s duplicitami a 2 000 sitemap indexů s duplicitami, bez ztráty adres a změny pořadí.
-- Orientační místní měření stejného XML (588 907 bajtů, 15 000 URL): před změnou 2 105 ms, po změně 96 ms. Nejde o garantované časy v prohlížeči.
-- Limity počtu auditovaných stránek a požadavků se nemění; inventář se nezkracuje a skórování není dotčeno.
-- Ověření: regresní sada a git diff --check; CI ověřuje browser scénáře a produkční dostupnost.
-- Další úkol: explicitně vykázat sitemap soubory vynechané kvůli limitu požadavků, odlišit je od chyb načítání.
+- Po vyčerpání rozpočtu sitemap se vykazuje počet unikátních dosud nevyžádaných, robots-povolených souborů a nejvýše 100 příkladů.
+- Report i CSV odlišují tento stav od chyb načítání a od limitu auditovaných stránek. Poznámka vysvětluje, že URL z nevyžádaných sitemap nejsou v inventáři.
+- Testováno odstranění duplicit, již vyžádaných souborů, neplatných adres a robots-zakázaných cest; prázdná fronta nevytváří vynechání.
+- Rozpočet požadavků ani skóre se nemění.
+- Ověření: regresní sada a git diff --check; CI ověřuje prohlížečové scénáře a produkční dostupnost.
+- Další úkol: prohlížečový integrační scénář rozsáhlého sitemap indexu, který vyčerpá rozpočet a ověří počty i export.

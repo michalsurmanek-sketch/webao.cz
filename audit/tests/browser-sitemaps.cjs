@@ -13,6 +13,13 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const readerInventory=await page.evaluate(()=>{
+      const envelope='Title: Sitemap\nURL Source: https://example.cz/sitemap.xml\nMarkdown Content:\n';
+      return {empty:isSitemapDocument(envelope),urls:getSitemapUrls(envelope+'https://example.cz/real-page','example.cz'),indexes:getSitemapLocations(envelope+'https://example.cz/child.xml','example.cz')};
+    });
+    assert.equal(readerInventory.empty,false,'reader URL Source alone cannot confirm a sitemap');
+    assert.deepEqual(readerInventory.urls,['https://example.cz/real-page']);
+    assert.deepEqual(readerInventory.indexes,['https://example.cz/child.xml']);
     const parseCount=await page.evaluate(()=>{
       const NativeParser=window.DOMParser;let count=0;
       window.DOMParser=class extends NativeParser{parseFromString(...args){count++;return super.parseFromString(...args)}};

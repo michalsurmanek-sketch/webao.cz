@@ -1057,8 +1057,9 @@ function sitemapUrlCandidates(text){
   add(match[1]!==undefined?match[1]:decodeSitemapLoc(match[2]));
  }
  if(candidates.length)return candidates;
- for(const match of source.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g))add(match[1]);
- if(!candidates.length)for(const match of source.matchAll(/(?:^|[\s"'<>])((?:https?):\/\/[^\s<>"')\]]+)/gm))add(match[1]);
+ const content=source.replace(/^[\s\S]*?^Markdown Content:[ \t]*\r?\n/im,'');
+ for(const match of content.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g))add(match[1]);
+ if(!candidates.length)for(const match of content.matchAll(/(?:^|[\s"'<>])((?:https?):\/\/[^\s<>"')\]]+)/gm))add(match[1]);
  return candidates;
 }
 function normalizeCrawlUrl(candidate,baseUrl){

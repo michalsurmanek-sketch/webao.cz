@@ -8,7 +8,7 @@
 
 ## Poslední změna — 2026-11-12
 
-- Validace a extrakce XML používají společný parser s omezenou cache posledního dokumentu. Opakované čtení stejného zdroje znovu nespouští DOMParser; paměť uchovává nejvýše jeden pár zdroj/dokument, včetně neplatného výsledku.
-- Chromium měří počet volání parseru při validaci a dvou extrakcích: očekává právě jedno. Stávající scénáře nadále ověřují neúplné XML, namespace, entity a ignorování obrázků.
-- Ověření: místní regrese, syntaxe testu, diff kontrola; nativní Chromium a produkční kontroly v CI.
-- Další priorita: prověřit, zda čtečkové textové sitemapy nesměšují anotace čtečky s vlastními URL.
+- Textové URL se extrahují jen za Markdown Content, pokud je přítomna čtečková obálka. URL Source již nemůže potvrdit prázdnou sitemapu ani se přidat mezi stránky nebo indexy.
+- Chromium pokrývá prázdnou obálku, skutečnou stránku a skutečný child index s ignorováním adresy zdroje.
+- Ověření: místní regrese, syntaxe, diff kontrola; Chromium a produkční kontroly v CI.
+- Další priorita: prověřit falešné XML značky v čtečkových anotacích před Markdown Content.

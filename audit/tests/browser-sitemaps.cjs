@@ -13,6 +13,13 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const annotated=await page.evaluate(()=>{
+      const header='Title: Sitemap\nAnnotation: <sitemapindex><loc>https://example.cz/fake.xml</loc></sitemapindex>\nMarkdown Content:\n';
+      return {valid:isSitemapDocument(header+'https://example.cz/real'),urls:getSitemapUrls(header+'<urlset><url><loc>https://example.cz/real</loc></url></urlset>','example.cz'),indexes:getSitemapLocations(header+'<urlset><url><loc>https://example.cz/real</loc></url></urlset>','example.cz')};
+    });
+    assert.equal(annotated.valid,true);
+    assert.deepEqual(annotated.urls,['https://example.cz/real']);
+    assert.deepEqual(annotated.indexes,[]);
     const readerInventory=await page.evaluate(()=>{
       const envelope='Title: Sitemap\nURL Source: https://example.cz/sitemap.xml\nMarkdown Content:\n';
       return {empty:isSitemapDocument(envelope),urls:getSitemapUrls(envelope+'https://example.cz/real-page','example.cz'),indexes:getSitemapLocations(envelope+'https://example.cz/child.xml','example.cz')};

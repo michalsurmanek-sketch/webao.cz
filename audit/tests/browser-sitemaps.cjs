@@ -13,6 +13,22 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const recognition = await page.evaluate(() => {
+      const valid='<urlset><url><loc>https://example.cz/page</loc></url></urlset>';
+      return {
+        valid:isSitemapDocument(valid),
+        wrapped:isSitemapDocument('Title: Sitemap\nMarkdown Content:\n'+valid),
+        cdata:isSitemapDocument('<urlset><url><loc><![CDATA[https://example.cz/?a=1&b=2]]></loc></url></urlset>'),
+        empty:isSitemapDocument('<urlset/>'),
+        truncated:isSitemapDocument(valid.slice(0,-9)),
+        mismatched:isSitemapDocument('<urlset><url></urlset>'),
+        bareLoc:isSitemapDocument('<loc>https://example.cz/page</loc>'),
+        trailingComment:isSitemapDocument(valid+'<!-- incomplete'),
+        commentOnly:isSitemapDocument('<!-- '+valid+' -->'),
+        reader:isSitemapDocument('Title: Sitemap\nMarkdown Content:\nhttps://example.cz/page')
+      };
+    });
+    assert.deepEqual(recognition, {valid:true,wrapped:true,cdata:true,empty:true,truncated:false,mismatched:false,bareLoc:false,trailingComment:false,commentOnly:false,reader:true});
     await page.evaluate(() => {
       window.sitemapRequests = [];
       window.fetch = async input => {
@@ -26,7 +42,7 @@ const { chromium } = require('playwright');
           return new Response('<!-- <urlset><loc>https://example.cz/comment-only.xml</loc></urlset> --><sitemapindex>' + entries.map(url => '<sitemap><loc>https://example.cz' + url + '</loc></sitemap>').join('') + '</sitemapindex>');
         }
         if (/^\/child-\d+\.xml$/.test(pathname)) {
-          if (pathname === '/child-0.xml') return new Response('<!-- <urlset><loc>https://example.cz/comment-only-page</loc></urlset> -->');
+          if (pathname === '/child-0.xml') return new Response('<urlset><url><loc>https://example.cz/truncated-page</loc></url>');
           return new Response('<urlset><url><loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '</loc></url></urlset>');
         }
         throw new TypeError('Fixture page unavailable');
@@ -61,6 +77,22 @@ const { chromium } = require('playwright');
     assert.match(result.csv, /sitemapy nevyžádané limitem: 5/);
     assert.match(result.report, /Sitemapy nevyžádané kvůli limitu požadavků · 5/);
     assert.match(result.meta.note, /jejich URL nebyly zahrnuty do inventáře/);
+    await page.evaluate(() => {
+      window.currentAuditData=null;
+      window.fetch=async input=>{
+        const raw=String(input);
+        if(raw==='https://r.jina.ai/https://example.cz/robots.txt')return new Response('User-agent: *\nAllow: /');
+        if(raw==='https://r.jina.ai/https://example.cz/sitemap.xml')return new Response('<urlset><url><loc>https://example.cz/truncated-page</loc></url>');
+        throw new TypeError('Fixture external outage');
+      };
+    });
+    await page.locator('#audit-form button[type="submit"]').click();
+    await page.waitForFunction(() => window.currentAuditData && !document.querySelector('#audit-form button[type="submit"]').disabled, null, { timeout: 20000 });
+    const incomplete=await page.evaluate(()=>({meta:window.currentAuditData.crawlMeta,finding:window.currentAuditData.findings.find(item=>item.name==='XML sitemap')}));
+    assert.equal(incomplete.meta.sitemapFiles,0);
+    assert.equal(incomplete.meta.sitemapDiscovered,0);
+    assert.equal(incomplete.finding.points,null,'incomplete XML must not confirm or penalize sitemap score');
+    assert.equal(incomplete.finding.state,'NELZE OVĚŘIT');
     assert.deepEqual(errors, []);
     console.log('PASS sitemap integration: request budget, duplicate/cycle suppression, robots, fetch failure, omissions and CSV/report counts');
   } finally { await browser.close(); }

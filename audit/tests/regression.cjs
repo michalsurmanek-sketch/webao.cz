@@ -180,6 +180,11 @@ const largeXml='<urlset>'+[...manyUrls,...manyUrls.slice(0,200)].map(url=>'<loc>
 assert.deepEqual(urls(largeXml),manyUrls,'large sitemap deduplication must preserve every distinct URL and source order');
 const indexUrls=manyUrls.slice(0,2000).map(url=>url+'.xml');
 assert.deepEqual(Array.from(context.getSitemapLocations('<sitemapindex>'+[...indexUrls,...indexUrls.slice(0,100)].map(url=>'<loc>'+url+'</loc>').join('')+'</sitemapindex>','example.cz')),indexUrls,'sitemap index deduplication must preserve discovery order');
+const remainder=context.sitemapBudgetRemainder(['https://example.cz/a.xml','https://example.cz/b.xml','https://example.cz/b.xml','https://example.cz/blocked.xml','invalid'],new Set(['https://example.cz/a.xml']),path=>path!=='/blocked.xml');
+assert.deepEqual(Array.from(remainder),['https://example.cz/b.xml'],'budget omission counts only distinct eligible, unrequested sitemaps');
+assert.deepEqual(Array.from(context.sitemapBudgetRemainder([],new Set(),()=>true)),[]);
+assert.match(script,/sitemapBudgetOmittedCount:sitemapBudgetOmitted.length/);
+assert.match(script,/Sitemapy nevyžádané kvůli limitu požadavků/);
 console.log('PASS: JavaScript syntax and 9 sitemap regression cases');
 for(const candidate of ['ftp://example.cz/a','https://user:password@example.cz/a','https://example.cz:8443/a'])assert.equal(context.normalizeCrawlUrl(candidate,new URL('https://example.cz/')),'');
 console.log('PASS: 3 unsupported crawl URL cases');

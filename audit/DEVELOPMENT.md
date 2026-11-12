@@ -3,12 +3,12 @@
 ## Priority a kritéria dokončení
 
 1. Spolehlivost zdrojů: každá chyba čtení nebo neúplná odpověď skončí jako neověřená; nesmí blokovat dokončení auditu ani penalizovat skóre. Frontendová čtečka i healthcheck mají neblokující zrušení přenosu. Report při výpadcích ověřen CI PR #9.
-2. Dokončit ověření sitemap: neplatné a neúplné XML nesmí přidat URL ani body; pro namespace a entity doplnit ověřené scénáře. Ověření celého běhu v prohlížeči: audit s dostupnými i nedostupnými externími zdroji dokončí report a obnoví tlačítko; potvrdit mobilní zobrazení.
+2. Výkon sitemap: nativní test 15 000 unikátních URL a 100 duplicit pod 2 MiB musí zachovat pořadí/entity a dokončit do konzervativního CI limitu 10 s. Dokončit ověření sitemap: neplatné a neúplné XML nesmí přidat URL ani body; pro namespace a entity doplnit ověřené scénáře. Ověření celého běhu v prohlížeči: audit s dostupnými i nedostupnými externími zdroji dokončí report a obnoví tlačítko; potvrdit mobilní zobrazení.
 3. HTML metadata: regresní případy pro neúplnou hlavičku a přesměrování; neověřená metadata bez bodového dopadu.
 
 ## Poslední změna — 2026-11-12
 
-- Sdílené oddělení Markdown Content se používá před detekcí typu sitemap, validací i XML/textovou extrakcí. Falešný sitemapindex/loc v anotaci již nemůže změnit typ dokumentu ani vyřadit použitelný textový obsah.
-- Chromium pokrývá anotaci s falešným indexem před textovou i XML sitemapou, zachování skutečné URL a prázdnou frontu indexů.
-- Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: přidat měření výkonu velkých sitemap v nativním browser parseru a stanovit ověřitelné limity odezvy.
+- Doplněno chybějící nativní měření velké XML sitemapy: 15 000 URL + 100 duplicit, validace a skutečná extrakce přes DOMParser, XML entity, první/poslední URL a počet bez ztrát.
+- Fixture musí zůstat pod podporovaným limitem čtečky 2 MiB. CI vypisuje čas/velikost a hlídá konzervativní regresní strop 10 s; nejde o garantovanou odezvu na každém zařízení.
+- Ověření: místní regrese, syntaxe a diff kontrola; nativní měření provádí Chromium v CI (místní sandbox Chromium nespustí).
+- Další priorita: změřit a případně odstranit opakované kopírování zdrojového textu při validaci/extrakci velkých sitemap.

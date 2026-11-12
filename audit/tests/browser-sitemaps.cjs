@@ -13,6 +13,21 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const scale=await page.evaluate(()=>{
+      const count=15000;
+      const entries=Array.from({length:count},(_,i)=>'<url><loc>https://example.cz/page-'+i+'?a=1&amp;b=2</loc></url>');
+      const xml='<urlset>'+entries.join('')+entries.slice(0,100).join('')+'</urlset>';
+      const start=performance.now();
+      const valid=isSitemapDocument(xml),urls=getSitemapUrls(xml,'example.cz');
+      return {valid,count:urls.length,first:urls[0],last:urls.at(-1),elapsedMs:performance.now()-start,bytes:new TextEncoder().encode(xml).length};
+    });
+    assert.equal(scale.valid,true);
+    assert.equal(scale.count,15000,'native XML inventory must retain all distinct URLs');
+    assert.equal(scale.first,'https://example.cz/page-0?a=1&b=2');
+    assert.equal(scale.last,'https://example.cz/page-14999?a=1&b=2');
+    assert(scale.bytes<2*1024*1024,'fixture must fit the supported reader response budget');
+    assert(scale.elapsedMs<10000,'15k XML URLs must finish within the conservative CI regression ceiling of 10 seconds');
+    console.log('PASS native sitemap scale '+JSON.stringify(scale));
     const annotated=await page.evaluate(()=>{
       const header='Title: Sitemap\nAnnotation: <sitemapindex><loc>https://example.cz/fake.xml</loc></sitemapindex>\nMarkdown Content:\n';
       return {valid:isSitemapDocument(header+'https://example.cz/real'),urls:getSitemapUrls(header+'<urlset><url><loc>https://example.cz/real</loc></url></urlset>','example.cz'),indexes:getSitemapLocations(header+'<urlset><url><loc>https://example.cz/real</loc></url></urlset>','example.cz')};

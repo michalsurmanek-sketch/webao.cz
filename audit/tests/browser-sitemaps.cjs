@@ -23,10 +23,10 @@ const { chromium } = require('playwright');
         if (pathname.endsWith('.xml')) window.sitemapRequests.push(pathname);
         if (pathname === '/sitemap.xml') {
           const entries = ['/sitemap.xml', '/blocked.xml', ...Array.from({ length: 12 }, (_, i) => '/child-' + i + '.xml'), '/child-11.xml', '/blocked-late.xml', '/blocked.xml', '/blocked-late.xml'];
-          return new Response('<sitemapindex>' + entries.map(url => '<sitemap><loc>https://example.cz' + url + '</loc></sitemap>').join('') + '</sitemapindex>');
+          return new Response('<!-- <urlset><loc>https://example.cz/comment-only.xml</loc></urlset> --><sitemapindex>' + entries.map(url => '<sitemap><loc>https://example.cz' + url + '</loc></sitemap>').join('') + '</sitemapindex>');
         }
         if (/^\/child-\d+\.xml$/.test(pathname)) {
-          if (pathname === '/child-0.xml') throw new TypeError('Fixture sitemap read failure');
+          if (pathname === '/child-0.xml') return new Response('<!-- <urlset><loc>https://example.cz/comment-only-page</loc></urlset> -->');
           return new Response('<urlset><url><loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '</loc></url></urlset>');
         }
         throw new TypeError('Fixture page unavailable');
@@ -45,6 +45,7 @@ const { chromium } = require('playwright');
       return { meta, requests: window.sitemapRequests, csv: await exported.text(), report: document.querySelector('#result').textContent };
     });
     assert.equal(result.requests.length, 8, 'root plus seven child requests must exhaust the budget');
+    assert(!result.requests.includes('/comment-only.xml'));
     assert.equal(new Set(result.requests).size, 8, 'cycles and duplicates must not waste requests');
     assert(!result.requests.includes('/blocked.xml'));
     assert(!result.requests.includes('/blocked-late.xml'));

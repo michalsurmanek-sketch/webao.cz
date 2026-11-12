@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Zakázané sitemap deklarace z robots.txt se před filtrováním povolených požadavků ukládají do evidence vynechaných souborů.
-- Integrační Chromium scénář obsahuje duplicitní zakázanou deklaraci dostupnou pouze z robots.txt a deklaraci současně uvedenou v indexu. Vyžaduje přesně tři unikátní vynechání v reportu/CSV a žádné požadavky na zakázané soubory.
-- Počty rozpočtových vynechání a skutečných chyb zůstávají oddělené. Povolené požadavky a skóre se nemění.
-- Ověření: syntaxe prohlížečového testu, regresní sada, git diff --check; integrační scénář provádí CI.
-- Další priorita: prověřit, že výpadek nebo neúplný sitemap index nevytváří falešné potvrzení úplnosti inventáře a že se rozpoznání XML neopírá o značky v komentářích.
+- XML komentáře se ignorují při rozpoznávání sitemap, extrakci loc i rozlišení urlset/indexu. Obsah CDATA se zachovává včetně řetězců připomínajících komentáře.
+- Značka urlset uvnitř komentáře už nemůže vyřadit platný index; URL z komentáře nevstupují do inventáře ani fronty požadavků. Odpověď obsahující jen komentář nepotvrzuje sitemapu.
+- Regrese pokrývá komentované loc, falešný typ dokumentu, neukončený komentář a zachování CDATA. Chromium integrační scénář obsahuje falešnou urlset značku v komentáři indexu a podřízenou odpověď tvořenou pouze komentářem.
+- Ověření: regresní sada, syntaxe browser testu a git diff --check; CI provádí Chromium a produkční kontroly.
+- Další priorita: explicitně rozlišit neúplné XML od použitelných sitemap; současná extrakce není validátor XML a může číst kompletní loc z neúplného dokumentu.

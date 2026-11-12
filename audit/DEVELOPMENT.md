@@ -8,7 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Doplněno chybějící nativní měření velké XML sitemapy: 15 000 URL + 100 duplicit, validace a skutečná extrakce přes DOMParser, XML entity, první/poslední URL a počet bez ztrát.
-- Fixture musí zůstat pod podporovaným limitem čtečky 2 MiB. CI vypisuje čas/velikost a hlídá konzervativní regresní strop 10 s; nejde o garantovanou odezvu na každém zařízení.
-- Ověření: místní regrese, syntaxe a diff kontrola; nativní měření provádí Chromium v CI (místní sandbox Chromium nespustí).
-- Další priorita: změřit a případně odstranit opakované kopírování zdrojového textu při validaci/extrakci velkých sitemap.
+- Extrakce nyní předává původní text místo kopie bez komentářů. Validace a extrakce komentovaných sitemap tak sdílejí cache parseru; odpadá opakované parsování odlišné textové kopie.
+- Zároveň se neúplné XML neopravuje odstraněním nedokončeného komentáře před parserem. Přímá extrakce takového dokumentu vrací 0 URL.
+- Chromium kontroluje jedno parsování i s komentářem a odmítnutí neukončeného komentáře; výkon 15 000 URL zůstává hlídaný.
+- Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
+- Další priorita: prověřit rozpoznávání typu sitemap s názvy značek uvnitř CDATA.

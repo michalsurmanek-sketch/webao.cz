@@ -13,6 +13,8 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const incompleteComment=await page.evaluate(()=>getSitemapUrls('<urlset><url><loc>https://example.cz/invalid</loc></url></urlset><!-- truncated','example.cz'));
+    assert.deepEqual(incompleteComment,[],'extraction must not repair incomplete XML by stripping comments');
     const scale=await page.evaluate(()=>{
       const count=15000;
       const entries=Array.from({length:count},(_,i)=>'<url><loc>https://example.cz/page-'+i+'?a=1&amp;b=2</loc></url>');
@@ -46,7 +48,7 @@ const { chromium } = require('playwright');
       const NativeParser=window.DOMParser;let count=0;
       window.DOMParser=class extends NativeParser{parseFromString(...args){count++;return super.parseFromString(...args)}};
       try{
-        const xml='<urlset><url><loc>https://example.cz/cache-test</loc></url></urlset>';
+        const xml='<!-- transport comment --><urlset><url><loc>https://example.cz/cache-test</loc></url></urlset>';
         isSitemapDocument(xml);getSitemapUrls(xml,'example.cz');getSitemapUrls(xml,'example.cz');
         return count;
       }finally{window.DOMParser=NativeParser}

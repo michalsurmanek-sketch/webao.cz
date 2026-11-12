@@ -211,6 +211,10 @@ assert.equal(metadataContext.scoreAuditAreas(equivalentTargets)[0].tests,0,'norm
 assert(metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>Array.from({length:205},()=>metadataLinks[4])}}).truncated,'large HTML heads must disclose the metadata collection cap');
 c.fetchTimed=async()=>({ok:false,status:503,text:async()=>'unavailable'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/bad')),/HTML metadata stránky:.*503/);
 c.fetchTimed=async()=>({ok:true,status:200,text:async()=>'Warning: Target URL returned error 404: Not found'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/not-found')),/HTML metadata stránky:.*404/);
+for(const incomplete of ['<!doctype html><html>', '<html><head><link rel="canonical" href="/a">', '<html><body>Reader fragment</body></html>']){
+ c.fetchTimed=async()=>({ok:true,status:200,text:async()=>incomplete});
+ await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/incomplete')),/Úplnost HTML hlavičky nelze potvrdit/);
+}
 console.log('PASS: HTML metadata fetch/extraction is bounded, explicit, conflict-only, and excluded from score');
 const makeStream=(chunks,onCancel=()=>{})=>({getReader:()=>{let index=0;return{async read(){return index<chunks.length?{done:false,value:chunks[index++]}:{done:true}},async cancel(){onCancel()}}}});
 assert.equal(await c.readTimedTextResponse({body:makeStream([Buffer.from([0x41,0xc5]),Buffer.from([0xbe])])},3),'Až','UTF-8 sequences split across stream chunks should decode correctly');

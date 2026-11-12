@@ -6,10 +6,10 @@
 2. Výkon sitemap: nativní test 15 000 unikátních URL a 100 duplicit pod 2 MiB musí zachovat pořadí/entity a dokončit do konzervativního CI limitu 10 s. Dokončit ověření sitemap: neplatné a neúplné XML nesmí přidat URL ani body; pro namespace a entity doplnit ověřené scénáře. Ověření celého běhu v prohlížeči: audit s dostupnými i nedostupnými externími zdroji dokončí report a obnoví tlačítko; potvrdit mobilní zobrazení.
 3. HTML metadata: regresní případy pro neúplnou hlavičku a přesměrování; neověřená metadata bez bodového dopadu.
 
-## Poslední změna — 2026-11-12
+## Poslední změna — 2026-11-13
 
-- Extrakce nyní předává původní text místo kopie bez komentářů. Validace a extrakce komentovaných sitemap tak sdílejí cache parseru; odpadá opakované parsování odlišné textové kopie.
-- Zároveň se neúplné XML neopravuje odstraněním nedokončeného komentáře před parserem. Přímá extrakce takového dokumentu vrací 0 URL.
-- Chromium kontroluje jedno parsování i s komentářem a odmítnutí neukončeného komentáře; výkon 15 000 URL zůstává hlídaný.
+- Detekce urlset/sitemapindex v inventáři ignoruje CDATA. Text obsahující název opačného typu dokumentu již nevyřadí skutečné URL stránky nebo podřízené sitemapy.
+- Původní XML se nadále předává parseru, takže loc v CDATA a validace úplnosti zůstávají zachované. Odstranění CDATA se týká pouze pomocné detekce typu.
+- Chromium pokrývá oba směry: falešný index v urlset a falešný urlset v indexu. Stávající testy ověřují loc CDATA a neúplné XML.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit rozpoznávání typu sitemap s názvy značek uvnitř CDATA.
+- Další priorita: prověřit falešné značky v atributech XML při pomocné detekci typu dokumentu.

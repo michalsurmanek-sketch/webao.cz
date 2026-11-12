@@ -13,6 +13,12 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const cdataTypes=await page.evaluate(()=>({
+      pages:getSitemapUrls('<urlset><note><![CDATA[<sitemapindex>not markup</sitemapindex>]]></note><url><loc>https://example.cz/real</loc></url></urlset>','example.cz'),
+      indexes:getSitemapLocations('<sitemapindex><note><![CDATA[<urlset>not markup</urlset>]]></note><sitemap><loc>https://example.cz/child.xml</loc></sitemap></sitemapindex>','example.cz')
+    }));
+    assert.deepEqual(cdataTypes.pages,['https://example.cz/real']);
+    assert.deepEqual(cdataTypes.indexes,['https://example.cz/child.xml']);
     const incompleteComment=await page.evaluate(()=>getSitemapUrls('<urlset><url><loc>https://example.cz/invalid</loc></url></urlset><!-- truncated','example.cz'));
     assert.deepEqual(incompleteComment,[],'extraction must not repair incomplete XML by stripping comments');
     const scale=await page.evaluate(()=>{

@@ -1082,7 +1082,7 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots,allowsPath=robotsAllo
  return [...found.values()];
 }
 function getSitemapLocations(text,host,protocol='https:'){
- const source=sitemapSourceWithoutComments(sitemapReaderContent(text));
+ const source=sitemapSourceWithoutComments(sitemapReaderContent(text)).replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)/g,'');
  if(/<(?:[A-Za-z_][\w.-]*:)?urlset\b/i.test(source))return[];
  const sitemapIndex=/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source);
  const declared=[...source.matchAll(/^\s*sitemap\s*:\s*(https?:\/\/[^\s<]+)/gim)].map(match=>match[1]);
@@ -1099,7 +1099,7 @@ function getSitemapLocations(text,host,protocol='https:'){
  return found;
 }
 function getSitemapUrls(text,host,protocol='https:'){
- const source=sitemapSourceWithoutComments(sitemapReaderContent(text));
+ const source=sitemapSourceWithoutComments(sitemapReaderContent(text)).replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)/g,'');
  if(/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source))return[];
  const candidates=sitemapUrlCandidates(text);
  const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(String(text||''));

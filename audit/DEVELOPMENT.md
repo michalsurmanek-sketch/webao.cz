@@ -14,3 +14,9 @@
 - Lokální spuštění Chromium blokuje prostředí: socket() Operation not permitted. Vyšší oprávnění nejsou povolena. Prohlížečový test zatím není označen jako ověřený a PR zůstává návrhový.
 - Ověření dostupné lokálně: syntaxe nového testu, regresní sada a git diff --check.
 - Další úkol: spustit browser job na větvi PR, vyřešit případná selhání a sloučit až po úspěšném ověření.
+
+### Doplnění ověření CI
+
+- PR #9 dosud neměl žádný běh spuštěný událostí pull_request. Workflow podporovalo pouze push, plán a ruční spuštění.
+- Doplněn pull_request trigger pro audit/assets/workflow a povolen browser job i pro tuto událost. Prohlížečové ověření zůstává podmínkou sloučení.
+- CLI nemá přihlášení a GitHub konektor neposkytuje workflow_dispatch; automatické spuštění událostí PR je proto důležité pro další ověřování.

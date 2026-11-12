@@ -13,6 +13,16 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const parseCount=await page.evaluate(()=>{
+      const NativeParser=window.DOMParser;let count=0;
+      window.DOMParser=class extends NativeParser{parseFromString(...args){count++;return super.parseFromString(...args)}};
+      try{
+        const xml='<urlset><url><loc>https://example.cz/cache-test</loc></url></urlset>';
+        isSitemapDocument(xml);getSitemapUrls(xml,'example.cz');getSitemapUrls(xml,'example.cz');
+        return count;
+      }finally{window.DOMParser=NativeParser}
+    });
+    assert.equal(parseCount,1,'validation and repeated extraction must share one native parse');
     const extensionUrls=await page.evaluate(()=>getSitemapUrls('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><url><loc>https://example.cz/page?a=1&amp;b=2</loc><image:image><image:loc>https://example.cz/image.jpg</image:loc></image:image><image:loc>https://example.cz/direct-image.jpg</image:loc></url></urlset>','example.cz'));
     assert.deepEqual(extensionUrls,['https://example.cz/page?a=1&b=2']);
     const recognition = await page.evaluate(() => {

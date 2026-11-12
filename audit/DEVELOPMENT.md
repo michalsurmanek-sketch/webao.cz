@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Doplněn browser-metadata.cjs: skutečný DOMParser a produkční fetchPageHtmlMetadata s řízenými odpověďmi bez externích požadavků.
-- Pokryto první base[href], dekódování HTML entit, ekvivalentní canonical/hreflang, značky v body, neověřený relativní základ, skutečně odlišné absolutní cíle a neúplné odpovědi.
-- Všechny metadata signály musí zůstat mimo skóre. Test je součástí browser CI jobu.
-- Lokální ověření: syntaxe, regresní sada, git diff --check. Skutečný prohlížeč ověřuje CI, protože místní prostředí blokuje Chromium.
-- Další úkol: prověřit falešné značky head uvnitř komentářů a scriptů při kontrole úplnosti vstupu, kterou nyní provádí regulární výraz.
+- Falešné head značky v komentářích, obsahu script/style/title/textarea/noscript, template a citovaných atributech už nepotvrzují úplnost hlavičky.
+- Přidán konzervativní průchod zdrojovými značkami; skutečnou extrakci dál provádí DOMParser. Nejde o obecný validátor HTML.
+- Regrese pokrývá falešné uzavření v neúplných zdrojích i platnou hlavičku obsahující zavádějící text. Nativní browser test odmítá stejné neúplné zdroje.
+- Ověření: regresní sada, syntaxe browser testu a git diff --check; CI PR ověřuje skutečný Chromium parser.
+- Další priorita: prověřit omezení počtu nálezů a velikosti evidence u velmi rozsáhlých sitemap a metadat, aby report zůstal použitelný.

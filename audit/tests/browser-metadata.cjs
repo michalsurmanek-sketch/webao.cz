@@ -29,7 +29,7 @@ const { chromium } = require('playwright');
         const findings = htmlMetadataFindings([{ url: 'https://example.cz/old/', raw: 'page', htmlMetadata: metadata }]);
         output.push({ name: fixture.name, metadata, findings, scoredTests: scoreAuditAreas(findings).reduce((sum, area) => sum + area.tests, 0) });
       }
-      for (const html of ['<!doctype html><html>', '<html><head><link rel="canonical" href="/a">']) {
+      for (const html of ['<!doctype html><html>', '<html><head><link rel="canonical" href="/a">', '<!-- <head></head> --><html>', '<html><head><script>const x="</head>";</script>', '<html><head><!-- </head> -->', '<html><head><meta content="</head>">', '<template><head></head></template>']) {
         window.fetch = async () => new Response(html, { status: 200 });
         try { await fetchPageHtmlMetadata(new URL('https://example.cz/')); output.push({ incompleteRejected: false }); }
         catch (error) { output.push({ incompleteRejected: /Úplnost HTML hlavičky nelze potvrdit/.test(error.message) }); }

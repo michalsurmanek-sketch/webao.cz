@@ -227,7 +227,8 @@ assert.equal(metadataContext.scoreAuditAreas(redirectUnknown)[0].tests,0);
 assert(metadataContext.extractHeadMetadata({head:{querySelectorAll:()=>Array.from({length:205},()=>metadataLinks[4])}}).truncated,'large HTML heads must disclose the metadata collection cap');
 c.fetchTimed=async()=>({ok:false,status:503,text:async()=>'unavailable'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/bad')),/HTML metadata stránky:.*503/);
 c.fetchTimed=async()=>({ok:true,status:200,text:async()=>'Warning: Target URL returned error 404: Not found'});await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/not-found')),/HTML metadata stránky:.*404/);
-for(const incomplete of ['<!doctype html><html>', '<html><head><link rel="canonical" href="/a">', '<html><body>Reader fragment</body></html>']){
+for(const complete of ['<html><head><!-- </head> --><title>literal &lt;head&gt;</title></head></html>', '<html><head><meta content="</head>"><script>const x="<head>";</script></head></html>'])assert(c.hasExplicitCompleteHead(complete));
+for(const incomplete of ['<!doctype html><html>', '<html><head><link rel="canonical" href="/a">', '<html><body>Reader fragment</body></html>', '<!-- <head></head> --><html>', '<html><head><script>const x="</head>";</script>', '<html><head><!-- </head> -->', '<html><head><title>literal </head></title>', '<template><head></head></template>', '<html><head><meta content="</head>">']){
  c.fetchTimed=async()=>({ok:true,status:200,text:async()=>incomplete});
  await assert.rejects(()=>c.fetchPageHtmlMetadata(new URL('https://example.cz/incomplete')),/Úplnost HTML hlavičky nelze potvrdit/);
 }

@@ -624,6 +624,34 @@ async function fetchReadablePage(url,path='/'){
   return assertReadableSource(text);
  }catch(error){throw new Error('Čtečka stránky: '+(error&&error.message?error.message:'zdroj neodpověděl.'));}
 }
+function hasExplicitCompleteHead(source){
+ // A conservative source check: DOMParser synthesizes missing head tags.
+ let offset=0,opened=false,templateDepth=0;
+ while(offset<source.length){
+  const start=source.indexOf('<',offset);if(start<0)return false;
+  if(source.startsWith('<!--',start)){
+   const end=source.indexOf('-->',start+4);if(end<0)return false;
+   offset=end+3;continue;
+  }
+  const token=source.slice(start).match(/^<\/?([a-z][\w:-]*)\b(?:[^"'<>]|"[^"]*"|'[^']*')*>/i);
+  if(!token){offset=start+1;continue;}
+  const name=token[1].toLowerCase(),closing=token[0][1]==='/';offset=start+token[0].length;
+  if(name==='template'){templateDepth+=closing?-1:1;if(templateDepth<0)return false;continue;}
+  if(!closing&&['script','style','title','textarea','noscript'].includes(name)){
+   const end=new RegExp('</'+name+'\\s*>','ig');end.lastIndex=offset;
+   const match=end.exec(source);if(!match)return false;
+   offset=end.lastIndex;continue;
+  }
+  if(templateDepth)continue;
+  if(name==='body')return false;
+  if(name==='head'){
+   if(closing)return opened;
+   if(opened)return false;
+   opened=true;
+  }
+ }
+ return false;
+}
 async function fetchPageHtmlMetadata(url){
  const target=new URL(url.href);
  if(!['http:','https:'].includes(target.protocol)||target.username||target.password)throw new Error('Čtečka odmítla neplatnou adresu stránky.');
@@ -634,7 +662,7 @@ async function fetchPageHtmlMetadata(url){
   if(!response.ok)throw new Error('HTML zdroj stránky neodpověděl ('+response.status+').');
   assertReadableSource(html);
   if(!/<(?:!doctype\s+html|html\b|head\b)/i.test(html))throw new Error('Čtečka nevrátila rozpoznatelný HTML dokument.');
-  if(!/<head(?:\s[^>]*)?>[\s\S]*?<\/head\s*>/i.test(html))throw new Error('Úplnost HTML hlavičky nelze potvrdit; metadata nebyla vyhodnocena.');
+  if(!hasExplicitCompleteHead(html))throw new Error('Úplnost HTML hlavičky nelze potvrdit; metadata nebyla vyhodnocena.');
   return extractHeadMetadata(new DOMParser().parseFromString(html,'text/html'));
  }catch(error){throw new Error('HTML metadata stránky: '+(error&&error.message?error.message:'zdroj neodpověděl.'));}
 }

@@ -8,7 +8,8 @@
 
 ## Poslední změna — 2026-11-12
 
-- Přidán browser-sitemaps.cjs: celý formulář s řízeným indexem 12 podřízených sitemap, cyklem na kořen, duplicitou, robots-zakázaným souborem a jedním výpadkem.
-- Ověřuje rozpočet osmi požadavků, sedm načtených souborů, jednu chybu, pět nevyžádaných souborů a šest objevených URL. Kontroluje shodu počtu v reportu i skutečně vytvořeném CSV blobu.
-- Test zapojen do browser CI jobu; lokální syntaxe, regrese a diff check procházejí. Provedení skutečného Chromium testu ověřuje CI.
-- Další priorita: sledovat případná selhání nového integračního scénáře a potom prověřit klasifikaci sitemap blokovaných robots.txt uvnitř indexů.
+- Sitemap zakázaná robots.txt uvnitř indexu se nově zapisuje do sitemapSkipped. Stejně se evidují zakázané soubory ve zbytku fronty po vyčerpání rozpočtu.
+- Report obsahuje samostatnou skupinu s důvodem vynechání a CSV samostatný počet; nezaměňují se za chyby čtení ani vynechání rozpočtem. Duplicity se nezapočítávají vícekrát.
+- Chromium integrační scénář rozšířen o blokovaný soubor před i za hranicí rozpočtu a jejich duplicity; požaduje nulové požadavky na oba, dva záznamy v reportu i CSV, pět rozpočtových vynechání a jedinou skutečnou chybu čtení.
+- Ověření: syntaxe browser testu, regresní sada a git diff --check; nativní scénář spouští CI PR.
+- Další úkol: obdobně prověřit sitemap deklarace z robots.txt, které filtr vyřadí ještě před vložením do fronty.

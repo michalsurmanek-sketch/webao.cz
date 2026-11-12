@@ -8,8 +8,7 @@
 
 ## Poslední změna — 2026-11-12
 
-- XML sitemap se uznává jen po úspěšném parsování celého dokumentu s kořenem urlset/sitemapindex. Useknuté XML, nesouhlasící značky, samotné loc a neukončené komentáře nejsou ověřený zdroj.
-- Zachovány čtečkové obálky, XML bloky v Markdownu a dosavadní textový formát Sitemap. XML s chybou nesmí propadnout do textového fallbacku.
-- Chromium scénář kontroluje parser včetně CDATA a druhý celý audit ověřuje, že neúplný root přidá 0 souborů/URL a nález zůstane NELZE OVĚŘIT s points=null. Neúplný child je evidován mezi selháními bez URL v inventáři.
-- Ověření: místní regresní sada, syntaxe browser testu a git diff --check prošly; nativní Chromium a produkční kontroly provádí CI (místní sandbox Chromium nespustí).
-- Další priorita: prověřit podporu namespace prefixů a XML entit, aby platné sitemapy neztrácely URL při regexové extrakci.
+- Rozpoznávání sitemap, typ index/urlset a extrakce loc podporují XML namespace prefixy. Platná prefixed sitemap dříve nebyla rozpoznána nebo se URL načítaly náhradním textovým regexem bez dekódování entit.
+- Chromium integrační fixture používá prefixované child sitemapy s amp entitou; kontroluje zachování počtu URL. Parser nadále odmítá neúplné XML.
+- Ověření: místní regresní sada, syntaxe testu, diff kontrola; Chromium a produkční kontroly v CI.
+- Další priorita: omezit extrakci loc na přímé položky sitemap, aby se URL rozšíření (např. obrázků) nezaměňovaly za stránky.

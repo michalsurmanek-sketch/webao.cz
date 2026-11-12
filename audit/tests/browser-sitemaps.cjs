@@ -16,6 +16,7 @@ const { chromium } = require('playwright');
     const recognition = await page.evaluate(() => {
       const valid='<urlset><url><loc>https://example.cz/page</loc></url></urlset>';
       return {
+        prefixed:isSitemapDocument('<s:urlset xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9"><s:url><s:loc>https://example.cz/a</s:loc></s:url></s:urlset>'),
         valid:isSitemapDocument(valid),
         wrapped:isSitemapDocument('Title: Sitemap\nMarkdown Content:\n'+valid),
         cdata:isSitemapDocument('<urlset><url><loc><![CDATA[https://example.cz/?a=1&b=2]]></loc></url></urlset>'),
@@ -28,7 +29,7 @@ const { chromium } = require('playwright');
         reader:isSitemapDocument('Title: Sitemap\nMarkdown Content:\nhttps://example.cz/page')
       };
     });
-    assert.deepEqual(recognition, {valid:true,wrapped:true,cdata:true,empty:true,truncated:false,mismatched:false,bareLoc:false,trailingComment:false,commentOnly:false,reader:true});
+    assert.deepEqual(recognition, {prefixed:true,valid:true,wrapped:true,cdata:true,empty:true,truncated:false,mismatched:false,bareLoc:false,trailingComment:false,commentOnly:false,reader:true});
     await page.evaluate(() => {
       window.sitemapRequests = [];
       window.fetch = async input => {
@@ -43,7 +44,7 @@ const { chromium } = require('playwright');
         }
         if (/^\/child-\d+\.xml$/.test(pathname)) {
           if (pathname === '/child-0.xml') return new Response('<urlset><url><loc>https://example.cz/truncated-page</loc></url>');
-          return new Response('<urlset><url><loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '</loc></url></urlset>');
+          return new Response('<s:urlset xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9"><s:url><s:loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '?a=1&amp;b=2</s:loc></s:url></s:urlset>');
         }
         throw new TypeError('Fixture page unavailable');
       };

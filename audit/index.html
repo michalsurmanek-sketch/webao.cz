@@ -1016,7 +1016,7 @@ function sitemapSourceWithoutComments(text){
 function isSitemapDocument(value){
  const original=String(value||'').trim();
  const source=sitemapSourceWithoutComments(original);
- if(/<(?:urlset|sitemapindex|loc)\b/i.test(source)){
+ if(/<(?:[A-Za-z_][\w.-]*:)?(?:urlset|sitemapindex|loc)\b/i.test(source)){
   // Reader envelopes are transport metadata, not part of the XML document.
   let xml=original.replace(/^[\s\S]*?^Markdown Content:\s*\n/im,'').trim();
   if(/^```(?:xml)?\s*\n/i.test(xml))xml=xml.replace(/^```(?:xml)?\s*\n/i,'').replace(/\n```\s*$/,'').trim();
@@ -1031,7 +1031,7 @@ function sitemapUrlCandidates(text){
  const source=sitemapSourceWithoutComments(text),candidates=[],seen=new Set();
  const add=raw=>{const value=String(raw||'').trim();if(value&&!seen.has(value)){seen.add(value);candidates.push(value)}};
  // XML loc values are authoritative. Do not mix links from reader annotations into XML.
- for(const match of source.matchAll(/<loc\b[^>]*>\s*(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))\s*<\/loc\s*>/gi)){
+ for(const match of source.matchAll(/<(?:[A-Za-z_][\w.-]*:)?loc\b[^>]*>\s*(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))\s*<\/(?:[A-Za-z_][\w.-]*:)?loc\s*>/gi)){
   add(match[1]!==undefined?match[1]:decodeSitemapLoc(match[2]));
  }
  if(candidates.length)return candidates;
@@ -1057,8 +1057,8 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots,allowsPath=robotsAllo
 }
 function getSitemapLocations(text,host,protocol='https:'){
  const source=sitemapSourceWithoutComments(text);
- if(/<urlset\b/i.test(source))return[];
- const sitemapIndex=/<sitemapindex\b/i.test(source);
+ if(/<(?:[A-Za-z_][\w.-]*:)?urlset\b/i.test(source))return[];
+ const sitemapIndex=/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source);
  const declared=[...source.matchAll(/^\s*sitemap\s*:\s*(https?:\/\/[^\s<]+)/gim)].map(match=>match[1]);
  const candidates=sitemapIndex?sitemapUrlCandidates(source):declared.length?declared:sitemapUrlCandidates(source);
  const baseUrl=new URL(protocol+'//'+host+'/'),found=[],seen=new Set();
@@ -1074,7 +1074,7 @@ function getSitemapLocations(text,host,protocol='https:'){
 }
 function getSitemapUrls(text,host,protocol='https:'){
  const source=sitemapSourceWithoutComments(text);
- if(/<sitemapindex\b/i.test(source))return[];
+ if(/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source))return[];
  const candidates=sitemapUrlCandidates(source);
  const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(source);
  if(readerSitemap&&candidates.length&&candidates.every(raw=>{try{return /\.xml(?:$|\?)/i.test(new URL(raw).pathname+new URL(raw).search)}catch{return false}}))return[];

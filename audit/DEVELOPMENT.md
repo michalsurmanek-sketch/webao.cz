@@ -1,15 +1,29 @@
 # Vývoj Webmetru
 
-## Priority a kritéria dokončení
+## Podmínky pro hotové první vydání
 
-1. Spolehlivost zdrojů: každá chyba čtení nebo neúplná odpověď skončí jako neověřená; nesmí blokovat dokončení auditu ani penalizovat skóre. Frontendová čtečka i healthcheck mají neblokující zrušení přenosu. Report při výpadcích ověřen CI PR #9.
-2. Výkon sitemap: nativní test 15 000 unikátních URL a 100 duplicit pod 2 MiB musí zachovat pořadí/entity a dokončit do konzervativního CI limitu 10 s. Dokončit ověření sitemap: neplatné a neúplné XML nesmí přidat URL ani body; pro namespace a entity doplnit ověřené scénáře. Ověření celého běhu v prohlížeči: audit s dostupnými i nedostupnými externími zdroji dokončí report a obnoví tlačítko; potvrdit mobilní zobrazení.
-3. HTML metadata: regresní případy pro neúplnou hlavičku a přesměrování; neověřená metadata bez bodového dopadu.
+Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle počtu commitů nebo odhadovaného procenta.
+
+- [ ] Kompletní průchod: zadání domény, průběh, dokončení a nový audit ověřené na desktopu i mobilu z aktuálního main.
+- [ ] Reálné měření: alespoň jeden doložený běh se současně dostupným mobilním i desktopovým Lighthouse výsledkem; vyřešená dostupnost služby pro běžný provoz. Veřejné PageSpeed API v reportu Montao z 13. 11. vyčerpalo kvótu, cache tento problém plně neřeší.
+- [ ] Srozumitelnost: částečné měření, stáří uložených výsledků a neověřené kontroly musí být zřetelné na obrazovce i v PDF/CSV. Nezaměňovat pokrytí za skóre webu.
+- [ ] Výpadky: selhání nebo kvóta jednotlivého zdroje nezablokuje report ani další audit; neúplné výsledky nesmějí penalizovat web.
+- [ ] Výstupy: PDF i CSV z aktuálního vydání ověřeny na reálném a simulovaném částečném běhu; PDF bez překryvů a ořezů.
+- [ ] Regrese a prohlížeč: všechny povinné CI kontroly na vydávaném commitu úspěšné; žádná známá blokující chyba z těchto scénářů.
+
+## Priority
+
+1. Dostupnost měření a poctivé vysvětlení rozsahu: prověřit původ a stáří cache v reportu, měření při vyčerpané kvótě a možnosti provozně spolehlivého PageSpeed přístupu. Nevydávat cache za nové měření.
+2. Dokončení celého toku při částečných výpadcích a možnost spustit nový audit bez reloadu.
+3. Mobil a exporty: vizuální kontrola aktuálního PDF a výsledků, reprezentativní běh s dostupnými i nedostupnými zdroji.
+4. Správnost inventáře: podporované Markdown odkazy s volitelným titulkem, sitemap namespace/entity a neúplné zdroje; nepřidávat chyby ze zdrojů, které nelze ověřit.
 
 ## Poslední změna — 2026-11-13
 
-- Opraveno: escapované otevírací a zavírací hranaté závorky již nevytvářejí falešné odkazy a obrázky.
-- Počet předcházejících zpětných lomítek rozlišuje escapování od skutečné syntaxe. Escapovaný vykřičník zachovává následující běžný odkaz.
-- Ověření: kompletní místní regresní sada včetně nových negativních a pozitivních případů, zachování odkazu obalujícího obrázek.
-- Místní Chromium nelze spustit: v prostředí chybí binární prohlížeč. Prohlížečové a produkční kontroly zajišťuje CI.
-- Další priorita: prověřit cíle Markdown odkazů s volitelným titulkem, aby platné odkazy nevypadávaly z inventáře.
+- Potvrzeno: po kvótové chybě mobilního PageSpeed se desktop přeskočil i s platným výsledkem v cache.
+- Před přeskočením druhého zařízení se nyní ověří jeho cache; při platném výsledku se použije bez nového síťového požadavku a dokončí se počítadlo průběhu.
+- Sdílené bezpečné čtení cache ověřuje zařízení, doménu a chybu Lighthouse; chybná nebo nepřístupná cache zůstává nedostupným zdrojem.
+- Robots pravidla mají stále přednost a nedovolují použití cache pro vyloučené měření.
+- Ověření: kompletní místní regrese, pozitivní cache, neplatné zařízení/doména, runtime error, blokované úložiště a robots; prohlížeč a produkce v CI.
+- Omezení: bez platné cache a při vyčerpané kvótě nelze Lighthouse výsledek získat; oprava nevytváří chybějící měření.
+- Další krok: stáří a původ uložených měření v přehledu zdrojů a reportu.

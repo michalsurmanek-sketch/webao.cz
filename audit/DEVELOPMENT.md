@@ -8,7 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Relativní odkazy: parser používá požadovanou URL; Reader URL Source není ověřený HTTP redirect. Bez ověřeného cíle nelze bezpečně změnit základ adres ani potvrdit přesměrování.
-- Potvrzen další nesoulad: CSV export používal vlastní normalizaci bez odstranění tracking parametrů, a proto označoval cíle jinak než mapa. Export nyní používá společný auditLinkKey pro vzorek i cíle.
-- Ověření: kompletní místní regrese a diff; CI ověřuje Chromium i produkční dostupnost.
-- Další priorita: doplnit integrační CSV případ s tracking variantou cíle a ověřit původ adres po přesměrování bez spoléhání na Reader metadata.
+- Reader URL Source stále neposkytuje ověřený cíl HTTP přesměrování; základ relativních adres proto bez důkazu neměníme. Integrační CSV tracking případ již přítomen z PR #44.
+- Potvrzen falešný pozitivní odkaz: samotný text ](/cesta) se přidával do inventáře. Parser nyní vyžaduje i otevírací závorku popisku.
+- Regrese ověřuje odmítnutí neúplné syntaxe, existující scénáře zachovávají relativní odkazy a proklikávací obrázky.
+- Ověření: kompletní místní regrese a diff; Chromium a produkční dostupnost v CI.
+- Další priorita: prověřit Markdown cíle obsahující závorky a úhlové závorky, aby nevznikaly zkrácené adresy.

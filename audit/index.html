@@ -942,7 +942,7 @@ function parsePageText(text,url){
  const images=[...navigable.matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:resolve(match[2])})).filter(image=>image.url);
  // Remove image syntax, not every link sharing an image URL: linked images are navigable.
  const withoutImages=navigable.replace(/!\[[^\]]*\]\([^)\s]+\)/g,'');
- const markdownLinks=[...withoutImages.matchAll(/\]\(([^)\s]+)\)/g)].filter(match=>!match[1].startsWith('#')).map(match=>resolve(match[1])).filter(Boolean);
+ const markdownLinks=[...withoutImages.matchAll(/\[[^\]\r\n]*\]\(([^)\s]+)\)/g)].filter(match=>!match[1].startsWith('#')).map(match=>resolve(match[1])).filter(Boolean);
  const links=[...new Set(markdownLinks.filter(href=>isSameSiteHost(new URL(href).hostname,url.hostname)))];
  const externalLinks=[...new Set(markdownLinks.filter(href=>!isSameSiteHost(new URL(href).hostname,url.hostname)))];
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,contactText:navigable,wordCount,raw:text};

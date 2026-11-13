@@ -27,3 +27,9 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 - Ověření: kompletní místní regrese, pozitivní cache, neplatné zařízení/doména, runtime error, blokované úložiště a robots; prohlížeč a produkce v CI.
 - Omezení: bez platné cache a při vyčerpané kvótě nelze Lighthouse výsledek získat; oprava nevytváří chybějící měření.
 - Další krok: stáří a původ uložených měření v přehledu zdrojů a reportu.
+- Opraveno: inventář odkazů a obrázků zachovává Markdown cíle s volitelným titulkem v jednoduchých či dvojitých uvozovkách i závorkách.
+- Podporováno: oddělení titulku novým řádkem, escapované uvozovky, URL v úhlových závorkách a obrázek uvnitř odkazu.
+- Neúplný titulek, chybějící oddělovač a přebytečný text nevytvářejí falešné odkazy.
+- Ověření: kompletní regresní sada prošla, včetně nových pozitivních a negativních scénářů.
+- Prohlížečové ověření: místní Chromium blokují omezení prostředí; na push navazuje existující CI pro desktop, mobil a dokončení auditu při výpadcích zdrojů.
+- Další priorita: pokračovat v ověřování neúplných a namespacovaných sitemap podle kritérií výše.

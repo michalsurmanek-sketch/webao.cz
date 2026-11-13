@@ -28,6 +28,9 @@ async function check(status,expectedCalls,unreadable=false,nullPayload=false){
   const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));
   const quotaContext={};vm.createContext(quotaContext);vm.runInContext(quotaSource,quotaContext);
   assert.equal(quotaContext.isPageSpeedQuotaError(new Error('PageSpeed mobile: HTTP 429 — Too Many Requests')),true);
+  assert.equal(quotaContext.isPageSpeedQuotaError(new Error('Too Many Requests')),true);
+  assert.equal(quotaContext.isPageSpeedQuotaError(new Error('RESOURCE_EXHAUSTED')),true);
+  assert.equal(quotaContext.isPageSpeedQuotaError(new Error('Internal server error')),false);
   assert.match(quotaContext.pageSpeedErrorMessage(new Error('HTTP 429')),/omezil počet požadavků/);
  }
 }

@@ -901,7 +901,7 @@ async function queryHttpObservatory(host){
  if(!response.ok||payload.error)throw new Error(payload.message||payload.error||'MDN HTTP Observatory nevrátil výsledek ('+response.status+').');
  return validateObservatoryResult(payload);
 }
-function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit|HTTP 429/i.test(String(error&&error.message||error||''))}
+function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit|HTTP 429|too many requests|resource_exhausted/i.test(String(error&&error.message||error||''))}
 function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights omezil počet požadavků nebo vyčerpal kvótu. Nové měření teď není dostupné. Případné uložené výsledky jsou označené samostatně. Zkuste nové měření později.';return String(error&&error.message||error||'Příčina není známa.');}
 function withPageSpeedProvenance(payload,source,savedAt=null){
  const iso=value=>{const time=typeof value==='number'?value:typeof value==='string'?Date.parse(value):NaN;return Number.isFinite(time)&&time>0&&time<=Date.now()?new Date(time).toISOString():null};

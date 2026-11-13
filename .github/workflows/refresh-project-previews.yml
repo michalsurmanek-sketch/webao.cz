@@ -18,13 +18,14 @@ jobs:
           node-version: '22'
       - name: Install browser
         run: |
-          npm install --no-save playwright
+          npm install --no-save playwright sharp
           npx playwright install --with-deps chromium
       - name: Capture desktop previews
         run: |
           node <<'JS'
           const { chromium } = require('playwright');
           const fs = require('fs');
+          const sharp = require('sharp');
           (async () => {
             const browser = await chromium.launch({headless:true});
             let successes = 0;
@@ -34,10 +35,7 @@ jobs:
                 await page.goto('https://' + slug + '.cz/',{waitUntil:'domcontentloaded',timeout:45000});
                 await page.waitForTimeout(4000);
                 const image = await page.screenshot({type:'jpeg',quality:85});
-                const {execFileSync}=require('child_process');
-                const tmp='/tmp/'+slug+'.jpg';
-                fs.writeFileSync(tmp,image);
-                execFileSync('convert',[tmp,'-resize','1100x756^','-gravity','north','-extent','1100x756','-quality','85','assets/previews/'+slug+'.webp']);
+                await sharp(image).resize(1100,756,{fit:'cover',position:'north'}).webp({quality:85}).toFile('assets/previews/'+slug+'.webp');
                 console.log('Captured '+slug);
                 successes++;
               } catch (e) {

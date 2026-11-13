@@ -13,6 +13,12 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const rootTypes=await page.evaluate(()=>({
+      pages:getSitemapUrls('<urlset xmlns:ext="urn:extension" note="&lt;sitemapindex&gt;"><ext:sitemapindex/><url><loc>https://example.cz/root-page</loc></url></urlset>','example.cz'),
+      indexes:getSitemapLocations('<sitemapindex xmlns:ext="urn:extension" note="&lt;urlset&gt;"><ext:urlset/><sitemap><loc>https://example.cz/nested.xml</loc></sitemap></sitemapindex>','example.cz')
+    }));
+    assert.deepEqual(rootTypes.pages,['https://example.cz/root-page']);
+    assert.deepEqual(rootTypes.indexes,['https://example.cz/nested.xml']);
     const cdataTypes=await page.evaluate(()=>({
       pages:getSitemapUrls('<urlset><note><![CDATA[<sitemapindex>not markup</sitemapindex>]]></note><url><loc>https://example.cz/real</loc></url></urlset>','example.cz'),
       indexes:getSitemapLocations('<sitemapindex><note><![CDATA[<urlset>not markup</urlset>]]></note><sitemap><loc>https://example.cz/child.xml</loc></sitemap></sitemapindex>','example.cz')

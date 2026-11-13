@@ -1075,11 +1075,12 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots,allowsPath=robotsAllo
   for(const raw of page.links){
    const url=normalizeCrawlUrl(raw,baseUrl);if(!url||url===new URL('/',baseUrl).href)continue;
    const target=new URL(url);
-   if(!isSameSiteHost(target.hostname,baseUrl.hostname)||found.has(url))continue;
-   found.set(url,{url,source:page.url,excluded:isExcluded(url),robotsBlocked:!allowsPath(robots,target.pathname+target.search)});
+   if(!isSameSiteHost(target.hostname,baseUrl.hostname))continue;
+   if(found.has(url)){found.get(url).sources.add(page.url);continue;}
+   found.set(url,{url,source:page.url,sources:new Set([page.url]),excluded:isExcluded(url),robotsBlocked:!allowsPath(robots,target.pathname+target.search)});
   }
  }
- return [...found.values()];
+ return [...found.values()].map(item=>({...item,sources:[...item.sources]}));
 }
 function sitemapDocumentType(text,source){
  if(typeof DOMParser!=='undefined'&&/<(?:[A-Za-z_][\w.-]*:)?(?:urlset|sitemapindex)\b/i.test(source)){
@@ -1415,7 +1416,7 @@ form.addEventListener('submit',async event=>{
   for(const item of finalLinks){
    crawlDiscovered.add(item.url);deepLinkedUrls.add(item.url);
    const kinds=new Set(sourceKindByUrl.get(item.url)||[]);kinds.add('Interní odkaz z prověřené stránky');sourceKindByUrl.set(item.url,[...kinds]);
-   recordSource(item.url,item.source);
+   for(const source of item.sources||[item.source])recordSource(item.url,source);
    if(item.excluded)allExcluded.add(item.url);
    else if(item.robotsBlocked)allRobotsExcluded.add(item.url);
    else eligibleDiscoveredUrls.add(item.url);

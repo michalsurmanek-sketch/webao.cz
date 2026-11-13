@@ -115,7 +115,7 @@ const { chromium } = require('playwright');
           if (pathname === '/child-0.xml') return new Response('<urlset><url><loc>https://example.cz/truncated-page</loc></url>');
           return new Response('<s:urlset xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9"><s:url><s:loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '?a=1&amp;b=2</s:loc></s:url><s:url><s:loc>https://example.cz/shared-page</s:loc><image:image xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><image:loc>https://example.cz/image.jpg</image:loc></image:image></s:url></s:urlset>');
         }
-        if(pathname==='/page1')return new Response('Title: Fixture page\nMarkdown Content:\n# Page\n[Shared page](https://example.cz/shared-page)');
+        if(pathname==='/page1'||pathname==='/page2')return new Response('Title: Fixture page\nMarkdown Content:\n# Page\n[Shared page](https://example.cz/shared-page)');
         throw new TypeError('Fixture page unavailable');
       };
     });
@@ -151,6 +151,7 @@ const { chromium } = require('playwright');
     assert.match(shared.sourceUrl,/child-2\.xml/);
     assert.match(shared.sourceUrl,/https:\/\/example.cz\/page1/,'already fetched page must receive later internal-link provenance');
     assert.match(String(shared.source),/Interní odkaz z prověřené stránky/);
+    assert.match(shared.sourceUrl,/https:\/\/example.cz\/page2/,'second referring page in the same pass must be preserved');
     assert.equal(new Set(shared.sourceUrl.split(' | ')).size,shared.sourceUrl.split(' | ').length);
     assert.match(result.csv, /sitemapy nevyžádané limitem: 5/);
     assert.match(result.report, /Sitemapy nevyžádané kvůli limitu požadavků · 5/);

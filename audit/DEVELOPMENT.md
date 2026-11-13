@@ -8,8 +8,7 @@
 
 ## Poslední změna — 2026-11-13
 
-- Reader URL Source stále neposkytuje ověřený cíl HTTP přesměrování; základ relativních adres proto bez důkazu neměníme. Integrační CSV tracking případ již přítomen z PR #44.
-- Potvrzen falešný pozitivní odkaz: samotný text ](/cesta) se přidával do inventáře. Parser nyní vyžaduje i otevírací závorku popisku.
-- Regrese ověřuje odmítnutí neúplné syntaxe, existující scénáře zachovávají relativní odkazy a proklikávací obrázky.
+- Potvrzeno: Markdown cíl /a_(b) se zkracoval na /a_(b. Parser odkazů nyní čte vyvážené závorky a cíle v úhlových závorkách; neúplné cíle vynechá.
+- Regrese pokrývá vnořené závorky, úhlové závorky a neukončený cíl. Existující relativní odkazy a proklikávací obrázky zůstávají pokryté.
 - Ověření: kompletní místní regrese a diff; Chromium a produkční dostupnost v CI.
-- Další priorita: prověřit Markdown cíle obsahující závorky a úhlové závorky, aby nevznikaly zkrácené adresy.
+- Další priorita: stejné zpracování cílů doplnit pro obrázky; nyní jejich regex stále nepodporuje závorky v URL.

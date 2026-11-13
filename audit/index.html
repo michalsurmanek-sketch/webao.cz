@@ -896,8 +896,8 @@ async function queryHttpObservatory(host){
  if(!response.ok||payload.error)throw new Error(payload.message||payload.error||'MDN HTTP Observatory nevrátil výsledek ('+response.status+').');
  return validateObservatoryResult(payload);
 }
-function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit/i.test(String(error&&error.message||error||''))}
-function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Nové měření z tohoto požadavku není dostupné. Případné uložené výsledky jsou označené samostatně. Zkuste nové měření později.';return String(error&&error.message||error||'Příčina není známa.');}
+function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit|HTTP 429/i.test(String(error&&error.message||error||''))}
+function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights omezil počet požadavků nebo vyčerpal kvótu. Nové měření teď není dostupné. Případné uložené výsledky jsou označené samostatně. Zkuste nové měření později.';return String(error&&error.message||error||'Příčina není známa.');}
 function withPageSpeedProvenance(payload,source,savedAt=null){
  const iso=value=>{const time=typeof value==='number'?value:typeof value==='string'?Date.parse(value):NaN;return Number.isFinite(time)&&time>0&&time<=Date.now()?new Date(time).toISOString():null};
  const measuredAt=iso(payload.lighthouseResult?.fetchTime)||iso(payload.analysisUTCTimestamp);
@@ -924,6 +924,7 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
    let payload={};try{payload=await readTimedResponse(response,'json',45000)}catch(error){throw new Error(error&&error.name==='AbortError'?'Požadavek PageSpeed překročil limit 45 sekund.':'Odpověď PageSpeed se nepodařilo přečíst.');}
    if(!response.ok){
     const failure=new Error(payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
+    if(response.status===429)failure.message='HTTP 429 — '+failure.message;
     // Retrying a throttled request immediately can worsen rate limiting; let the user retry later.
     if(response.status>=400&&response.status<500)failure.retryable=false;
     throw failure;

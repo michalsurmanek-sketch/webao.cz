@@ -939,22 +939,34 @@ function parsePageText(text,url){
   try{const target=new URL(raw,url);if(!['http:','https:'].includes(target.protocol)||target.username||target.password||target.port)return'';target.hash='';return target.href}catch{return''}
  };
  const navigable=stripMarkdownInlineCode(content);
- const images=[...navigable.matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:resolve(match[2])})).filter(image=>image.url);
- // Remove image syntax, not every link sharing an image URL: linked images are navigable.
- const withoutImages=navigable.replace(/!\[[^\]]*\]\([^)\s]+\)/g,'');
- const markdownLinks=[];
- for(const match of withoutImages.matchAll(/\[[^\]\r\n]*\]\(/g)){
-  let cursor=match.index+match[0].length,destination='',depth=0,closed=false;
-  const angled=withoutImages[cursor]==='<';if(angled)cursor++;
-  for(;cursor<withoutImages.length;cursor++){
-   const char=withoutImages[cursor];
-   if(angled&&char==='>'){closed=withoutImages[cursor+1]===')';break;}
+ const readDestination=(source,start)=>{
+  let cursor=start,destination='',depth=0,closed=false;
+  const angled=source[cursor]==='<';if(angled)cursor++;
+  for(;cursor<source.length;cursor++){
+   const char=source[cursor];
+   if(angled&&char==='>'){closed=source[cursor+1]===')';break;}
    if(/\s/.test(char)||char==='<'||char==='>')break;
    if(!angled&&char==='(')depth++;
    if(!angled&&char===')'){if(depth===0){closed=true;break;}depth--;}
    destination+=char;
   }
-  if(closed&&destination&&!destination.startsWith('#')){const target=resolve(destination);if(target)markdownLinks.push(target);}
+  return closed&&destination?{destination,end:cursor+(angled?2:1)}:null;
+ };
+ const images=[],imageSpans=[];
+ for(const match of navigable.matchAll(/!\[([^\]\r\n]*)\]\(/g)){
+  const parsed=readDestination(navigable,match.index+match[0].length);
+  if(!parsed)continue;
+  imageSpans.push([match.index,parsed.end]);
+  const target=resolve(parsed.destination);if(target)images.push({alt:match[1].trim(),url:target});
+ }
+ // Remove only image syntax, preserving an enclosing navigable link.
+ let withoutImages=navigable;
+ for(const [start,end] of imageSpans.reverse())withoutImages=withoutImages.slice(0,start)+withoutImages.slice(end);
+ const markdownLinks=[];
+ for(const match of withoutImages.matchAll(/\[[^\]\r\n]*\]\(/g)){
+  if(match.index>0&&withoutImages[match.index-1]==='!')continue;
+  const parsed=readDestination(withoutImages,match.index+match[0].length);
+  if(parsed&&!parsed.destination.startsWith('#')){const target=resolve(parsed.destination);if(target)markdownLinks.push(target);}
  }
  const links=[...new Set(markdownLinks.filter(href=>isSameSiteHost(new URL(href).hostname,url.hostname)))];
  const externalLinks=[...new Set(markdownLinks.filter(href=>!isSameSiteHost(new URL(href).hostname,url.hostname)))];

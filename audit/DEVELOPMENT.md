@@ -8,7 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Potvrzeno: Markdown cíl /a_(b) se zkracoval na /a_(b. Parser odkazů nyní čte vyvážené závorky a cíle v úhlových závorkách; neúplné cíle vynechá.
-- Regrese pokrývá vnořené závorky, úhlové závorky a neukončený cíl. Existující relativní odkazy a proklikávací obrázky zůstávají pokryté.
+- Potvrzeno zkracování URL obrázků se závorkami. Obrázky a odkazy nyní sdílejí čtení vyvážených cílů včetně úhlových závorek.
+- Odstranění obrázkové syntaxe zachovává obalový odkaz; neúplný obrázek se nevydává za navigační odkaz.
+- Regrese pokrývá vnořené závorky, úhlové cíle, proklikávací obrázek a neúplný cíl.
 - Ověření: kompletní místní regrese a diff; Chromium a produkční dostupnost v CI.
-- Další priorita: stejné zpracování cílů doplnit pro obrázky; nyní jejich regex stále nepodporuje závorky v URL.
+- Další priorita: prověřit Markdown escape sekvence v cílech, aby zpětná lomítka nevytvářela jiné URL.

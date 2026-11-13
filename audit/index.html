@@ -933,7 +933,7 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
     throw failure;
    }
    if(!response.ok){
-    const failure=new Error(payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
+    const failure=new Error(payload&&payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
     if(response.status===429)failure.message='HTTP 429 — '+failure.message;
     // Retrying a throttled request immediately can worsen rate limiting; let the user retry later.
     if(response.status>=400&&response.status<500)failure.retryable=false;

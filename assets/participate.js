@@ -31,7 +31,7 @@ function renderPublicProjects(rows){
  for(const p of rows){
   const domain=domainFor(p),url='https://'+domain+'/';
   const card=document.createElement('article');card.className='project-card website-card';card.dataset.project=p.slug;card.setAttribute('aria-label',p.name);
-  const hasPreview=new Set(['plotao','gurmao','slevao','betonao','montao','renovao','vibrao','poptejplot','poptejcenu','vydrhnu','reklamas','adresao','chatao','herbao','casinao','farmao','webao']).has(p.slug);
+  const hasPreview=new Set(['plotao','gurmao','slevao','betonao','montao','renovao','vibrao','opravao','poptejplot','poptejcenu','vydrhnu','reklamas','adresao','chatao','herbao','casinao','farmao','webao']).has(p.slug);
   const accent=p.slug==='gurmao'?'gold':'green';
   card.dataset.accent=accent;
   const shortName=e(p.name||domain.replace('.cz','').toUpperCase());

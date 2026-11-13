@@ -13,6 +13,7 @@
  assert.match(csv,/Skóre pouze z provedených kontrol v této oblasti/);
  assert.match(csv,/area\.measured\+' \/ '\+area\.tests/);
  assert.match(csv,/Math\.round\(area\.coverage\*100\)/);
+ assert.match(csv,/data\.coverage===100\?'PLNÉ POKRYTÍ VÁŽENÝCH KONTROL':'ČÁSTEČNÝ'/);
  console.log('PASS: partial CSV audit scores are explicitly qualified');
 }
 await (async()=>{

@@ -26,7 +26,11 @@
     global.localStorage.removeItem(key(url,strategy));return null;
    }
    return {payload:value.payload,savedAt:value.savedAt};
-  }catch(_){return null;}
+  }catch(_){
+   // A corrupt entry must not repeatedly break future reads. Storage may be disabled.
+   try{global.localStorage.removeItem(key(url,strategy));}catch(__){}
+   return null;
+  }
  }
  function write(url,strategy,payload){
   if(!valid(payload))return false;

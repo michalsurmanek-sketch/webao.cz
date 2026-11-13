@@ -48,3 +48,11 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 - Ověření: kompletní místní regresní sada prošla; přidány nativní prohlížečové scénáře pro prefixy, cizí namespace, CDATA a celý audit bez bodového dopadu neověřené sitemapy.
 - Existující prohlížečová sada nadále ověřuje 15 000 URL, neúplné XML a dokončení auditu. Její spuštění zajišťuje CI; místní Chromium blokuje prostředí.
 - Další priorita: ověřit úplnost seznamu URL při odpovědích textové čtečky a srozumitelné vyznačení omezeného vzorku v reportu.
+
+## Ověřené změny cache — 2026-11-13
+
+- PR #52: odmítání výsledků Lighthouse s runtimeError; regresní, produkční a prohlížečové CI prošly; sloučeno do main.
+- PR #53: přísnější validace narušila kompatibilitu s existujícími scénáři; CI neprošlo a PR bylo uzavřeno bez nasazení.
+- PR #54: validace kategorií a číselného skóre při zachování starších výsledků bez kategorií; regresní, produkční a prohlížečové CI prošly; sloučeno do main.
+- Navazující oprava: poškozený JSON cache se bezpečně odstraní a další zápis může proběhnout; před nasazením musí projít CI.
+- Kritéria prvního vydání zůstávají otevřená, zejména současné reálné Lighthouse měření na obou zařízeních a vizuální QA exportů.

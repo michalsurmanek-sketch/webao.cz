@@ -11,6 +11,8 @@
  assert.match(csv,/Nejde o celkové hodnocení webu/);
  assert.match(csv,/Neměřené oblasti nejsou zahrnuty do skóre/);
  assert.match(csv,/Skóre pouze z provedených kontrol v této oblasti/);
+ assert.match(csv,/area\.measured\+' \/ '\+area\.tests/);
+ assert.match(csv,/Math\.round\(area\.coverage\*100\)/);
  console.log('PASS: partial CSV audit scores are explicitly qualified');
 }
 await (async()=>{

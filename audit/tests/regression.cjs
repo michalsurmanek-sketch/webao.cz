@@ -48,8 +48,10 @@ raw='[]';assert.equal(Object.keys(c.loadLocalFindingWork('x')).length,0);raw='{b
 c.localStorage.setItem=()=>{throw Error('quota')};assert(!c.saveLocalFindingWork('x','f','note','new'));
 // Execute the real export and capture every CSV row, including range notes.
 let blob;const rowData={host:'example.cz',pages:[],areas:[],findings:[],coverage:20,score:100,crawlMeta:{note:'range note',excludedUrlExamples:[{url:'https://example.cz/x',source:'test'}]}};
-c.window={currentAuditData:rowData};c.Blob=class{constructor(parts){blob=parts[0]}};c.URL={createObjectURL:()=> 'blob:stub',revokeObjectURL:()=>{}};c.document={createElement:()=>({click(){}})};c.setTimeout=()=>{};
+c.window={currentAuditData:rowData};c.Blob=class{constructor(parts){blob=parts[0]}};c.URL=class extends URL{static createObjectURL(){return 'blob:stub'}static revokeObjectURL(){}};c.document={createElement:()=>({click(){}})};c.setTimeout=()=>{};
+vm.runInContext(s.slice(s.indexOf('function auditLinkKey('),s.indexOf('function buildInboundLinks(')),c);
 vm.runInContext(s.slice(s.indexOf('function downloadAuditCsv('),s.indexOf('function auditComparisonScope(')),c);c.downloadAuditCsv();
+vm.runInContext(s.slice(s.indexOf('function auditCsvPageValue('),s.indexOf('function downloadAuditCsv(')),c);rowData.pages=[{url:'https://example.cz/a',raw:'ok',links:['https://example.cz/a?utm_source=test'],externalLinks:[]}];c.downloadAuditCsv();assert.match(blob,/CÍL VE VZORKU/);
 const rows=blob.replace(/^\uFEFF/,'').split('\r\n').map(row=>Array.from(row.matchAll(/"(?:[^"]|"")*"(?=;|$)/g),m=>m[0]));assert(rows.every(row=>row.length===18));assert.match(rows[0][17],/Poznámka k rozsahu/);assert.match(blob,/range note/);
 assert(s.includes("dispatchEvent(new Event('change'))"));assert(s.includes("renderFindingWorkNote(progress)"));
 console.log('PASS: UI storage, fixed-width CSV and update integration checks');

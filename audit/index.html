@@ -1714,7 +1714,7 @@ form.addEventListener('submit',async event=>{
      const audit=audits[auditId];
      const existing=findings.find(item=>item.area==='SEO a obsah'&&item.name===findingName&&!Number.isFinite(item.points));
      if(!existing||!lighthouseAuditScored(audit))continue;
-     const points=Math.round(audit.score*100),passed=points>=90;
+     const points=Math.round(audit.score*100),passed=audit.score>=0.9;
      existing.ok=passed;existing.points=points;existing.state=undefined;
      existing.severity=passed?'Nízká':'Střední';
      existing.detail=(audit.title||findingName)+'. '+(audit.displayValue|| (passed?'Lighthouse rozpoznal tento prvek.':'Lighthouse nenašel tento prvek.'))+' Textová čtečka jej nerozpoznala; report používá mobilní Lighthouse výsledek. Automatická kontrola potvrzuje pouze přítomnost, ne kvalitu textu.';

@@ -56,3 +56,10 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 - PR #54: validace kategorií a číselného skóre při zachování starších výsledků bez kategorií; regresní, produkční a prohlížečové CI prošly; sloučeno do main.
 - Navazující oprava: poškozený JSON cache se bezpečně odstraní a další zápis může proběhnout; před nasazením musí projít CI.
 - Kritéria prvního vydání zůstávají otevřená, zejména současné reálné Lighthouse měření na obou zařízeních a vizuální QA exportů.
+
+## Kontrola hranic skóre — 2026-11-13
+
+- Opravena nekonzistence mobilního Lighthouse fallbacku metadat: rozhodnutí vyhovuje se nyní porovnává s původním skóre 0,9, nikoli zaokrouhlenou hodnotou 90. Hodnoty 0,895–0,899 nesmějí změnit stav na vyhovující pouhým zaokrouhlením.
+- Regrese ověřuje obě strany hranice; zobrazené body se nadále zaokrouhlují.
+- Ověření: všechny čtyři místní sady podle CI, kontrola diffu; prohlížeč a produkce v CI.
+- Další priorita: dokončit kritéria reálného měření a vizuální QA aktuálních exportů; tato oprava sama neznamená hotové vydání.

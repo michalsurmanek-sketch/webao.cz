@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Doplněno nativní měření skutečného reportu a CSV pro 30 stránek, každou s 30 zdroji o přibližně 2 000 znacích. Kontroluje zachování posledního zdroje bez tichého zkrácení.
-- CI vypisuje čas renderu a velikost HTML/CSV; konzervativní kritéria fixture: render pod 10 s, každá reprezentace pod 8 MiB. Nejde o garanci pro libovolné URL nebo zařízení.
-- Bez měření potvrzujícího potřebu se evidence nekrátí; test vytváří podklad pro cílené omezení zobrazení při dalším růstu.
-- Ověření: místní regrese, syntaxe a diff kontrola; nativní render a produkční kontroly v CI.
-- Další priorita: prověřit agregaci více zdrojů v nálezech, zda nezvětšuje report opakováním stejné evidence.
+- Opakování evidence v nálezech: nález nedostupné čtečky opakuje typ zdroje, nikoli dlouhý seznam adres; plošné krácení není podložené.
+- Potvrdila se související chyba původu: odkaz stránky na sebe (včetně fragmentu či tracking parametrů) se zaznamenával jako další zdroj jejího objevení. discoverPageLinks nyní vlastní normalizovanou URL vynechává.
+- Chromium ověřuje fragment, tracking variantu a zachování skutečného odkazu z jiné stránky. Existující hustý vzorek a celý audit zůstávají pokryty.
+- Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
+- Další priorita: prověřit jednotnou normalizaci cílových a zdrojových URL při počítání příchozích odkazů.

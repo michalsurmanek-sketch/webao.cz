@@ -41,6 +41,12 @@ const { chromium } = require('playwright');
     assert.deepEqual(cdataTypes.indexes,['https://example.cz/child.xml']);
     const incompleteComment=await page.evaluate(()=>getSitemapUrls('<urlset><url><loc>https://example.cz/invalid</loc></url></urlset><!-- truncated','example.cz'));
     assert.deepEqual(incompleteComment,[],'extraction must not repair incomplete XML by stripping comments');
+    const selfDiscovery=await page.evaluate(()=>discoverPageLinks([
+      {url:'https://example.cz/self',raw:'available',links:['https://example.cz/self#section','https://example.cz/self?utm_source=test']},
+      {url:'https://example.cz/other',raw:'available',links:['https://example.cz/self']}
+    ],new URL('https://example.cz/'),()=>false,'User-agent: *\nAllow: /'));
+    assert.equal(selfDiscovery.length,1);
+    assert.deepEqual(selfDiscovery[0].sources,['https://example.cz/other'],'self-links must not become discovery provenance');
     const dense=await page.evaluate(()=>{
       const links=Array.from({length:1000},(_,i)=>'https://example.cz/target-'+i);
       const pages=Array.from({length:30},(_,i)=>({url:'https://example.cz/source-'+i,raw:'available',links:[...links,...links.slice(0,100)]}));

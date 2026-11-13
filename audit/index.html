@@ -1073,7 +1073,7 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots,allowsPath=robotsAllo
  for(const page of pages){
   if(!pageTextWasFetched(page)||!Array.isArray(page.links))continue;
   for(const raw of page.links){
-   const url=normalizeCrawlUrl(raw,baseUrl);if(!url||url===new URL('/',baseUrl).href)continue;
+   const url=normalizeCrawlUrl(raw,baseUrl);if(!url||url===new URL('/',baseUrl).href||url===normalizeCrawlUrl(page.url,baseUrl))continue;
    const target=new URL(url);
    if(!isSameSiteHost(target.hostname,baseUrl.hostname))continue;
    if(found.has(url)){found.get(url).sources.add(page.url);continue;}

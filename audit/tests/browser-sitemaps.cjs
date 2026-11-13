@@ -102,6 +102,18 @@ const { chromium } = require('playwright');
     assert.equal(parseCount,1,'validation and repeated extraction must share one native parse');
     const extensionUrls=await page.evaluate(()=>getSitemapUrls('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><url><loc>https://example.cz/page?a=1&amp;b=2</loc><image:image><image:loc>https://example.cz/image.jpg</image:loc></image:image><image:loc>https://example.cz/direct-image.jpg</image:loc></url></urlset>','example.cz'));
     assert.deepEqual(extensionUrls,['https://example.cz/page?a=1&b=2']);
+    const namespaceCases=await page.evaluate(()=>{
+      const ns='http://www.sitemaps.org/schemas/sitemap/0.9';
+      const foreign='<urlset xmlns="urn:foreign"><url><loc>https://example.cz/foreign</loc></url></urlset>';
+      const foreignIndex='<sitemapindex xmlns="urn:foreign"><sitemap><loc>https://example.cz/foreign.xml</loc></sitemap></sitemapindex>';
+      const nested='<urlset xmlns="'+ns+'"><url><loc>https://example.cz/<part>fabricated</part></loc></url><url><loc><![CDATA[https://example.cz/real?a=1&b=2]]></loc></url></urlset>';
+      return {foreignValid:isSitemapDocument(foreign),foreignPages:getSitemapUrls(foreign,'example.cz'),foreignIndexes:getSitemapLocations(foreignIndex,'example.cz'),nestedPages:getSitemapUrls(nested,'example.cz'),prefixedPages:getSitemapUrls('<s:urlset xmlns:s="'+ns+'"><s:url><s:loc>https://example.cz/prefixed</s:loc></s:url></s:urlset>','example.cz')};
+    });
+    assert.equal(namespaceCases.foreignValid,false,'foreign XML namespace cannot confirm sitemap availability');
+    assert.deepEqual(namespaceCases.foreignPages,[]);
+    assert.deepEqual(namespaceCases.foreignIndexes,[]);
+    assert.deepEqual(namespaceCases.nestedPages,['https://example.cz/real?a=1&b=2'],'nested elements must not fabricate page URLs; CDATA remains supported');
+    assert.deepEqual(namespaceCases.prefixedPages,['https://example.cz/prefixed']);
     const recognition = await page.evaluate(() => {
       const valid='<urlset><url><loc>https://example.cz/page</loc></url></urlset>';
       return {
@@ -192,6 +204,23 @@ const { chromium } = require('playwright');
     assert.equal(incomplete.meta.sitemapDiscovered,0);
     assert.equal(incomplete.finding.points,null,'incomplete XML must not confirm or penalize sitemap score');
     assert.equal(incomplete.finding.state,'NELZE OVĚŘIT');
+    await page.evaluate(()=>{
+      window.currentAuditData=null;
+      window.fetch=async input=>{
+        const raw=String(input);
+        if(raw.endsWith('/robots.txt'))return new Response('User-agent: *\nAllow: /');
+        if(raw.endsWith('/sitemap.xml'))return new Response('<urlset xmlns="urn:foreign"><url><loc>https://example.cz/foreign</loc></url></urlset>');
+        throw new TypeError('Fixture external outage');
+      };
+    });
+    await page.locator('#audit-form button[type="submit"]').click();
+    await page.waitForFunction(()=>window.currentAuditData&&!document.querySelector('#audit-form button[type="submit"]').disabled,null,{timeout:20000});
+    const foreignAudit=await page.evaluate(()=>({meta:window.currentAuditData.crawlMeta,finding:window.currentAuditData.findings.find(item=>item.name==='XML sitemap')}));
+    assert.equal(foreignAudit.meta.sitemapFiles,0);
+    assert.equal(foreignAudit.meta.sitemapDiscovered,0);
+    assert.equal(foreignAudit.finding.points,null,'foreign XML must neither confirm nor penalize sitemap score');
+    assert.equal(foreignAudit.finding.state,'NELZE OVĚŘIT');
+
     await page.evaluate(()=>{
       window.currentAuditData=null;
       window.fetch=async input=>{

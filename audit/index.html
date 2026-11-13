@@ -204,7 +204,7 @@ function downloadAuditCsv(){
  const safe=value=>{let text=String(value??'');if(/^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
  const rows=[['Typ','URL','Oblast','Stav','Závažnost','Název','Důkaz / detail','Dopad','Doporučené řešení','Pracnost','Jistota','Kontrolováno','Stav nápravy','Řešitel','Poznámka','Pokrytí vážených oblastí','Typ zjištění','Poznámka k rozsahu']];
  rows.push(['Souhrn',data.host,'Skóre měřených oblastí','',data.grade||'',data.score===null?'Není dostupné':data.score+'%','Nejde o celkové hodnocení webu. Pokrytí vážených oblastí: '+data.coverage+' %. Neměřené oblasti nejsou zahrnuty do skóre.','','','','Metodika '+(data.ruleVersion||''),data.checkedAt,'','','',data.coverage+' %']);
- for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',area.score===null?'Bez dostupných kontrol':'Skóre pouze z provedených kontrol v této oblasti; neověřené kontroly nejsou započítány','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
+ for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',(area.score===null?'Bez dostupných kontrol':'Skóre pouze z provedených kontrol v této oblasti; neověřené kontroly nejsou započítány')+'; provedené kontroly: '+area.measured+' / '+area.tests+'; pokrytí oblasti: '+Math.round(area.coverage*100)+' %','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
  const csvWork=loadLocalFindingWork(data.host);
  for(const item of data.findings){
   const key=(item.url||data.host)+'|'+item.name,progress=csvWork[key]||{};

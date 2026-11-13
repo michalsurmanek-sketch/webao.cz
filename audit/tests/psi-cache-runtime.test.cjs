@@ -38,6 +38,10 @@ assert.equal(cache.read(url,strategy),null,'oversized legacy entry must be rejec
 assert.equal(values.has(key),false,'oversized legacy entry must be evicted');
 assert.equal(cache.write(url,strategy,good),true,'cache remains usable after oversized legacy entry');
 assert.equal(cache.read(url, strategy).payload.lighthouseResult.categories.performance.score, 0.9);
+values.set(key,{not:'a string'});
+assert.equal(cache.read(url,strategy),null,'non-string storage responses must be rejected');
+assert.equal(values.has(key),false,'malformed storage responses must be evicted');
+assert.equal(cache.write(url,strategy,good),true);
 values.set(key, JSON.stringify({savedAt: Date.now(), payload: failed}));
 assert.equal(cache.read(url, strategy), null, 'legacy failed cache must be rejected');
 assert.equal(values.has(key), false, 'invalid cache must be removed');

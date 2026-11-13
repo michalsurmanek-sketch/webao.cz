@@ -37,7 +37,9 @@ jobs:
         with:
           node-version: 22
       - name: Run audit regression tests
-        run: node audit/tests/regression.cjs
+        run: |
+          node audit/tests/regression.cjs
+          node audit/tests/psi-cache-runtime.test.cjs
 
   production-health:
     name: Production availability and audit smoke checks

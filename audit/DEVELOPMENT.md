@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Opakování evidence v nálezech: nález nedostupné čtečky opakuje typ zdroje, nikoli dlouhý seznam adres; plošné krácení není podložené.
-- Potvrdila se související chyba původu: odkaz stránky na sebe (včetně fragmentu či tracking parametrů) se zaznamenával jako další zdroj jejího objevení. discoverPageLinks nyní vlastní normalizovanou URL vynechává.
-- Chromium ověřuje fragment, tracking variantu a zachování skutečného odkazu z jiné stránky. Existující hustý vzorek a celý audit zůstávají pokryty.
-- Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit jednotnou normalizaci cílových a zdrojových URL při počítání příchozích odkazů.
+- Potvrzen nesoulad: crawl odstraňoval tracking parametry, ale mapa a počítání příchozích odkazů je ponechávaly. Odkaz s tracking parametry pak chybně vypadal jako cíl mimo vzorek.
+- auditLinkKey nyní používá stejné pravidlo pro tracking parametry; funkční parametry a koncová lomítka zůstávají odlišné.
+- Regrese pokrývá deduplikaci variant, vlastní odkazy, nedostupné zdroje/cíle, funkční parametry a lomítka.
+- Ověření: místní regrese a diff; nativní Chromium a produkční kontroly v CI (místní sandbox spuštění Chromium nepovoluje).
+- Další priorita: prověřit odkazy relativní vůči přesměrované stránce a jejich základní URL; bez ověřeného cíle neslučovat adresy.

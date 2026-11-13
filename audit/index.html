@@ -369,7 +369,7 @@ function buildSkippedUrlsHtml(crawlMeta){
  return '<h3 style="margin-top:28px">URL mimo prověřený vzorek</h3><p class="audit-disclaimer">Tyto adresy nebyly načteny. Uvádíme je kvůli transparentnosti rozsahu, ne jako chyby webu.</p>'+groups.map(group=>'<h4>'+esc(group.title)+' · '+group.count+'</h4><ul>'+group.items.map(item=>'<li><a class="audit-link" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+esc(item.url)+'</a> <small>Zdroj: '+esc(item.source)+'</small></li>').join('')+'</ul>'+(group.count>group.items.length?'<p class="audit-disclaimer">Zobrazeno prvních '+group.items.length+' z '+group.count+' adres.</p>':'')).join('');
 }
 function auditLinkKey(value){
- try{const url=new URL(value);url.hash='';return url.href}catch{return''}
+ try{const url=new URL(value);url.hash='';for(const key of [...url.searchParams.keys()]){const normalized=key.toLowerCase();if(normalized.startsWith('utm_')||['gclid','dclid','fbclid','msclkid','gbraid','wbraid','yclid','igshid','_ga','mc_cid','mc_eid'].includes(normalized))url.searchParams.delete(key)}return url.href}catch{return''}
 }
 function buildInboundLinks(pages){
  const inbound=new Map(pages.filter(pageTextWasFetched).map(page=>[auditLinkKey(page.url),0]).filter(([key])=>key));

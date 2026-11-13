@@ -724,3 +724,18 @@ assert.match(script,/HTML hlavičky pro canonical\/hreflang byly samostatně na�
 assert.match(script,/const ruleVersion='2026-11-11\.160'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();
+
+(()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+const c={URL,pageTextWasFetched:p=>p.raw!=null};vm.createContext(c);
+vm.runInContext(html.slice(html.indexOf('function auditLinkKey('),html.indexOf('function buildLinkGraphHtml(')),c);
+const pages=[{url:'https://example.cz/',raw:'ok',links:['https://example.cz/product?id=1&utm_source=test#x','https://example.cz/product?id=1&fbclid=test','https://example.cz/product?id=2']},{url:'https://example.cz/product?id=1',raw:'ok',links:['https://example.cz/product?id=1&utm_medium=self']},{url:'https://example.cz/product?id=2',raw:null,links:['https://example.cz/product?id=1']}];
+const counts=c.buildInboundLinks(pages);
+assert.equal(counts.get('https://example.cz/product?id=1'),1,'tracking variants deduplicate and self/unavailable sources do not count');
+assert(!counts.has('https://example.cz/product?id=2'),'unavailable target stays unmeasured');
+assert.notEqual(c.auditLinkKey('https://example.cz/a'),c.auditLinkKey('https://example.cz/a/'));
+assert.notEqual(c.auditLinkKey('https://example.cz/product?id=1'),c.auditLinkKey('https://example.cz/product?id=2'));
+assert.equal(c.auditLinkKey('https://example.cz/a?UTM_Source=x&gclid=y#z'),'https://example.cz/a');
+console.log('PASS: inbound link identity matches crawl tracking normalization without merging functional URLs');
+})();

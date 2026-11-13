@@ -5,7 +5,14 @@
  const TTL=6*60*60*1000;
  function key(url,strategy){return PREFIX+strategy+':'+url;}
  function valid(payload){
-  return !!(payload&&payload.lighthouseResult&&!payload.lighthouseResult.runtimeError);
+  const result=payload&&payload.lighthouseResult;
+  return !!(result&&typeof result==='object'&&!result.runtimeError&&
+   result.categories&&typeof result.categories==='object'&&
+   Object.keys(result.categories).some(name=>{
+    const category=result.categories[name];
+    return category&&typeof category==='object'&&
+     (category.score===null||(typeof category.score==='number'&&Number.isFinite(category.score)&&category.score>=0&&category.score<=1));
+   }));
  }
  function read(url,strategy){
   try{

@@ -928,7 +928,7 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
    const response=await fetchTimed(endpoint.href,{headers:{Accept:'application/json'}},45000);
    let payload={};try{payload=await readTimedResponse(response,'json',45000)}catch(error){throw new Error(error&&error.name==='AbortError'?'Požadavek PageSpeed překročil limit 45 sekund.':'Odpověď PageSpeed se nepodařilo přečíst.');}
    if(!response.ok){
-    const failure=new Error(payload&&payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+).');
+    const failure=new Error(payload&&payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
     if(response.status===429)failure.message='HTTP 429 — '+failure.message;
     // Retrying a throttled request immediately can worsen rate limiting; let the user retry later.
     if(response.status>=400&&response.status<500)failure.retryable=false;

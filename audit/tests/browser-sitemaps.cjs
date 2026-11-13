@@ -13,6 +13,13 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const xmlPages=await page.evaluate(()=>{
+      const header='Title: Sitemap\nMarkdown Content:\n';
+      return {pages:getSitemapUrls(header+'<urlset><url><loc>https://example.cz/catalog.xml</loc></url></urlset>','example.cz'),indexes:getSitemapLocations(header+'<urlset><url><loc>https://example.cz/catalog.xml</loc></url></urlset>','example.cz'),textIndex:getSitemapUrls(header+'https://example.cz/child.xml','example.cz')};
+    });
+    assert.deepEqual(xmlPages.pages,['https://example.cz/catalog.xml'],'verified urlset must override filename-based index heuristic');
+    assert.deepEqual(xmlPages.indexes,[]);
+    assert.deepEqual(xmlPages.textIndex,[],'preserve supported text-index heuristic');
     const rootTypes=await page.evaluate(()=>({
       pages:getSitemapUrls('<urlset xmlns:ext="urn:extension" note="&lt;sitemapindex&gt;"><ext:sitemapindex/><url><loc>https://example.cz/root-page</loc></url></urlset>','example.cz'),
       indexes:getSitemapLocations('<sitemapindex xmlns:ext="urn:extension" note="&lt;urlset&gt;"><ext:urlset/><sitemap><loc>https://example.cz/nested.xml</loc></sitemap></sitemapindex>','example.cz')

@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Kandidát atributů: platné XML zapisuje znak < jako entitu, která dosavadní regex nepřepíná. Potvrdil se ale příbuzný problém: vnořená rozšiřující značka opačného typu vyřadila platné URL.
-- V prohlížeči typ určuje kořen ověřeného XML DOM místo hledání značek kdekoli v dokumentu. Používá se existující omezená cache parseru.
-- Chromium pokrývá urlset s ext:sitemapindex i index s ext:urlset, včetně escapovaných atributů. Zachování CDATA a měření 15 000 URL zůstávají pokryty.
+- Ověřený typ XML urlset má přednost před heuristikou textového indexu. Čtečkový titulek Sitemap a URL končící .xml již nevyřadí skutečnou položku urlset.
+- Heuristika zůstává pouze pro zdroje bez rozpoznaného XML typu; podporované textové indexy zachovávají dosavadní chování.
+- Chromium ověřuje zachování catalog.xml mezi stránkami, prázdnou frontu podřízených sitemap a zachování textového indexu.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit rozlišení textového indexu a urlset u čtečkového titulu Sitemap a stránek končících .xml.
+- Další priorita: zpřesnit nejistotu textových indexů, kde samotná přípona .xml není průkazným typem zdroje.

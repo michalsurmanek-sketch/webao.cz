@@ -40,6 +40,7 @@ jobs:
         run: |
           node audit/tests/regression.cjs
           node audit/tests/psi-cache-runtime.test.cjs
+          node audit/tests/psi-http-retries.test.cjs
 
   production-health:
     name: Production availability and audit smoke checks

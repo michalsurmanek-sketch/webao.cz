@@ -38,14 +38,21 @@ async function check(status,expectedCalls){
  await check(429,1);
  await check(500,2);
  const strategySource=html.slice(html.indexOf('async function queryPageSpeedStrategies('),html.indexOf('async function queryDns('));
+ const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));
  let networkCalls=0;
- const strategyContext={URL,Promise,Error,isPageSpeedQuotaError:()=>true,readCachedPageSpeed:()=>null,trackPageSpeed:promise=>promise,queryPageSpeed:async()=>{networkCalls++;throw Error('HTTP 429 — Too Many Requests')}};
- vm.createContext(strategyContext);vm.runInContext(strategySource,strategyContext);
+ const strategyContext={URL,Promise,Error,readCachedPageSpeed:()=>null,trackPageSpeed:promise=>promise,queryPageSpeed:async()=>{networkCalls++;throw Error('HTTP 429 — Too Many Requests')}};
+ vm.createContext(strategyContext);vm.runInContext(quotaSource+'\n'+strategySource,strategyContext);
  const outcomes=await strategyContext.queryPageSpeedStrategies(new URL('https://example.cz/'),true);
  assert.equal(networkCalls,1,'HTTP 429 must suppress the second device network request');
  assert.equal(outcomes.length,2);
  assert.equal(outcomes[0].status,'rejected');
  assert.equal(outcomes[1].status,'rejected');
  assert.match(outcomes[1].reason.message,/vynecháno/);
+ // A non-quota failure must still attempt the desktop measurement.
+ networkCalls=0;
+ strategyContext.queryPageSpeed=async()=>{networkCalls++;throw Error('HTTP 500 — Server error')};
+ const transient=await strategyContext.queryPageSpeedStrategies(new URL('https://example.cz/'),true);
+ assert.equal(networkCalls,2,'Non-quota errors must not suppress the other device');
+ assert.equal(transient.length,2);
  console.log('PASS: PageSpeed HTTP errors, rate limit classification and device skip');
 })().catch(error=>{console.error(error);process.exitCode=1});

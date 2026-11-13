@@ -3,6 +3,8 @@
  'use strict';
  const PREFIX='webao:psi:v1:';
  const TTL=6*60*60*1000;
+ // Avoid exhausting the browser's usually small localStorage quota with one Lighthouse payload.
+ const MAX_ENTRY_CHARS=2*1024*1024;
  function key(url,strategy){return PREFIX+strategy+':'+url;}
  function valid(payload){
   const result=payload&&payload.lighthouseResult;
@@ -37,7 +39,9 @@
  function write(url,strategy,payload){
   if(!valid(payload))return false;
   try{
-   global.localStorage.setItem(key(url,strategy),JSON.stringify({savedAt:Date.now(),payload}));
+   const serialized=JSON.stringify({savedAt:Date.now(),payload});
+   if(serialized.length>MAX_ENTRY_CHARS)return false;
+   global.localStorage.setItem(key(url,strategy),serialized);
    return true;
   }catch(_){return false;}
  }

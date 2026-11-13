@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Po dokončení objevování odkazů se původ již načtených stránek obnovuje z finálních map zdrojů. Dříve report/CSV používaly starý snapshot a později nalezený interní odkaz nebyl vidět.
-- Homepage si zachovává své označení; data stránky a skóre se nemění.
-- Chromium ověřuje stránku načtenou ze sitemap, na kterou následně odkáže jiná načtená stránka; výsledný inventář obsahuje sitemapové i interní zdroje.
+- discoverPageLinks nyní zachovává všechny odkazující stránky pro jednu cílovou URL v jednom průchodu. Dříve deduplikace URL zahodila další zdroje.
+- Cílová URL zůstává v inventáři jednou; samostatné zdrojové adresy jsou deduplikované a přenášejí se do finálního inventáře/reportu/CSV.
+- Chromium fixture odkazuje na stejnou stránku z page1 i page2 a ověřuje zachování obou adres vedle sitemapových zdrojů.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit deduplikaci více příchozích zdrojů v discoverPageLinks, kde se zatím zachovává první zdroj v jednom průchodu.
+- Další priorita: zkontrolovat velikost evidence zdrojů u hustě propojených webů a případné označené omezení ukázek.

@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Doplněno chybějící nativní měření hustých odkazů: 30 zdrojových stránek × 1 000 cílů + 100 opakovaných odkazů na stránku, celkem 33 000 odkazů.
-- Kritéria: přesně 1 000 cílů, 30 unikátních zdrojů pro každý cíl, zachované pořadí, konzervativní CI strop 10 s a serializovaná evidence krátkých fixture URL pod 2 MiB. Log vypisuje skutečný čas a velikost.
-- Bez prokázané potřeby se evidence nekrátí; dlouhé URL a plný report vyžadují další měření. Testový limit není garance na každém zařízení.
-- Ověření: místní regrese, syntaxe a diff kontrola; nativní měření v Chromium a produkční kontroly v CI.
-- Další priorita: změřit růst reportu s dlouhými zdrojovými URL a případně zavést výslovně označené ukázky.
+- Doplněno nativní měření skutečného reportu a CSV pro 30 stránek, každou s 30 zdroji o přibližně 2 000 znacích. Kontroluje zachování posledního zdroje bez tichého zkrácení.
+- CI vypisuje čas renderu a velikost HTML/CSV; konzervativní kritéria fixture: render pod 10 s, každá reprezentace pod 8 MiB. Nejde o garanci pro libovolné URL nebo zařízení.
+- Bez měření potvrzujícího potřebu se evidence nekrátí; test vytváří podklad pro cílené omezení zobrazení při dalším růstu.
+- Ověření: místní regrese, syntaxe a diff kontrola; nativní render a produkční kontroly v CI.
+- Další priorita: prověřit agregaci více zdrojů v nálezech, zda nezvětšuje report opakováním stejné evidence.

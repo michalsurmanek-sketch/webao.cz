@@ -1334,8 +1334,15 @@ form.addEventListener('submit',async event=>{
   const linkDiscoveredCount=linkUrls.size;
   const sitemapAndLinkCount=[...sitemapUrls].filter(candidate=>linkUrls.has(candidate)).length;
   const sitemapSourceByUrl=new Map(),sourceKindByUrl=new Map();
+  const sourceAddressesByUrl=new Map();
+  const recordSource=(target,source)=>{
+   const addresses=sourceAddressesByUrl.get(target)||new Set();
+   if(source)addresses.add(source);
+   sourceAddressesByUrl.set(target,addresses);
+   sitemapSourceByUrl.set(target,[...addresses].join(' | '));
+  };
   for(const item of discoveredEntries){
-   if(!sitemapSourceByUrl.has(item.url))sitemapSourceByUrl.set(item.url,item.source);
+   recordSource(item.url,item.source);
    const kinds=new Set(sourceKindByUrl.get(item.url)||[]);kinds.add(item.kind);sourceKindByUrl.set(item.url,[...kinds]);
   }
   const isExcluded=candidate=>excludedPaths.some(path=>{const normalized=path.replace(/\/+$/,'')||'/';const pathname=new URL(candidate).pathname;return pathname===normalized||pathname.startsWith(normalized==='/'?'/':normalized+'/')});
@@ -1382,7 +1389,7 @@ form.addEventListener('submit',async event=>{
      const kinds=new Set(sourceKindByUrl.get(candidate)||[]);kinds.add('Interní odkaz z prověřené stránky');sourceKindByUrl.set(candidate,[...kinds]);
      if(crawlDiscovered.has(candidate)||failedPageUrls.has(candidate))continue;
      crawlDiscovered.add(candidate);
-     sitemapSourceByUrl.set(candidate,page.url);
+     recordSource(candidate,page.url);
      next.push(candidate);
     }
    }
@@ -1408,7 +1415,7 @@ form.addEventListener('submit',async event=>{
   for(const item of finalLinks){
    crawlDiscovered.add(item.url);deepLinkedUrls.add(item.url);
    const kinds=new Set(sourceKindByUrl.get(item.url)||[]);kinds.add('Interní odkaz z prověřené stránky');sourceKindByUrl.set(item.url,[...kinds]);
-   if(!sitemapSourceByUrl.has(item.url))sitemapSourceByUrl.set(item.url,item.source);
+   recordSource(item.url,item.source);
    if(item.excluded)allExcluded.add(item.url);
    else if(item.robotsBlocked)allRobotsExcluded.add(item.url);
    else eligibleDiscoveredUrls.add(item.url);

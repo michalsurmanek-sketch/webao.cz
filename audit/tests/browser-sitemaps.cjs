@@ -215,6 +215,22 @@ const { chromium } = require('playwright');
     assert.match(provenance.csv,/XML neověřeno · https:\/\/example.cz\/sitemap.xml/);
     assert.match(provenance.report,/Textová čtečka sitemapy — XML neověřeno/);
     assert.match(provenance.csv,/Textová čtečka sitemapy — XML neověřeno/);
+    const longReport=await page.evaluate(async()=>{
+      const sources=Array.from({length:30},(_,i)=>'https://example.cz/source-'+i+'?detail='+'x'.repeat(1900)+'&end=source-'+i);
+      const sourceUrl=sources.join(' | ');
+      const pages=Array.from({length:30},(_,i)=>({url:'https://example.cz/target-'+i,source:'Interní odkaz z prověřené stránky',sourceUrl,raw:null,state:'Nelze ověřit',type:'Stránka'}));
+      const start=performance.now();
+      renderReport('example.cz',[],pages,{});
+      const elapsedMs=performance.now()-start;
+      let blob;URL.createObjectURL=value=>{blob=value;return 'blob:fixture'};
+      downloadAuditCsv();
+      const csv=await blob.text(),html=document.querySelector('#result').innerHTML;
+      return {elapsedMs,htmlBytes:new TextEncoder().encode(html).length,csvBytes:new TextEncoder().encode(csv).length,rows:document.querySelectorAll('.audit-pages tbody tr').length,lastSourceInHtml:html.includes('end=source-29'),lastSourceInCsv:csv.includes('end=source-29')};
+    });
+    assert(longReport.lastSourceInHtml&&longReport.lastSourceInCsv,'long source evidence must not disappear silently');
+    assert(longReport.elapsedMs<10000,'30-page long-source report must render within conservative CI ceiling');
+    assert(longReport.htmlBytes<8*1024*1024&&longReport.csvBytes<8*1024*1024,'bounded long-source fixture must stay below 8 MiB per representation');
+    console.log('PASS long-source report '+JSON.stringify(longReport));
     assert.deepEqual(errors, []);
     console.log('PASS sitemap integration: request budget, duplicate/cycle suppression, robots, fetch failure, omissions and CSV/report counts');
   } finally { await browser.close(); }

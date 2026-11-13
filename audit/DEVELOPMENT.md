@@ -8,7 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Finální přepočet URL vynechaných limitem zahazoval adresu zdrojové sitemapy. Nyní zachovává typ evidence i zdrojovou URL; report a CSV tak umožňují původ dohledat.
-- Chromium používá textovou sitemapu přesahující limit stránek a ověřuje původ všech vynechaných ukázek i stejné označení v reportu a CSV.
+- Duplicitní URL zachovávají všechny objevené zdrojové adresy v pořadí, bez opakování. Původní mapa zahazovala další adresy; hlubší procházení mohlo zdroj přepsat.
+- Společný zápis zdrojů používá sitemapové i interní odkazy. Stávající report/CSV obdrží spojený seznam adres.
+- Chromium fixture sdílí stránku mezi více child sitemapami; kontroluje zachování zdrojů a deduplikaci adres i stránky.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit zachování více zdrojových adres u duplicitních URL; současná mapa uchovává jednu adresu a více typů zdroje.
+- Další priorita: prověřit obnovování zdrojů již načtených stránek při následném objevení interním odkazem.

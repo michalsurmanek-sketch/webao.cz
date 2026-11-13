@@ -113,7 +113,7 @@ const { chromium } = require('playwright');
         }
         if (/^\/child-\d+\.xml$/.test(pathname)) {
           if (pathname === '/child-0.xml') return new Response('<urlset><url><loc>https://example.cz/truncated-page</loc></url>');
-          return new Response('<s:urlset xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9"><s:url><s:loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '?a=1&amp;b=2</s:loc><image:image xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><image:loc>https://example.cz/image.jpg</image:loc></image:image></s:url></s:urlset>');
+          return new Response('<s:urlset xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9"><s:url><s:loc>https://example.cz/page' + pathname.match(/\d+/)[0] + '?a=1&amp;b=2</s:loc></s:url><s:url><s:loc>https://example.cz/shared-page</s:loc><image:image xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><image:loc>https://example.cz/image.jpg</image:loc></image:image></s:url></s:urlset>');
         }
         throw new TypeError('Fixture page unavailable');
       };
@@ -128,7 +128,7 @@ const { chromium } = require('playwright');
       URL.revokeObjectURL = () => {};
       HTMLAnchorElement.prototype.click = function () {};
       downloadAuditCsv();
-      return { meta, requests: window.sitemapRequests, csv: await exported.text(), report: document.querySelector('#result').textContent };
+      return { meta, requests: window.sitemapRequests, csv: await exported.text(), report: document.querySelector('#result').textContent, pages:window.currentAuditData.pages };
     });
     assert.equal(result.requests.length, 8, 'root plus seven child requests must exhaust the budget');
     assert(!result.requests.includes('/comment-only.xml'));
@@ -143,7 +143,12 @@ const { chromium } = require('playwright');
     assert.equal(result.meta.sitemapFailures.length, 1);
     assert.equal(result.meta.sitemapBudgetOmittedCount, 5);
     assert.equal(result.meta.sitemapBudgetOmittedExamples.length, 5);
-    assert.equal(result.meta.sitemapDiscovered, 6, 'only successfully read child sitemaps contribute URLs');
+    assert.equal(result.meta.sitemapDiscovered, 7, 'only successfully read child sitemaps contribute URLs');
+    const shared=result.pages.find(item=>item.url==='https://example.cz/shared-page');
+    assert(shared);
+    assert.match(shared.sourceUrl,/child-1\.xml/);
+    assert.match(shared.sourceUrl,/child-2\.xml/);
+    assert.equal(new Set(shared.sourceUrl.split(' | ')).size,shared.sourceUrl.split(' | ').length);
     assert.match(result.csv, /sitemapy nevyžádané limitem: 5/);
     assert.match(result.report, /Sitemapy nevyžádané kvůli limitu požadavků · 5/);
     assert.match(result.meta.note, /jejich URL nebyly zahrnuty do inventáře/);

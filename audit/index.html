@@ -203,7 +203,7 @@ function downloadAuditCsv(){
  if(!data)return;
  const safe=value=>{let text=String(value??'');if(/^\s*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
  const rows=[['Typ','URL','Oblast','Stav','Závažnost','Název','Důkaz / detail','Dopad','Doporučené řešení','Pracnost','Jistota','Kontrolováno','Stav nápravy','Řešitel','Poznámka','Pokrytí vážených oblastí','Typ zjištění','Poznámka k rozsahu']];
- rows.push(['Souhrn',data.host,'Celkové skóre','',data.grade||'',data.score===null?'Není dostupné':data.score+'%','Skóre jen z měřených oblastí; pokrytí '+data.coverage+' %','','','','Metodika '+(data.ruleVersion||''),data.checkedAt,'','','',data.coverage+' %']);
+ rows.push(['Souhrn',data.host,'Skóre měřených oblastí','',data.grade||'',data.score===null?'Není dostupné':data.score+'%','Nejde o celkové hodnocení webu. Pokrytí vážených oblastí: '+data.coverage+' %. Neměřené oblasti nejsou zahrnuty do skóre.','','','','Metodika '+(data.ruleVersion||''),data.checkedAt,'','','',data.coverage+' %']);
  for(const area of data.areas||[])rows.push(['Oblast',data.host,area.name,'',area.score===null?'Nezměřeno':'',area.score===null?'':area.score+'%',area.score===null?'Bez dostupných kontrol':'Skóre oblastí; zohledňuje jen provedené kontroly','','','','Metodika '+(data.ruleVersion||''),data.checkedAt]);
  const csvWork=loadLocalFindingWork(data.host);
  for(const item of data.findings){

@@ -163,6 +163,22 @@ const { chromium } = require('playwright');
     assert.equal(incomplete.meta.sitemapDiscovered,0);
     assert.equal(incomplete.finding.points,null,'incomplete XML must not confirm or penalize sitemap score');
     assert.equal(incomplete.finding.state,'NELZE OVĚŘIT');
+    await page.evaluate(()=>{
+      window.currentAuditData=null;
+      window.fetch=async input=>{
+        const raw=String(input);
+        if(raw.endsWith('/robots.txt'))return new Response('User-agent: *\nAllow: /');
+        if(raw.endsWith('/sitemap.xml'))return new Response('Title: Sitemap\nMarkdown Content:\nhttps://example.cz/page');
+        throw new TypeError('Fixture outage');
+      };
+    });
+    await page.locator('#audit-form button[type="submit"]').click();
+    await page.waitForFunction(()=>window.currentAuditData&&!document.querySelector('#audit-form button[type="submit"]').disabled);
+    const textFinding=await page.evaluate(()=>window.currentAuditData.findings.find(item=>item.name==='XML sitemap'));
+    assert.equal(textFinding.points,null);
+    assert.equal(textFinding.ok,false);
+    assert.equal(textFinding.state,'K PROVĚŘENÍ');
+    assert.match(textFinding.detail,/úplné XML nebylo ověřeno/);
     assert.deepEqual(errors, []);
     console.log('PASS sitemap integration: request budget, duplicate/cycle suppression, robots, fetch failure, omissions and CSV/report counts');
   } finally { await browser.close(); }

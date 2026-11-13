@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Potvrzená chyba: textový výstup s explicitním titulkem Sitemap Index a adresou bez .xml se nesledoval jako index a přidával se mezi stránky. Explicitní index nyní podporuje i adresy bez přípony.
-- Ověřený XML urlset má nadále přednost před titulkem čtečky. Obecná příponová heuristika zůstává beze změny; její plošná změna vyžaduje samostatné vykázání nejistoty v reportu.
-- Chromium kontroluje extensionless index, prázdný seznam stránek indexu a přednost skutečného XML typu.
+- Textová sitemap již nepotvrzuje XML nález za 100 bodů. Bez alespoň jednoho ověřeného XML urlset/indexu je nález K PROVĚŘENÍ, points=null, s vysvětlením nejistého typu a úplnosti inventáře.
+- Textové odkazy se nadále mohou použít k objevování URL; neprezentují se jako důkaz ověřené XML sitemapy.
+- Chromium celý audit pokrývá textový zdroj a ověřuje nulový bodový dopad a viditelnou nejistotu. Neúplné XML zůstává NELZE OVĚŘIT.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: vykázat nejistotu u obecných textových sitemap, jejichž typ se pouze odhaduje z přípony URL.
+- Další priorita: oddělit původ XML/text i u jednotlivých URL v inventáři a CSV.

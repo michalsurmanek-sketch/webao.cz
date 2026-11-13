@@ -37,5 +37,15 @@ async function check(status,expectedCalls){
  await check(404,1);
  await check(429,1);
  await check(500,2);
- console.log('PASS: PageSpeed retries only transient HTTP errors');
+ const strategySource=html.slice(html.indexOf('async function queryPageSpeedStrategies('),html.indexOf('async function queryDns('));
+ let networkCalls=0;
+ const strategyContext={URL,Promise,Error,isPageSpeedQuotaError:()=>true,readCachedPageSpeed:()=>null,trackPageSpeed:promise=>promise,queryPageSpeed:async()=>{networkCalls++;throw Error('HTTP 429 — Too Many Requests')}};
+ vm.createContext(strategyContext);vm.runInContext(strategySource,strategyContext);
+ const outcomes=await strategyContext.queryPageSpeedStrategies(new URL('https://example.cz/'),true);
+ assert.equal(networkCalls,1,'HTTP 429 must suppress the second device network request');
+ assert.equal(outcomes.length,2);
+ assert.equal(outcomes[0].status,'rejected');
+ assert.equal(outcomes[1].status,'rejected');
+ assert.match(outcomes[1].reason.message,/vynecháno/);
+ console.log('PASS: PageSpeed HTTP errors, rate limit classification and device skip');
 })().catch(error=>{console.error(error);process.exitCode=1});

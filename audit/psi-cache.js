@@ -5,7 +5,16 @@
  const TTL=6*60*60*1000;
  function key(url,strategy){return PREFIX+strategy+':'+url;}
  function valid(payload){
-  return !!(payload&&payload.lighthouseResult&&!payload.lighthouseResult.runtimeError);
+  const result=payload&&payload.lighthouseResult;
+  if(!result||typeof result!=='object'||Array.isArray(result)||result.runtimeError)return false;
+  // Some supported source fixtures omit categories; do not invalidate those cached results.
+  if(result.categories===undefined)return true;
+  if(!result.categories||typeof result.categories!=='object'||Array.isArray(result.categories))return false;
+  return Object.values(result.categories).every(category=>
+   category&&typeof category==='object'&&!Array.isArray(category)&&
+   (category.score===undefined||category.score===null||
+    (typeof category.score==='number'&&Number.isFinite(category.score)&&category.score>=0&&category.score<=1)));
+
  }
  function read(url,strategy){
   try{

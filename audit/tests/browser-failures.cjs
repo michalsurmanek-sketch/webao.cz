@@ -50,11 +50,17 @@ const { chromium } = require('playwright');
         }
         assert.deepEqual(errors, []);
         if (!robotsAvailable) assert(!state.requests.some(url => /pagespeedonline|respondWith|example.cz\/$/.test(url)), 'unknown robots policy must suppress page requests');
-        await page.evaluate(()=>{window.currentAuditData=null;});
+        await page.evaluate(()=>{window.currentAuditData=null;window.fixtureRequests=[];});
+        await page.locator('#domain').fill('second-example.cz');
         await page.locator('#audit-form button[type="submit"]').click();
         await page.waitForFunction(()=>window.currentAuditData&&!document.querySelector('#audit-form button[type="submit"]').disabled,null,{timeout:20000});
         assert.equal(await page.locator('#audit-form button[type="submit"]').getAttribute('aria-busy'),null,'second audit restores controls without reloading');
         assert.deepEqual(errors,[],'repeated audit has no browser exceptions');
+        const repeated=await page.evaluate(()=>({host:window.currentAuditData.host,pages:window.currentAuditData.pages,requests:window.fixtureRequests,text:document.querySelector('#result').textContent}));
+        assert.equal(repeated.host,'second-example.cz','second report replaces domain without reload');
+        assert(repeated.pages.every(item=>new URL(item.url).hostname==='second-example.cz'),'inventory cannot retain first-domain pages');
+        assert(!repeated.requests.some(value=>/https?:\/\/example\.cz(?:[\/:]|$)/.test(value)),'second run cannot request first-domain pages');
+        assert(repeated.text.includes('second-example.cz'),'rendered report identifies second domain');
         console.log(`PASS failure report: width=${width}, robotsAvailable=${robotsAvailable}, controls restored and unavailable sources unscored`);
         await page.close();
       }

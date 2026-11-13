@@ -63,3 +63,10 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 - Regrese ověřuje obě strany hranice; zobrazené body se nadále zaokrouhlují.
 - Ověření: všechny čtyři místní sady podle CI, kontrola diffu; prohlížeč a produkce v CI.
 - Další priorita: dokončit kritéria reálného měření a vizuální QA aktuálních exportů; tato oprava sama neznamená hotové vydání.
+
+## Etapa izolace opakovaných běhů — 2026-11-13
+
+- Rozšířen celý prohlížečový průchod při výpadcích: druhý audit bez reloadu nyní používá jinou doménu. Ověřuje nový report, inventář a síťové požadavky bez ponechání první domény.
+- Scénář běží na desktopu i mobilu s dostupnými i nedostupnými robots pravidly; stále kontroluje nepenalizování neověřených zdrojů a obnovení ovládání.
+- Lokálně ověřena syntaxe a čtyři regresní sady; reálné spuštění Chromium zajišťuje CI kvůli omezením místního sandboxu.
+- Kritéria reálného Lighthouse měření a vizuálního QA nejsou tímto simulovaným testem splněna. Další priorita zůstává reprezentativní živé měření a kontrola exportů.

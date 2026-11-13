@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Potvrzeno zkracování URL obrázků se závorkami. Obrázky a odkazy nyní sdílejí čtení vyvážených cílů včetně úhlových závorek.
-- Odstranění obrázkové syntaxe zachovává obalový odkaz; neúplný obrázek se nevydává za navigační odkaz.
-- Regrese pokrývá vnořené závorky, úhlové cíle, proklikávací obrázek a neúplný cíl.
+- Potvrzeno: Markdown escapované závorky v URL se předávaly URL parseru jako zpětná lomítka, což měnilo cestu nebo zkracovalo cíl.
+- Sdílené čtení cílů odkazů a obrázků nyní dekóduje escapovanou ASCII interpunkci před vyhodnocením závorek; escapovaná závorka neukončuje cíl.
+- Regrese pokrývá escapované párové závorky, samotnou pravou závorku a obrázek.
 - Ověření: kompletní místní regrese a diff; Chromium a produkční dostupnost v CI.
-- Další priorita: prověřit Markdown escape sekvence v cílech, aby zpětná lomítka nevytvářela jiné URL.
+- Další priorita: prověřit escapované otevírací závorky syntaxe odkazů, aby prostý text nevytvářel falešné odkazy.

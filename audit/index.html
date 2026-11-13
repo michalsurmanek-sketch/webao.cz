@@ -944,6 +944,7 @@ function parsePageText(text,url){
   const angled=source[cursor]==='<';if(angled)cursor++;
   for(;cursor<source.length;cursor++){
    const char=source[cursor];
+   if(char==='\\'&&/[!-/:-@\[-\x60{-~]/.test(source[cursor+1]||'')){destination+=source[++cursor];continue;}
    if(angled&&char==='>'){closed=source[cursor+1]===')';break;}
    if(/\s/.test(char)||char==='<'||char==='>')break;
    if(!angled&&char==='(')depth++;

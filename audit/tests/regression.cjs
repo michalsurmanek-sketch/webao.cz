@@ -8,7 +8,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 })();
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);
-const c={URL,TextEncoder,pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined)};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function queryPageSpeedStrategies('),s.indexOf('async function queryDns('))+s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
+const c={URL,TextEncoder,readCachedPageSpeed:()=>null,pageTextWasFetched:page=>Boolean(page&&page.raw!==null&&page.raw!==undefined)};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function queryPageSpeedStrategies('),s.indexOf('async function queryDns('))+s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts('))+s.slice(s.indexOf('function normalizeRobotsPath('),s.indexOf('function pageType(')),c);
 assert(c.isSameSiteHost('example.cz','example.cz'));
 assert(c.isSameSiteHost('www.example.cz','example.cz'));
 assert(c.isSameSiteHost('example.cz','www.example.cz'),'www and apex hosts should be treated symmetrically');
@@ -202,7 +202,7 @@ console.log('PASS: 3 unsupported crawl URL cases');
 
 })();
 await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,clearTimeout,TextEncoder,TextDecoder,timedResponseControllers:{get:()=>null,delete(){}},window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function readTimedTextResponse('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('async function queryPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,clearTimeout,TextEncoder,TextDecoder,timedResponseControllers:{get:()=>null,delete(){}},window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function readTimedTextResponse('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function readCachedPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
 let calls=[];
 vm.runInContext(s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts(')),c);
 assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReadableSource('Title: Missing\nWarning: Target URL returned error 404: Not found\nMarkdown Content:\nError'),/404/);
@@ -761,6 +761,25 @@ assert.equal(parse(String.raw`[![alt](/image.png)](/target)`).links[0],'https://
 console.log('PASS: escaped Markdown delimiters respect backslash parity without false links or images');
 })();
 
+;(async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+const c={URL,window:{},trackPageSpeed:p=>p,isPageSpeedQuotaError:e=>/quota/i.test(e.message)};vm.createContext(c);
+vm.runInContext(html.slice(html.indexOf('function assertPageSpeedResult('),html.indexOf('function pageSpeedFinalAddress('))+html.slice(html.indexOf('function isSameSiteHost('),html.indexOf('function decodeSitemapLoc('))+html.slice(html.indexOf('function readCachedPageSpeed('),html.indexOf('async function queryDns(')),c);
+const url=new URL('https://example.cz/');
+const payload={lighthouseResult:{configSettings:{emulatedFormFactor:'desktop'},requestedUrl:url.href,finalUrl:url.href,audits:{}}};
+let requests=0,reads=0,completed=0;
+c.queryPageSpeed=async()=>{requests++;throw Error('quota exceeded')};c.trackPageSpeed=p=>p.finally(()=>completed++);
+c.window.WebaoPsiCache={read:()=>{reads++;return{payload}}};
+let result=await c.queryPageSpeedStrategies(url,true);
+assert.equal(requests,1);assert.equal(result[0].status,'rejected');assert.equal(result[1].status,'fulfilled');assert.equal(result[1].value,payload);assert.equal(completed,2,'cached device completes progress tracking');
+requests=0;reads=0;result=await c.queryPageSpeedStrategies(url,false);assert.equal(requests,0);assert.equal(reads,0,'robots exclusion does not read or reuse cached results');assert(result.every(x=>x.status==='rejected'));
+for(const invalid of [null,{payload:{lighthouseResult:{...payload.lighthouseResult,configSettings:{emulatedFormFactor:'mobile'}}}},{payload:{lighthouseResult:{...payload.lighthouseResult,finalUrl:'https://other.cz/'}}},{payload:{lighthouseResult:{...payload.lighthouseResult,runtimeError:{code:'FAILED'}}}}]){
+ c.window.WebaoPsiCache.read=()=>invalid;requests=0;result=await c.queryPageSpeedStrategies(url,true);assert.equal(requests,1);assert.equal(result[1].status,'rejected','invalid cache cannot bypass quota with unverified data');
+}
+c.window.WebaoPsiCache.read=()=>{throw Error('storage blocked')};assert.equal(c.readCachedPageSpeed(url,'desktop'),null);result=await c.queryPageSpeedStrategies(url,true);assert.equal(result[1].status,'rejected');
+console.log('PASS: quota preserves validated cached device results without new requests or robots bypass');
+})().catch(error=>{console.error(error);process.exitCode=1});
 (()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8'),c={URL};vm.createContext(c);

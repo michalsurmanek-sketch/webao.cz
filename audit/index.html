@@ -876,9 +876,15 @@ async function queryHttpObservatory(host){
 }
 function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit/i.test(String(error&&error.message||error||''))}
 function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Rychlost a Lighthouse skóre proto nejsou v tomto běhu ověřené. Zkuste audit znovu později.';return String(error&&error.message||error||'Příčina není známa.');}
+function readCachedPageSpeed(pageUrl,strategy){
+ try{
+  const cache=window.WebaoPsiCache?.read(pageUrl.href,strategy);
+  return cache?assertPageSpeedResult(cache.payload,pageUrl,strategy):null;
+ }catch{return null;}
+}
 async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
- const cache=window.WebaoPsiCache?.read(pageUrl.href,strategy);
- if(cache){try{return assertPageSpeedResult(cache.payload,pageUrl,strategy)}catch{ /* Invalid cached payload: fetch and validate a fresh result. */ }}
+ const cached=readCachedPageSpeed(pageUrl,strategy);
+ if(cached)return cached;
  const endpoint=new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed');
  endpoint.searchParams.set('url',pageUrl.href);
  endpoint.searchParams.set('strategy',strategy);
@@ -902,7 +908,11 @@ async function queryPageSpeedStrategies(url,rootAllowed,skipReason='Měření vy
  for(const strategy of ['mobile','desktop']){
   if(!rootAllowed){results.push({status:'rejected',reason:new Error(skipReason)});continue;}
   if(results.some(result=>result.status==='rejected'&&isPageSpeedQuotaError(result.reason))){
-   results.push({status:'rejected',reason:new Error('Měření '+strategy+' vynecháno, protože předchozí požadavek PageSpeed potvrdil vyčerpanou denní kvótu.')});continue;
+   // Quota prevents new requests, but must not discard a valid cached device result.
+   const cached=readCachedPageSpeed(new URL(url.origin+'/'),strategy);
+   if(cached)results.push({status:'fulfilled',value:await trackPageSpeed(Promise.resolve(cached))});
+   else results.push({status:'rejected',reason:new Error('Měření '+strategy+' vynecháno, protože předchozí požadavek PageSpeed potvrdil vyčerpanou denní kvótu.')});
+   continue;
   }
   try{results.push({status:'fulfilled',value:await trackPageSpeed(queryPageSpeed(new URL(url.origin+'/'),strategy))});}
   catch(reason){results.push({status:'rejected',reason});}

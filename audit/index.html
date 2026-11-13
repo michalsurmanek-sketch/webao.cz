@@ -608,6 +608,11 @@ function firstMetricPercentile(metricSet,keys){for(const key of keys){const perc
 function assertPageSpeedResult(payload,expectedUrl,expectedStrategy){
  if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object')throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
  const lighthouse=payload.lighthouseResult;
+ if(lighthouse.categories!==undefined){
+  const categories=lighthouse.categories;
+  const valid=categories&&typeof categories==='object'&&!Array.isArray(categories)&&Object.keys(categories).length>0&&Object.values(categories).every(category=>category&&typeof category==='object'&&!Array.isArray(category)&&(category.score===undefined||category.score===null||(typeof category.score==='number'&&Number.isFinite(category.score)&&category.score>=0&&category.score<=1)));
+  if(!valid){const failure=new Error('PageSpeed vrátil neplatné Lighthouse kategorie; výsledek nebyl použit pro audit.');failure.retryable=false;throw failure;}
+ }
  if(expectedStrategy&&(!lighthouse.configSettings||lighthouse.configSettings.emulatedFormFactor!==expectedStrategy)){const failure=new Error('PageSpeed vrátil jiné zařízení ('+(lighthouse.configSettings?.emulatedFormFactor||'neuvedeno')+'); očekával se audit '+expectedStrategy+'.');failure.retryable=false;throw failure;}
  const error=lighthouse.runtimeError;
  if(error){

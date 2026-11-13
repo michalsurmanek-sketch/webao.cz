@@ -868,3 +868,5 @@ storage.set(key,JSON.stringify({savedAt:now-1000,payload}));assert(c.window.Weba
 assert(c.window.WebaoPsiCache.write('https://example.cz/','mobile',payload));assert(c.window.WebaoPsiCache.read('https://example.cz/','mobile'));
 console.log('PASS: PageSpeed cache rejects future, expired and malformed timestamps while retaining valid results');
 })();
+
+(()=>{const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');const declaration=html.match(/const points=Math.round\(audit.score\*100\),passed=[^;]+;/)[0];for(const [score,expected] of [[0.895,false],[0.899,false],[0.9,true],[1,true],[0,false]]){const c={audit:{score}};vm.createContext(c);vm.runInContext(declaration+'this.result=passed;',c);assert.equal(c.result,expected,'raw threshold '+score);}console.log('PASS: metadata Lighthouse status uses raw score before display rounding');})();

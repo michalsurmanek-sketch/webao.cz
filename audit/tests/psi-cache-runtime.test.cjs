@@ -28,6 +28,10 @@ assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance
 assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:null}}}}),true);
 assert.equal(cache.write(url,strategy,{lighthouseResult:{}}),true,'legacy metadata-only results remain compatible');
 assert.equal(cache.write(url, strategy, good), true);
+const priorEntry=values.get(key);
+const huge={lighthouseResult:{categories:{performance:{score:0.9}},audits:{oversized:{details:'x'.repeat(2*1024*1024)}}}};
+assert.equal(cache.write(url,strategy,huge),false,'oversized Lighthouse result must not fill browser storage');
+assert.equal(values.get(key),priorEntry,'oversized result must preserve existing valid cache');
 assert.equal(cache.read(url, strategy).payload.lighthouseResult.categories.performance.score, 0.9);
 values.set(key, JSON.stringify({savedAt: Date.now(), payload: failed}));
 assert.equal(cache.read(url, strategy), null, 'legacy failed cache must be rejected');

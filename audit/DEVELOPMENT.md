@@ -8,8 +8,7 @@
 
 ## Poslední změna — 2026-11-13
 
-- Původ každé objevené sitemap URL rozlišuje ověřené XML a textovou čtečku s neověřeným XML. Textové zdroje již nejsou zavádějícím způsobem označené XML sitemap.
-- Existující předávání zdrojů zajišťuje stejné označení v inventáři reportu, evidenci a CSV; bodování se nemění.
-- Chromium celý audit ověřuje source stránky a shodné označení v reportu a exportovaném CSV.
+- Finální přepočet URL vynechaných limitem zahazoval adresu zdrojové sitemapy. Nyní zachovává typ evidence i zdrojovou URL; report a CSV tak umožňují původ dohledat.
+- Chromium používá textovou sitemapu přesahující limit stránek a ověřuje původ všech vynechaných ukázek i stejné označení v reportu a CSV.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit konzistentní označení původu u URL vynechaných limitem a duplicit z více zdrojů.
+- Další priorita: prověřit zachování více zdrojových adres u duplicitních URL; současná mapa uchovává jednu adresu a více typů zdroje.

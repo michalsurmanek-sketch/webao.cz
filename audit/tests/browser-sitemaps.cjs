@@ -13,6 +13,13 @@ const { chromium } = require('playwright');
     await page.route('**/*', route => route.request().url() === 'https://fixture.test/audit/'
       ? route.fulfill({ contentType: 'text/html', body: fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') }) : route.abort());
     await page.goto('https://fixture.test/audit/');
+    const textIndex=await page.evaluate(()=>{
+      const text='Title: Sitemap Index\nURL Source: https://example.cz/sitemap.xml\nMarkdown Content:\nhttps://example.cz/sitemaps/products';
+      return {pages:getSitemapUrls(text,'example.cz'),indexes:getSitemapLocations(text,'example.cz'),verifiedPages:getSitemapUrls('Title: Sitemap Index\nMarkdown Content:\n<urlset><url><loc>https://example.cz/real</loc></url></urlset>','example.cz')};
+    });
+    assert.deepEqual(textIndex.pages,[]);
+    assert.deepEqual(textIndex.indexes,['https://example.cz/sitemaps/products']);
+    assert.deepEqual(textIndex.verifiedPages,['https://example.cz/real']);
     const xmlPages=await page.evaluate(()=>{
       const header='Title: Sitemap\nMarkdown Content:\n';
       return {pages:getSitemapUrls(header+'<urlset><url><loc>https://example.cz/catalog.xml</loc></url></urlset>','example.cz'),indexes:getSitemapLocations(header+'<urlset><url><loc>https://example.cz/catalog.xml</loc></url></urlset>','example.cz'),textIndex:getSitemapUrls(header+'https://example.cz/child.xml','example.cz')};

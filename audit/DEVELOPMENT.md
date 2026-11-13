@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Potvrzeno: Markdown escapované závorky v URL se předávaly URL parseru jako zpětná lomítka, což měnilo cestu nebo zkracovalo cíl.
-- Sdílené čtení cílů odkazů a obrázků nyní dekóduje escapovanou ASCII interpunkci před vyhodnocením závorek; escapovaná závorka neukončuje cíl.
-- Regrese pokrývá escapované párové závorky, samotnou pravou závorku a obrázek.
-- Ověření: kompletní místní regrese a diff; Chromium a produkční dostupnost v CI.
-- Další priorita: prověřit escapované otevírací závorky syntaxe odkazů, aby prostý text nevytvářel falešné odkazy.
+- Opraveno: escapované otevírací a zavírací hranaté závorky již nevytvářejí falešné odkazy a obrázky.
+- Počet předcházejících zpětných lomítek rozlišuje escapování od skutečné syntaxe. Escapovaný vykřičník zachovává následující běžný odkaz.
+- Ověření: kompletní místní regresní sada včetně nových negativních a pozitivních případů, zachování odkazu obalujícího obrázek.
+- Místní Chromium nelze spustit: v prostředí chybí binární prohlížeč. Prohlížečové a produkční kontroly zajišťuje CI.
+- Další priorita: prověřit cíle Markdown odkazů s volitelným titulkem, aby platné odkazy nevypadávaly z inventáře.

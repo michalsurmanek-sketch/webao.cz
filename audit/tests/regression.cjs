@@ -745,3 +745,18 @@ assert.notEqual(c.auditLinkKey('https://example.cz/product?id=1'),c.auditLinkKey
 assert.equal(c.auditLinkKey('https://example.cz/a?UTM_Source=x&gclid=y#z'),'https://example.cz/a');
 console.log('PASS: inbound link identity matches crawl tracking normalization without merging functional URLs');
 })();
+
+
+(()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8'),c={URL};vm.createContext(c);
+vm.runInContext(html.slice(html.indexOf('function parsePageText('),html.indexOf('function decodeSitemapLoc(')),c);
+const parse=text=>c.parsePageText(text,new URL('https://example.cz/'));
+for(const text of [String.raw`\[fake](/fake)`,String.raw`[fake\](/fake)`,String.raw`!\[fake](/fake.png)`]){assert.equal(parse(text).links.length,0);assert.equal(parse(text).images.length,0);}
+assert.equal(parse(String.raw`\![real](/real)`).links[0],'https://example.cz/real');
+assert.equal(parse(String.raw`\![real](/real)`).images.length,0);
+assert.equal(parse(String.raw`\\[real](/real)`).links[0],'https://example.cz/real');
+assert.equal(parse(String.raw`\\![real](/real.png)`).images[0].url,'https://example.cz/real.png');
+assert.equal(parse(String.raw`[![alt](/image.png)](/target)`).links[0],'https://example.cz/target');
+console.log('PASS: escaped Markdown delimiters respect backslash parity without false links or images');
+})();

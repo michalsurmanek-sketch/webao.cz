@@ -953,8 +953,13 @@ function parsePageText(text,url){
   }
   return closed&&destination?{destination,end:cursor+(angled?2:1)}:null;
  };
+ const isEscaped=(source,index)=>{
+  let count=0;for(let before=index-1;before>=0&&source[before]==='\\';before--)count++;
+  return count%2===1;
+ };
  const images=[],imageSpans=[];
  for(const match of navigable.matchAll(/!\[([^\]\r\n]*)\]\(/g)){
+  if(isEscaped(navigable,match.index)||isEscaped(navigable,match.index+1)||isEscaped(navigable,match.index+match[0].length-2))continue;
   const parsed=readDestination(navigable,match.index+match[0].length);
   if(!parsed)continue;
   imageSpans.push([match.index,parsed.end]);
@@ -965,7 +970,8 @@ function parsePageText(text,url){
  for(const [start,end] of imageSpans.reverse())withoutImages=withoutImages.slice(0,start)+withoutImages.slice(end);
  const markdownLinks=[];
  for(const match of withoutImages.matchAll(/\[[^\]\r\n]*\]\(/g)){
-  if(match.index>0&&withoutImages[match.index-1]==='!')continue;
+  if(isEscaped(withoutImages,match.index)||isEscaped(withoutImages,match.index+match[0].length-2))continue;
+  if(match.index>0&&withoutImages[match.index-1]==='!'&&!isEscaped(withoutImages,match.index-1))continue;
   const parsed=readDestination(withoutImages,match.index+match[0].length);
   if(parsed&&!parsed.destination.startsWith('#')){const target=resolve(parsed.destination);if(target)markdownLinks.push(target);}
  }
@@ -1819,3 +1825,4 @@ form.addEventListener('submit',async event=>{
 });
 </script>
 </body></html>
+

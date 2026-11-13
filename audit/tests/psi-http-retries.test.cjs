@@ -24,6 +24,12 @@ async function check(status,expectedCalls){
  vm.runInContext(source,context);
  await assert.rejects(context.queryPageSpeed(new URL('https://example.cz/'),'mobile',2),new RegExp('HTTP '+status));
  assert.equal(calls,expectedCalls,'HTTP '+status+' request count');
+ if(status===429){
+  const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));
+  const quotaContext={};vm.createContext(quotaContext);vm.runInContext(quotaSource,quotaContext);
+  assert.equal(quotaContext.isPageSpeedQuotaError(new Error('PageSpeed mobile: HTTP 429 — Too Many Requests')),true);
+  assert.match(quotaContext.pageSpeedErrorMessage(new Error('HTTP 429')),/omezil počet požadavků/);
+ }
 }
 (async()=>{
  await check(400,1);
@@ -31,5 +37,15 @@ async function check(status,expectedCalls){
  await check(404,1);
  await check(429,1);
  await check(500,2);
- console.log('PASS: PageSpeed retries only transient HTTP errors');
+ const strategySource=html.slice(html.indexOf('async function queryPageSpeedStrategies('),html.indexOf('async function queryDns('));
+ let networkCalls=0;
+ const strategyContext={URL,Promise,Error,isPageSpeedQuotaError:()=>true,readCachedPageSpeed:()=>null,trackPageSpeed:promise=>promise,queryPageSpeed:async()=>{networkCalls++;throw Error('HTTP 429 — Too Many Requests')}};
+ vm.createContext(strategyContext);vm.runInContext(strategySource,strategyContext);
+ const outcomes=await strategyContext.queryPageSpeedStrategies(new URL('https://example.cz/'),true);
+ assert.equal(networkCalls,1,'HTTP 429 must suppress the second device network request');
+ assert.equal(outcomes.length,2);
+ assert.equal(outcomes[0].status,'rejected');
+ assert.equal(outcomes[1].status,'rejected');
+ assert.match(outcomes[1].reason.message,/vynecháno/);
+ console.log('PASS: PageSpeed HTTP errors, rate limit classification and device skip');
 })().catch(error=>{console.error(error);process.exitCode=1});

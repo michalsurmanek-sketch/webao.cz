@@ -37,6 +37,8 @@ async function check(status,expectedCalls){
  await check(404,1);
  await check(429,1);
  await check(500,2);
+ await check(400,1,false,true);
+ await check(500,2,false,true);
  const strategySource=html.slice(html.indexOf('async function queryPageSpeedStrategies('),html.indexOf('async function queryDns('));
  const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));
  let networkCalls=0;

@@ -2,6 +2,16 @@
 
 // Run with: node audit/tests/regression.cjs
 (async()=>{
+// CSV must not present a 21.7% coverage audit as an unqualified overall 100% score.
+{
+ const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const csv=html.slice(html.indexOf('function downloadAuditCsv()'),html.indexOf('function ',html.indexOf('function downloadAuditCsv()')+10));
+ assert.match(csv,/Skóre měřených oblastí/);
+ assert.match(csv,/Nejde o celkové hodnocení webu/);
+ assert.match(csv,/Neměřené oblasti nejsou zahrnuty do skóre/);
+ console.log('PASS: partial CSV audit scores are explicitly qualified');
+}
 await (async()=>{
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];const c={localStorage:{getItem:()=>JSON.stringify([{checkedAt:'old',score:50}]),setItem:()=>{throw Error('quota')}}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function saveLocalAuditHistory('),s.indexOf('function clearLocalAuditHistory(')),c);let h=c.saveLocalAuditHistory('example.cz',{checkedAt:'new',score:100});assert.equal(h.length,2);assert.equal(h[1].score,50);assert.match(h.storageWarning,/nepodařilo/);c.localStorage.getItem=()=>'{bad';h=c.saveLocalAuditHistory('example.cz',{checkedAt:'new',score:100});assert.equal(h.length,1);assert.match(h.storageWarning,/nepodařilo/);c.localStorage.setItem=()=>{};h=c.saveLocalAuditHistory('example.cz',{checkedAt:'new',score:100});assert(!h.storageWarning);console.log('PASS: history survives write failures and malformed storage');
 

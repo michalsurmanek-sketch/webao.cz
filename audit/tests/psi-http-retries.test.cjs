@@ -52,7 +52,8 @@ async function check(status,expectedCalls,unreadable=false,nullPayload=false){
  assert.equal(outcomes.length,2);
  assert.equal(outcomes[0].status,'rejected');
  assert.equal(outcomes[1].status,'rejected');
- assert.match(outcomes[1].reason.message,/vynecháno/);
+ assert.match(outcomes[1].reason.message,/omezení počtu požadavků nebo kvóty/);
+ assert.doesNotMatch(outcomes[1].reason.message,/vyčerpanou denní kvótu/);
  // A non-quota failure must still attempt the desktop measurement.
  networkCalls=0;
  strategyContext.queryPageSpeed=async()=>{networkCalls++;throw Error('HTTP 500 — Server error')};

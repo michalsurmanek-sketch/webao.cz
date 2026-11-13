@@ -50,6 +50,11 @@ const { chromium } = require('playwright');
         }
         assert.deepEqual(errors, []);
         if (!robotsAvailable) assert(!state.requests.some(url => /pagespeedonline|respondWith|example.cz\/$/.test(url)), 'unknown robots policy must suppress page requests');
+        await page.evaluate(()=>{window.currentAuditData=null;});
+        await page.locator('#audit-form button[type="submit"]').click();
+        await page.waitForFunction(()=>window.currentAuditData&&!document.querySelector('#audit-form button[type="submit"]').disabled,null,{timeout:20000});
+        assert.equal(await page.locator('#audit-form button[type="submit"]').getAttribute('aria-busy'),'false','second audit restores controls without reloading');
+        assert.deepEqual(errors,[],'repeated audit has no browser exceptions');
         console.log(`PASS failure report: width=${width}, robotsAvailable=${robotsAvailable}, controls restored and unavailable sources unscored`);
         await page.close();
       }

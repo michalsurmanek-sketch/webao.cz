@@ -22,7 +22,7 @@ async function check(status,expectedCalls,unreadable=false){
  };
  vm.createContext(context);
  vm.runInContext(source,context);
- await assert.rejects(context.queryPageSpeed(new URL('https://example.cz/'),'mobile',2),new RegExp('HTTP '+status));
+ await assert.rejects(context.queryPageSpeed(new URL('https://example.cz/'),'mobile',2),new RegExp(unreadable&&status!==429?'Odpověď PageSpeed se nepodařilo přečíst':'HTTP '+status));
  assert.equal(calls,expectedCalls,'HTTP '+status+' request count');
  if(status===429){
   const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));

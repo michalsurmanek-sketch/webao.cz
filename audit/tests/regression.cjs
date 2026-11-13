@@ -781,3 +781,24 @@ for(const text of ['[x](/cil "nedokončený)','[x](/cil cizí text)','[x](</cil>
 }
 console.log('PASS: Markdown link and image titles preserve valid destinations and reject incomplete syntax');
 })();
+
+(()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
+const ns='http://www.sitemaps.org/schemas/sitemap/0.9';
+let root=null,broken=false,parses=0;
+const c={URL,DOMParser:class{parseFromString(){parses++;return{documentElement:root,querySelector:()=>broken?{}:null}}}};
+vm.createContext(c);vm.runInContext(html.slice(html.indexOf('function decodeSitemapLoc('),html.indexOf('function extractPublicContacts(')),c);
+for(const [name,namespace,valid] of [['urlset',ns,true],['sitemapindex',ns,true],['urlset',null,true],['urlset','urn:foreign',false],['sitemapindex','urn:foreign',false],['html',ns,false]]){
+ root={localName:name,namespaceURI:namespace,children:[]};
+ assert.equal(Boolean(c.parseSitemapXml('<'+name+' sample="'+String(namespace)+'"/>')),valid,name+' '+namespace);
+}
+root={localName:'urlset',namespaceURI:ns,children:[]};broken=true;
+assert.equal(c.parseSitemapXml('<urlset broken>'),null);broken=false;
+const loc=(text,children=[],namespaceURI=ns)=>({localName:'loc',namespaceURI,children,textContent:text});
+root={localName:'urlset',namespaceURI:ns,children:[{localName:'url',namespaceURI:ns,children:[loc('https://example.cz/fabricated',[{}]),loc('https://example.cz/image.jpg',[],'urn:image'),loc('https://example.cz/real?a=1&b=2')]}]};
+const xml='<urlset fixture="leaf-only"/>';
+assert.deepEqual(Array.from(c.sitemapUrlCandidates(xml)),['https://example.cz/real?a=1&b=2']);
+const before=parses;c.sitemapUrlCandidates(xml);assert.equal(parses,before,'repeated extraction retains bounded one-document cache');
+console.log('PASS: sitemap namespace validation rejects foreign or broken roots and nested loc markup without losing text URLs');
+})();

@@ -1074,7 +1074,12 @@ function parseSitemapXml(value){
  let xml=sitemapReaderContent(original).trim();
  if(/^```(?:xml)?\s*\n/i.test(xml))xml=xml.replace(/^```(?:xml)?\s*\n/i,'').replace(/\n```\s*$/,'').trim();
  let parsed=null;
- try{const doc=new DOMParser().parseFromString(xml,'application/xml');if(!doc.querySelector('parsererror'))parsed=doc;}catch{}
+ try{
+  const doc=new DOMParser().parseFromString(xml,'application/xml'),root=doc.documentElement;
+  const sitemapRoot=root&&['urlset','sitemapindex'].includes(root.localName);
+  const sitemapNamespace=root&&(!root.namespaceURI||root.namespaceURI==='http://www.sitemaps.org/schemas/sitemap/0.9');
+  if(!doc.querySelector('parsererror')&&sitemapRoot&&sitemapNamespace)parsed=doc;
+ }catch{}
  // Keep at most one source/document pair; never retain an unbounded audit history.
  lastSitemapXmlSource=original;lastSitemapXmlDocument=parsed;
  return parsed;
@@ -1101,7 +1106,7 @@ function sitemapUrlCandidates(text){
    if(!entryName)return [];
    for(const entry of root.children){
     if(entry.localName!==entryName||entry.namespaceURI!==root.namespaceURI)continue;
-    for(const loc of entry.children)if(loc.localName==='loc'&&loc.namespaceURI===root.namespaceURI)add(loc.textContent);
+    for(const loc of entry.children)if(loc.localName==='loc'&&loc.namespaceURI===root.namespaceURI&&!loc.children.length)add(loc.textContent);
    }
    return candidates;
   }catch{return []}

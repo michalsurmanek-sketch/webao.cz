@@ -8,9 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Opraveno: inventář odkazů a obrázků zachovává Markdown cíle s volitelným titulkem v jednoduchých či dvojitých uvozovkách i závorkách.
-- Podporováno: oddělení titulku novým řádkem, escapované uvozovky, URL v úhlových závorkách a obrázek uvnitř odkazu.
-- Neúplný titulek, chybějící oddělovač a přebytečný text nevytvářejí falešné odkazy.
-- Ověření: kompletní regresní sada prošla, včetně nových pozitivních a negativních scénářů.
-- Prohlížečové ověření: místní Chromium blokují omezení prostředí; na push navazuje existující CI pro desktop, mobil a dokončení auditu při výpadcích zdrojů.
-- Další priorita: pokračovat v ověřování neúplných a namespacovaných sitemap podle kritérií výše.
+- Opraveno: XML se stejným názvem kořene, ale cizím namespace už nepotvrzuje sitemapu. Podporovány zůstávají standardní sitemap namespace i starší dokumenty bez namespace.
+- Opraveno: adresa loc s vnořenými XML elementy se nezařazuje do inventáře. Text, CDATA a escapované entity zůstávají podporované.
+- Ověření: kompletní místní regresní sada prošla; přidány nativní prohlížečové scénáře pro prefixy, cizí namespace, CDATA a celý audit bez bodového dopadu neověřené sitemapy.
+- Existující prohlížečová sada nadále ověřuje 15 000 URL, neúplné XML a dokončení auditu. Její spuštění zajišťuje CI; místní Chromium blokuje prostředí.
+- Další priorita: ověřit úplnost seznamu URL při odpovědích textové čtečky a srozumitelné vyznačení omezeného vzorku v reportu.

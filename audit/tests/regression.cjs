@@ -2,7 +2,7 @@
 
 // Run with: node audit/tests/regression.cjs
 (async()=>{
-// CSV must not present a 21.7% coverage audit as an unqualified overall 100% score.
+// CSV must not present partial coverage as an unqualified overall score.
 {
  const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');

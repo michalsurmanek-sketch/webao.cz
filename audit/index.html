@@ -941,17 +941,36 @@ function parsePageText(text,url){
  const navigable=stripMarkdownInlineCode(content);
  const readDestination=(source,start)=>{
   let cursor=start,destination='',depth=0,closed=false;
+  while(/[ \t\r\n]/.test(source[cursor]||'')&&cursor<source.length)cursor++;
   const angled=source[cursor]==='<';if(angled)cursor++;
   for(;cursor<source.length;cursor++){
    const char=source[cursor];
    if(char==='\\'&&/[!-/:-@\[-\x60{-~]/.test(source[cursor+1]||'')){destination+=source[++cursor];continue;}
-   if(angled&&char==='>'){closed=source[cursor+1]===')';break;}
-   if(/\s/.test(char)||char==='<'||char==='>')break;
+   if(angled&&char==='>'){closed=true;cursor++;break;}
+   if(char==='<'||char==='>'||(angled&&/[\r\n]/.test(char)))break;
+   if(!angled&&/\s/.test(char)){closed=depth===0;break;}
    if(!angled&&char==='(')depth++;
    if(!angled&&char===')'){if(depth===0){closed=true;break;}depth--;}
    destination+=char;
   }
-  return closed&&destination?{destination,end:cursor+(angled?2:1)}:null;
+  if(!closed||!destination)return null;
+  const separator=cursor;
+  while(/\s/.test(source[cursor]||'')&&cursor<source.length)cursor++;
+  if(source[cursor]===')')return{destination,end:cursor+1};
+  // A title must be separated from its destination by whitespace.
+  if(cursor===separator)return null;
+  const opener=source[cursor],closer=opener==='('?')':opener;
+  if(!['"',"'",'('].includes(opener))return null;
+  let titleClosed=false;
+  for(cursor++;cursor<source.length;cursor++){
+   const char=source[cursor];
+   if(char==='\\'&&/[!-/:-@\[-\x60{-~]/.test(source[cursor+1]||'')){cursor++;continue;}
+   if(char===closer){titleClosed=true;cursor++;break;}
+   if(opener==='('&&char==='(')return null;
+  }
+  if(!titleClosed)return null;
+  while(/\s/.test(source[cursor]||'')&&cursor<source.length)cursor++;
+  return source[cursor]===')'?{destination,end:cursor+1}:null;
  };
  const isEscaped=(source,index)=>{
   let count=0;for(let before=index-1;before>=0&&source[before]==='\\';before--)count++;

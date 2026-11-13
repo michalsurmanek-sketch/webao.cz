@@ -760,3 +760,24 @@ assert.equal(parse(String.raw`\\![real](/real.png)`).images[0].url,'https://exam
 assert.equal(parse(String.raw`[![alt](/image.png)](/target)`).links[0],'https://example.cz/target');
 console.log('PASS: escaped Markdown delimiters respect backslash parity without false links or images');
 })();
+
+(()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8'),c={URL};vm.createContext(c);
+vm.runInContext(html.slice(html.indexOf('function parsePageText('),html.indexOf('function decodeSitemapLoc(')),c);
+const parse=text=>c.parsePageText(text,new URL('https://example.cz/'));
+for(const suffix of [' "Popis odkazu"'," 'Popis odkazu'",' (Popis odkazu)',' ""','\n "Více informací"','   ']){
+ const page=parse('[stránka](/cil'+suffix+') ![Fotografie](/foto.png'+suffix+')');
+ assert.equal(page.links[0],'https://example.cz/cil',suffix);assert.equal(page.images[0].url,'https://example.cz/foto.png',suffix);
+ assert.equal(page.links.length,1);assert.equal(page.images.length,1);
+}
+assert.equal(parse('[odkaz](</cesta se slovy> "Popis")').links[0],'https://example.cz/cesta%20se%20slovy');
+assert.equal(parse('[odkaz]( /cesta(a) "Popis")').links[0],'https://example.cz/cesta(a)');
+assert.equal(parse(String.raw`[odkaz](/cil "Titulek s \"uvozovkami\"")`).links[0],'https://example.cz/cil');
+assert.equal(parse('[![Fotografie](/foto.png "Obrázek")](/cil "Stránka")').links[0],'https://example.cz/cil');
+assert.equal(parse('[externí](https://outside.cz/ "Popis")').externalLinks[0],'https://outside.cz/');
+for(const text of ['[x](/cil "nedokončený)','[x](/cil cizí text)','[x](</cil>"bez mezery")','[x](/cil "popis" odpad)','[x](/cil (vnořený (titulek)))','![x](/foto.png "nedokončený)']){
+ assert.equal(parse(text).links.length,0,text);assert.equal(parse(text).images.length,0,text);
+}
+console.log('PASS: Markdown link and image titles preserve valid destinations and reject incomplete syntax');
+})();

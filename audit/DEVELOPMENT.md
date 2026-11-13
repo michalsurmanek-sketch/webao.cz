@@ -8,8 +8,9 @@
 
 ## Poslední změna — 2026-11-13
 
-- Opraveno: escapované otevírací a zavírací hranaté závorky již nevytvářejí falešné odkazy a obrázky.
-- Počet předcházejících zpětných lomítek rozlišuje escapování od skutečné syntaxe. Escapovaný vykřičník zachovává následující běžný odkaz.
-- Ověření: kompletní místní regresní sada včetně nových negativních a pozitivních případů, zachování odkazu obalujícího obrázek.
-- Místní Chromium nelze spustit: v prostředí chybí binární prohlížeč. Prohlížečové a produkční kontroly zajišťuje CI.
-- Další priorita: prověřit cíle Markdown odkazů s volitelným titulkem, aby platné odkazy nevypadávaly z inventáře.
+- Opraveno: inventář odkazů a obrázků zachovává Markdown cíle s volitelným titulkem v jednoduchých či dvojitých uvozovkách i závorkách.
+- Podporováno: oddělení titulku novým řádkem, escapované uvozovky, URL v úhlových závorkách a obrázek uvnitř odkazu.
+- Neúplný titulek, chybějící oddělovač a přebytečný text nevytvářejí falešné odkazy.
+- Ověření: kompletní regresní sada prošla, včetně nových pozitivních a negativních scénářů.
+- Prohlížečové ověření: místní Chromium blokují omezení prostředí; na push navazuje existující CI pro desktop, mobil a dokončení auditu při výpadcích zdrojů.
+- Další priorita: pokračovat v ověřování neúplných a namespacovaných sitemap podle kritérií výše.

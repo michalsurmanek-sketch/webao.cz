@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Textová sitemap již nepotvrzuje XML nález za 100 bodů. Bez alespoň jednoho ověřeného XML urlset/indexu je nález K PROVĚŘENÍ, points=null, s vysvětlením nejistého typu a úplnosti inventáře.
-- Textové odkazy se nadále mohou použít k objevování URL; neprezentují se jako důkaz ověřené XML sitemapy.
-- Chromium celý audit pokrývá textový zdroj a ověřuje nulový bodový dopad a viditelnou nejistotu. Neúplné XML zůstává NELZE OVĚŘIT.
+- Původ každé objevené sitemap URL rozlišuje ověřené XML a textovou čtečku s neověřeným XML. Textové zdroje již nejsou zavádějícím způsobem označené XML sitemap.
+- Existující předávání zdrojů zajišťuje stejné označení v inventáři reportu, evidenci a CSV; bodování se nemění.
+- Chromium celý audit ověřuje source stránky a shodné označení v reportu a exportovaném CSV.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: oddělit původ XML/text i u jednotlivých URL v inventáři a CSV.
+- Další priorita: prověřit konzistentní označení původu u URL vynechaných limitem a duplicit z více zdrojů.

@@ -1315,7 +1315,11 @@ form.addEventListener('submit',async event=>{
    if(!robotsCrawlAllowed(target.pathname+target.search)&&!sitemapSkipped.some(item=>item.url===raw))sitemapSkipped.push({url:raw,reason:robotsSkipMessage});
   }
   const sitemapBudgetOmitted=sitemapBudgetRemainder(sitemapQueue,seenSitemaps,robotsCrawlAllowed);
-  const sitemapEntries=sitemapTexts.flatMap((text,index)=>getSitemapUrls(text,url.hostname,url.protocol).map(candidate=>({url:candidate,source:sitemapSources[index]||sitemapSource,kind:'XML sitemap'})));
+  const sitemapEntries=sitemapTexts.flatMap((text,index)=>{
+   const doc=parseSitemapXml(text);
+   const kind=doc&&['urlset','sitemapindex'].includes(doc.documentElement.localName)?'XML sitemap':'Textová čtečka sitemapy — XML neověřeno';
+   return getSitemapUrls(text,url.hostname,url.protocol).map(candidate=>({url:candidate,source:sitemapSources[index]||sitemapSource,kind}));
+  });
   const linkEntries=(rootAllowed&&pageResult.status==='fulfilled'?[...new Set((homeParsed.links||[]).map(candidate=>normalizeCrawlUrl(candidate,url)).filter(candidate=>candidate&&candidate!==rootUrl))]:[]).map(candidate=>({url:candidate,source:rootUrl,kind:'Interní odkaz z homepage'}));
   const discoveredEntries=[...linkEntries,...sitemapEntries];
   const sitemapUrls=new Set(sitemapEntries.map(item=>item.url));

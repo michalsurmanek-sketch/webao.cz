@@ -179,6 +179,14 @@ const { chromium } = require('playwright');
     assert.equal(textFinding.ok,false);
     assert.equal(textFinding.state,'K PROVĚŘENÍ');
     assert.match(textFinding.detail,/úplné XML nebylo ověřeno/);
+    const provenance=await page.evaluate(async()=>{
+      let blob;URL.createObjectURL=value=>{blob=value;return 'blob:fixture'};
+      downloadAuditCsv();
+      return {source:window.currentAuditData.pages.find(item=>item.url==='https://example.cz/page').source,report:document.querySelector('#result').textContent,csv:await blob.text()};
+    });
+    assert.match(String(provenance.source),/Textová čtečka sitemapy — XML neověřeno/);
+    assert.match(provenance.report,/Textová čtečka sitemapy — XML neověřeno/);
+    assert.match(provenance.csv,/Textová čtečka sitemapy — XML neověřeno/);
     assert.deepEqual(errors, []);
     console.log('PASS sitemap integration: request budget, duplicate/cycle suppression, robots, fetch failure, omissions and CSV/report counts');
   } finally { await browser.close(); }

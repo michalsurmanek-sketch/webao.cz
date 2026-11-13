@@ -19,7 +19,7 @@ h1,h2,h3{font-weight:600}.hero-copy h1{line-height:.94}.hero-copy h1 span{displa
 .signature{position:relative;right:auto;bottom:auto;align-self:flex-end;margin:8px 7% 0;font-size:13px;line-height:1.1}.signature span{font-size:12px}.signature:after{margin:5px auto;width:40px}
 }
 @media(max-width:360px){.hero-copy h1{font-size:40px}.hero-copy h1 span{font-size:28px}.hero-copy .lead{font-size:17px}.hero-copy .eyebrow{font-size:6px;letter-spacing:1.3px}.network{top:auto}.hero-values{gap:4px}}
-@media(max-width:600px){header{position:sticky;top:0;z-index:30;overflow:hidden;transition:height .25s ease,opacity .25s ease,padding .25s ease}header.mobile-hidden{height:0;opacity:0;padding-block:0;border-bottom:0;pointer-events:none}}
+@media(max-width:600px){html{scroll-padding-top:66px}body{padding-top:66px}header{position:fixed;top:0;left:0;right:0;z-index:30;overflow:visible}.hero-copy>.button{display:none}}
 
 header .logo{display:flex;align-items:center;height:100%}.header-network-logo{width:58px;height:58px;overflow:visible}.header-core-label{font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:800;letter-spacing:1px;fill:#fff}@media(max-width:600px){.header-network-logo{width:60px;height:60px}}
 

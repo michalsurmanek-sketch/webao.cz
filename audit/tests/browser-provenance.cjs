@@ -12,6 +12,7 @@ const {chromium}=require('playwright');
    await page.route('**/*',route=>{
     const url=route.request().url();
     if(url==='https://fixture.test/audit/')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(__dirname,'../index.html'),'utf8')});
+    if(new URL(url).pathname==='/assets/network.css')return route.fulfill({contentType:'text/css',body:fs.readFileSync(path.join(__dirname,'../../assets/network.css'),'utf8')});
     if(url==='https://fixture.test/audit/psi-cache.js')return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(__dirname,'../psi-cache.js'),'utf8')});
     return route.abort();
    });
@@ -35,6 +36,8 @@ const {chromium}=require('playwright');
    await page.screenshot({path:`browser-results/provenance-${width}.png`,fullPage:true});
    await page.emulateMedia({media:'print'});
    assert(await page.getByText(state.source.detail,{exact:true}).isVisible(),'print retains source provenance');
+   const printColors=await page.evaluate(()=>({cell:getComputedStyle(document.querySelector('.audit-pages td')).color,heading:getComputedStyle(document.querySelector('.audit-pages th')).color,card:getComputedStyle(document.querySelector('.detektiv-card')).backgroundColor,cardText:getComputedStyle(document.querySelector('.detektiv-card p')).color}));
+   assert.equal(printColors.cell,'rgb(36, 60, 44)');assert.equal(printColors.heading,'rgb(37, 76, 50)');assert.equal(printColors.card,'rgb(255, 255, 255)');assert.equal(printColors.cardText,'rgb(36, 60, 44)');
    if(width===1365)await page.pdf({path:'browser-results/provenance-report.pdf',format:'A4',printBackground:true});
    assert.deepEqual(errors,[]);await page.close();
    console.log(`PASS PageSpeed source provenance screen/print: width=${width}`);

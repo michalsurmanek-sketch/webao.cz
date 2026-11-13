@@ -954,7 +954,7 @@ async function queryPageSpeedStrategies(url,rootAllowed,skipReason='Měření vy
    // Quota prevents new requests, but must not discard a valid cached device result.
    const cached=readCachedPageSpeed(new URL(url.origin+'/'),strategy);
    if(cached)results.push({status:'fulfilled',value:await trackPageSpeed(Promise.resolve(cached))});
-   else results.push({status:'rejected',reason:new Error('Měření '+strategy+' vynecháno, protože předchozí požadavek PageSpeed potvrdil vyčerpanou denní kvótu.')});
+   else results.push({status:'rejected',reason:new Error('Měření '+strategy+' vynecháno, protože předchozí požadavek PageSpeed narazil na omezení počtu požadavků nebo kvóty.')});
    continue;
   }
   try{results.push({status:'fulfilled',value:await trackPageSpeed(queryPageSpeed(new URL(url.origin+'/'),strategy))});}

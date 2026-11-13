@@ -40,7 +40,8 @@
  function write(url,strategy,payload){
   if(!valid(payload))return false;
   try{
-   const serialized=JSON.stringify({savedAt:Date.now(),payload});
+   const savedAt=Date.now();
+   const serialized=JSON.stringify({savedAt,payload});
    if(serialized.length>MAX_ENTRY_CHARS)return false;
    global.localStorage.setItem(key(url,strategy),serialized);
    return true;

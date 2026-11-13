@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- discoverPageLinks nyní zachovává všechny odkazující stránky pro jednu cílovou URL v jednom průchodu. Dříve deduplikace URL zahodila další zdroje.
-- Cílová URL zůstává v inventáři jednou; samostatné zdrojové adresy jsou deduplikované a přenášejí se do finálního inventáře/reportu/CSV.
-- Chromium fixture odkazuje na stejnou stránku z page1 i page2 a ověřuje zachování obou adres vedle sitemapových zdrojů.
-- Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: zkontrolovat velikost evidence zdrojů u hustě propojených webů a případné označené omezení ukázek.
+- Doplněno chybějící nativní měření hustých odkazů: 30 zdrojových stránek × 1 000 cílů + 100 opakovaných odkazů na stránku, celkem 33 000 odkazů.
+- Kritéria: přesně 1 000 cílů, 30 unikátních zdrojů pro každý cíl, zachované pořadí, konzervativní CI strop 10 s a serializovaná evidence krátkých fixture URL pod 2 MiB. Log vypisuje skutečný čas a velikost.
+- Bez prokázané potřeby se evidence nekrátí; dlouhé URL a plný report vyžadují další měření. Testový limit není garance na každém zařízení.
+- Ověření: místní regrese, syntaxe a diff kontrola; nativní měření v Chromium a produkční kontroly v CI.
+- Další priorita: změřit růst reportu s dlouhými zdrojovými URL a případně zavést výslovně označené ukázky.

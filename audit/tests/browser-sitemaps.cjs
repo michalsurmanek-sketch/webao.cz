@@ -41,6 +41,20 @@ const { chromium } = require('playwright');
     assert.deepEqual(cdataTypes.indexes,['https://example.cz/child.xml']);
     const incompleteComment=await page.evaluate(()=>getSitemapUrls('<urlset><url><loc>https://example.cz/invalid</loc></url></urlset><!-- truncated','example.cz'));
     assert.deepEqual(incompleteComment,[],'extraction must not repair incomplete XML by stripping comments');
+    const dense=await page.evaluate(()=>{
+      const links=Array.from({length:1000},(_,i)=>'https://example.cz/target-'+i);
+      const pages=Array.from({length:30},(_,i)=>({url:'https://example.cz/source-'+i,raw:'available',links:[...links,...links.slice(0,100)]}));
+      const started=performance.now();
+      const found=discoverPageLinks(pages,new URL('https://example.cz/'),()=>false,'User-agent: *\nAllow: /');
+      return {count:found.length,sourceCounts:found.map(item=>item.sources.length),first:found[0].sources,last:found.at(-1).url,elapsedMs:performance.now()-started,bytes:new TextEncoder().encode(JSON.stringify(found)).length};
+    });
+    assert.equal(dense.count,1000);
+    assert(dense.sourceCounts.every(count=>count===30),'dense links must preserve every distinct referring page');
+    assert.equal(new Set(dense.first).size,30,'repeated links must not repeat source evidence');
+    assert.equal(dense.last,'https://example.cz/target-999');
+    assert(dense.elapsedMs<10000,'33k links must finish within conservative CI ceiling');
+    assert(dense.bytes<2*1024*1024,'short-URL fixture evidence must remain below 2 MiB');
+    console.log('PASS dense link provenance '+JSON.stringify({count:dense.count,referrers:30,elapsedMs:dense.elapsedMs,bytes:dense.bytes}));
     const scale=await page.evaluate(()=>{
       const count=15000;
       const entries=Array.from({length:count},(_,i)=>'<url><loc>https://example.cz/page-'+i+'?a=1&amp;b=2</loc></url>');

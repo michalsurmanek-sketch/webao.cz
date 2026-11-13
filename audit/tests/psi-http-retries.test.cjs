@@ -7,13 +7,13 @@ const vm=require('node:vm');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const source=html.slice(html.indexOf('async function queryPageSpeed('),html.indexOf('async function queryPageSpeedStrategies('));
 assert(source.startsWith('async function queryPageSpeed('),'PageSpeed function must be found');
-async function check(status,expectedCalls){
+async function check(status,expectedCalls,unreadable=false){
  let calls=0;
  const context={
   URL,Error,Promise,
   readCachedPageSpeed:()=>null,
   fetchTimed:async()=>{calls++;return{ok:false,status}},
-  readTimedResponse:async()=>({error:{message:'HTTP '+status}}),
+  readTimedResponse:async()=>{if(unreadable)throw Error('Invalid JSON');return{error:{message:'HTTP '+status}}},
   isPageSpeedQuotaError:()=>false,
   setTimeout:(fn)=>{fn();return 1},
   withPageSpeedProvenance:()=>{throw Error('Unexpected success')},
@@ -22,7 +22,7 @@ async function check(status,expectedCalls){
  };
  vm.createContext(context);
  vm.runInContext(source,context);
- await assert.rejects(context.queryPageSpeed(new URL('https://example.cz/'),'mobile',2),new RegExp('HTTP '+status));
+ await assert.rejects(context.queryPageSpeed(new URL('https://example.cz/'),'mobile',2),new RegExp(unreadable&&status!==429?'Odpověď PageSpeed se nepodařilo přečíst':'HTTP '+status));
  assert.equal(calls,expectedCalls,'HTTP '+status+' request count');
  if(status===429){
   const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));
@@ -37,6 +37,9 @@ async function check(status,expectedCalls){
  await check(404,1);
  await check(429,1);
  await check(500,2);
+ await check(400,1,true);
+ await check(429,1,true);
+ await check(500,2,true);
  const strategySource=html.slice(html.indexOf('async function queryPageSpeedStrategies('),html.indexOf('async function queryDns('));
  const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));
  let networkCalls=0;

@@ -942,7 +942,20 @@ function parsePageText(text,url){
  const images=[...navigable.matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)].map(match=>({alt:match[1].trim(),url:resolve(match[2])})).filter(image=>image.url);
  // Remove image syntax, not every link sharing an image URL: linked images are navigable.
  const withoutImages=navigable.replace(/!\[[^\]]*\]\([^)\s]+\)/g,'');
- const markdownLinks=[...withoutImages.matchAll(/\[[^\]\r\n]*\]\(([^)\s]+)\)/g)].filter(match=>!match[1].startsWith('#')).map(match=>resolve(match[1])).filter(Boolean);
+ const markdownLinks=[];
+ for(const match of withoutImages.matchAll(/\[[^\]\r\n]*\]\(/g)){
+  let cursor=match.index+match[0].length,destination='',depth=0,closed=false;
+  const angled=withoutImages[cursor]==='<';if(angled)cursor++;
+  for(;cursor<withoutImages.length;cursor++){
+   const char=withoutImages[cursor];
+   if(angled&&char==='>'){closed=withoutImages[cursor+1]===')';break;}
+   if(/\s/.test(char)||char==='<'||char==='>')break;
+   if(!angled&&char==='(')depth++;
+   if(!angled&&char===')'){if(depth===0){closed=true;break;}depth--;}
+   destination+=char;
+  }
+  if(closed&&destination&&!destination.startsWith('#')){const target=resolve(destination);if(target)markdownLinks.push(target);}
+ }
  const links=[...new Set(markdownLinks.filter(href=>isSameSiteHost(new URL(href).hostname,url.hostname)))];
  const externalLinks=[...new Set(markdownLinks.filter(href=>!isSameSiteHost(new URL(href).hostname,url.hostname)))];
  return{url:url.href,title:field('Title'),description:field('Description'),h1s,links,externalLinks,images,body:cleanBody,contactText:navigable,wordCount,raw:text};

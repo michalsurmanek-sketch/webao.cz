@@ -24,6 +24,7 @@
   try{
    const raw=global.localStorage.getItem(key(url,strategy));
    if(!raw)return null;
+   if(typeof raw!=='string'){global.localStorage.removeItem(key(url,strategy));return null;}
    if(raw.length>MAX_ENTRY_CHARS){global.localStorage.removeItem(key(url,strategy));return null;}
    const value=JSON.parse(raw);
    const now=Date.now();
@@ -40,7 +41,8 @@
  function write(url,strategy,payload){
   if(!valid(payload))return false;
   try{
-   const serialized=JSON.stringify({savedAt:Date.now(),payload});
+   const savedAt=Date.now();
+   const serialized=JSON.stringify({savedAt,payload});
    if(serialized.length>MAX_ENTRY_CHARS)return false;
    global.localStorage.setItem(key(url,strategy),serialized);
    return true;

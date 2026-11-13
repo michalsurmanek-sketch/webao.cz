@@ -28,6 +28,7 @@ assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance
 assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:null}}}}),true);
 assert.equal(cache.write(url,strategy,{lighthouseResult:{}}),true,'legacy metadata-only results remain compatible');
 assert.equal(cache.write(url, strategy, good), true);
+assert.ok(Math.abs(JSON.parse(values.get(key)).savedAt-Date.now())<1000,'cache metadata must contain current write timestamp');
 const priorEntry=values.get(key);
 const huge={lighthouseResult:{categories:{performance:{score:0.9}},audits:{oversized:{details:'x'.repeat(2*1024*1024)}}}};
 assert.equal(cache.write(url,strategy,huge),false,'oversized Lighthouse result must not fill browser storage');
@@ -37,6 +38,10 @@ assert.equal(cache.read(url,strategy),null,'oversized legacy entry must be rejec
 assert.equal(values.has(key),false,'oversized legacy entry must be evicted');
 assert.equal(cache.write(url,strategy,good),true,'cache remains usable after oversized legacy entry');
 assert.equal(cache.read(url, strategy).payload.lighthouseResult.categories.performance.score, 0.9);
+values.set(key,{not:'a string'});
+assert.equal(cache.read(url,strategy),null,'non-string storage responses must be rejected');
+assert.equal(values.has(key),false,'malformed storage responses must be evicted');
+assert.equal(cache.write(url,strategy,good),true);
 values.set(key, JSON.stringify({savedAt: Date.now(), payload: failed}));
 assert.equal(cache.read(url, strategy), null, 'legacy failed cache must be rejected');
 assert.equal(values.has(key), false, 'invalid cache must be removed');

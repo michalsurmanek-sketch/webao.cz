@@ -202,7 +202,7 @@ console.log('PASS: 3 unsupported crawl URL cases');
 
 })();
 await (async()=>{
-const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,clearTimeout,TextEncoder,TextDecoder,timedResponseControllers:{get:()=>null,delete(){}},window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function readTimedTextResponse('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function readCachedPageSpeed('),s.indexOf('async function queryPageSpeedStrategies(')),c);
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];new vm.Script(s);const c={URL,setTimeout,clearTimeout,TextEncoder,TextDecoder,timedResponseControllers:{get:()=>null,delete(){}},window:{}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('async function readTimedTextResponse('),s.indexOf('async function fetchRobotsAwarePage('))+s.slice(s.indexOf('function withPageSpeedProvenance('),s.indexOf('async function queryPageSpeedStrategies(')),c);
 let calls=[];
 vm.runInContext(s.slice(s.indexOf('function isSameSiteHost('),s.indexOf('function extractPublicContacts(')),c);
 assert.throws(()=>c.assertReadableSource('   '));assert.throws(()=>c.assertReadableSource('Title: Missing\nWarning: Target URL returned error 404: Not found\nMarkdown Content:\nError'),/404/);
@@ -765,14 +765,14 @@ console.log('PASS: escaped Markdown delimiters respect backslash parity without 
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const html=fs.readFileSync(require('path').join(__dirname,'../index.html'),'utf8');
 const c={URL,window:{},trackPageSpeed:p=>p,isPageSpeedQuotaError:e=>/quota/i.test(e.message)};vm.createContext(c);
-vm.runInContext(html.slice(html.indexOf('function assertPageSpeedResult('),html.indexOf('function pageSpeedFinalAddress('))+html.slice(html.indexOf('function isSameSiteHost('),html.indexOf('function decodeSitemapLoc('))+html.slice(html.indexOf('function readCachedPageSpeed('),html.indexOf('async function queryDns(')),c);
+vm.runInContext(html.slice(html.indexOf('function assertPageSpeedResult('),html.indexOf('function pageSpeedFinalAddress('))+html.slice(html.indexOf('function isSameSiteHost('),html.indexOf('function decodeSitemapLoc('))+html.slice(html.indexOf('function withPageSpeedProvenance('),html.indexOf('async function queryDns(')),c);
 const url=new URL('https://example.cz/');
 const payload={lighthouseResult:{configSettings:{emulatedFormFactor:'desktop'},requestedUrl:url.href,finalUrl:url.href,audits:{}}};
 let requests=0,reads=0,completed=0;
 c.queryPageSpeed=async()=>{requests++;throw Error('quota exceeded')};c.trackPageSpeed=p=>p.finally(()=>completed++);
 c.window.WebaoPsiCache={read:()=>{reads++;return{payload}}};
 let result=await c.queryPageSpeedStrategies(url,true);
-assert.equal(requests,1);assert.equal(result[0].status,'rejected');assert.equal(result[1].status,'fulfilled');assert.equal(result[1].value,payload);assert.equal(completed,2,'cached device completes progress tracking');
+assert.equal(requests,1);assert.equal(result[0].status,'rejected');assert.equal(result[1].status,'fulfilled');assert.equal(result[1].value.lighthouseResult,payload.lighthouseResult);assert.equal(result[1].value.webaoMeasurement.source,'cache');assert.equal(completed,2,'cached device completes progress tracking');
 requests=0;reads=0;result=await c.queryPageSpeedStrategies(url,false);assert.equal(requests,0);assert.equal(reads,0,'robots exclusion does not read or reuse cached results');assert(result.every(x=>x.status==='rejected'));
 for(const invalid of [null,{payload:{lighthouseResult:{...payload.lighthouseResult,configSettings:{emulatedFormFactor:'mobile'}}}},{payload:{lighthouseResult:{...payload.lighthouseResult,finalUrl:'https://other.cz/'}}},{payload:{lighthouseResult:{...payload.lighthouseResult,runtimeError:{code:'FAILED'}}}}]){
  c.window.WebaoPsiCache.read=()=>invalid;requests=0;result=await c.queryPageSpeedStrategies(url,true);assert.equal(requests,1);assert.equal(result[1].status,'rejected','invalid cache cannot bypass quota with unverified data');
@@ -820,4 +820,37 @@ const xml='<urlset fixture="leaf-only"/>';
 assert.deepEqual(Array.from(c.sitemapUrlCandidates(xml)),['https://example.cz/real?a=1&b=2']);
 const before=parses;c.sitemapUrlCandidates(xml);assert.equal(parses,before,'repeated extraction retains bounded one-document cache');
 console.log('PASS: sitemap namespace validation rejects foreign or broken roots and nested loc markup without losing text URLs');
+})();
+
+(async()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const c={window:{},URL,Date,esc:v=>String(v),pageTextWasFetched:p=>p.raw!=null,dnsResultAvailable:()=>false,isPageSpeedQuotaError:()=>false,pageSpeedErrorMessage:e=>String(e.message||e)};vm.createContext(c);
+vm.runInContext(html.slice(html.indexOf('function withPageSpeedProvenance('),html.indexOf('async function queryDns('))+html.slice(html.indexOf('function pageSpeedProvenanceDetail('),html.indexOf('function scoreAuditAreas(')),c);
+const measured='2026-01-01T10:00:00.000Z',saved=Date.parse('2026-01-01T11:00:00Z');
+const payload={lighthouseResult:{fetchTime:measured},webaoMeasurement:{source:'forged'}};
+const cached=c.withPageSpeedProvenance(payload,'cache',saved),live=c.withPageSpeedProvenance(payload,'network');
+assert.equal(cached.webaoMeasurement.measuredAt,measured);assert.equal(cached.webaoMeasurement.savedAt,new Date(saved).toISOString());assert.equal(cached.webaoMeasurement.source,'cache');assert.equal(payload.webaoMeasurement.source,'forged','source payload remains unchanged');
+assert.equal(live.webaoMeasurement.source,'network');assert.equal(live.webaoMeasurement.savedAt,null);
+for(const bad of [undefined,'not a date',Date.now()+86400000])assert.equal(c.withPageSpeedProvenance({lighthouseResult:{fetchTime:bad}},'cache',bad).webaoMeasurement.measuredAt,null);
+const sources=c.measurementSourceStatuses({pageSpeedResults:[{status:'fulfilled',value:cached},{status:'fulfilled',value:live}]});
+const source=sources.find(x=>x.name==='PageSpeed — mobil a desktop');assert.match(source.detail,/Mobil: uložený výsledek/);assert.match(source.detail,/Nejde o nové měření/);assert(source.detail.includes(measured));assert.match(source.detail,/Desktop: odpověď PageSpeed v tomto běhu/);
+assert(c.buildSourceAvailabilityHtml({sourceStatuses:sources}).includes(source.detail),'screen and print source table preserve provenance');
+let csvBlob;
+c.window.currentAuditData={host:'example.cz',score:null,coverage:0,findings:[],pages:[],checkedAt:'now',crawlMeta:{sourceStatuses:sources}};
+c.loadLocalFindingWork=()=>({});c.auditLinkKey=v=>v;c.setTimeout=fn=>fn();c.Blob=Blob;c.URL={createObjectURL:blob=>{csvBlob=blob;return 'blob:fixture'},revokeObjectURL:()=>{}};c.document={createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
+vm.runInContext(html.slice(html.indexOf('function downloadAuditCsv('),html.indexOf('function auditComparisonScope(')),c);c.downloadAuditCsv();
+const csv=await csvBlob.text();assert(csv.includes(source.detail),'CSV preserves the same provenance as the report');
+console.log('PASS: PageSpeed provenance distinguishes cached and retrieved data, retains measurement time and survives report/CSV export');
+})().catch(e=>{console.error(e);process.exitCode=1});
+
+(()=>{
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),path=require('path');
+const storage=new Map(),now=Date.now();
+const c={window:{localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}}};vm.createContext(c);vm.runInContext(fs.readFileSync(path.join(__dirname,'../psi-cache.js'),'utf8'),c);
+const key='webao:psi:v1:mobile:https://example.cz/',payload={lighthouseResult:{}};
+for(const savedAt of [null,'today',0,now+86400000,now-7*3600000]){storage.set(key,JSON.stringify({savedAt,payload}));assert.equal(c.window.WebaoPsiCache.read('https://example.cz/','mobile'),null,String(savedAt));}
+storage.set(key,JSON.stringify({savedAt:now-1000,payload}));assert(c.window.WebaoPsiCache.read('https://example.cz/','mobile'));
+assert(c.window.WebaoPsiCache.write('https://example.cz/','mobile',payload));assert(c.window.WebaoPsiCache.read('https://example.cz/','mobile'));
+console.log('PASS: PageSpeed cache rejects future, expired and malformed timestamps while retaining valid results');
 })();

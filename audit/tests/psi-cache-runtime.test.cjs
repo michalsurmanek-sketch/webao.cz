@@ -28,6 +28,7 @@ assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance
 assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:null}}}}),true);
 assert.equal(cache.write(url,strategy,{lighthouseResult:{}}),true,'legacy metadata-only results remain compatible');
 assert.equal(cache.write(url, strategy, good), true);
+assert.ok(Math.abs(JSON.parse(values.get(key)).savedAt-Date.now())<1000,'cache metadata must contain current write timestamp');
 const priorEntry=values.get(key);
 const huge={lighthouseResult:{categories:{performance:{score:0.9}},audits:{oversized:{details:'x'.repeat(2*1024*1024)}}}};
 assert.equal(cache.write(url,strategy,huge),false,'oversized Lighthouse result must not fill browser storage');

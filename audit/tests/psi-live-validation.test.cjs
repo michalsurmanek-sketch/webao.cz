@@ -8,6 +8,7 @@ const context={URL,isSameSiteHost:(a,b)=>a===b};vm.createContext(context);vm.run
 const base={configSettings:{emulatedFormFactor:'mobile'},requestedUrl:'https://example.cz/',finalUrl:'https://example.cz/'};
 function payload(categories){return{lighthouseResult:{...base,categories}}}
 const url=new URL('https://example.cz/');
+assert.throws(()=>context.assertPageSpeedResult({lighthouseResult:[]},url,'mobile'),/nevrátil Lighthouse výsledek/);
 assert.equal(context.assertPageSpeedResult(payload({performance:{score:0},seo:{score:1}}),url,'mobile').lighthouseResult.categories.performance.score,0);
 assert.doesNotThrow(()=>context.assertPageSpeedResult({lighthouseResult:base},url,'mobile'),'Legacy fixtures without categories remain compatible');
 for(const categories of [{},[],null,'invalid',{performance:{score:NaN}},{seo:{score:2}},{seo:{score:-0.1}},{seo:null}]){

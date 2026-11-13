@@ -606,7 +606,7 @@ function canonicalLighthouseFinding(audit,url){
 function nonnegativeMetric(value){return Number.isFinite(value)&&value>=0?value:null;}
 function firstMetricPercentile(metricSet,keys){for(const key of keys){const percentile=metricSet?.[key]?.percentile;if(nonnegativeMetric(percentile)!==null)return percentile;}return null;}
 function assertPageSpeedResult(payload,expectedUrl,expectedStrategy){
- if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object')throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
+ if(!payload||!payload.lighthouseResult||typeof payload.lighthouseResult!=='object'||Array.isArray(payload.lighthouseResult))throw new Error('PageSpeed nevrátil Lighthouse výsledek.');
  const lighthouse=payload.lighthouseResult;
  if(lighthouse.categories!==undefined){
   const categories=lighthouse.categories;

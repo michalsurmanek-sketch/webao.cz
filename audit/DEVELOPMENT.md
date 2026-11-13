@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Detekce urlset/sitemapindex v inventáři ignoruje CDATA. Text obsahující název opačného typu dokumentu již nevyřadí skutečné URL stránky nebo podřízené sitemapy.
-- Původní XML se nadále předává parseru, takže loc v CDATA a validace úplnosti zůstávají zachované. Odstranění CDATA se týká pouze pomocné detekce typu.
-- Chromium pokrývá oba směry: falešný index v urlset a falešný urlset v indexu. Stávající testy ověřují loc CDATA a neúplné XML.
+- Kandidát atributů: platné XML zapisuje znak < jako entitu, která dosavadní regex nepřepíná. Potvrdil se ale příbuzný problém: vnořená rozšiřující značka opačného typu vyřadila platné URL.
+- V prohlížeči typ určuje kořen ověřeného XML DOM místo hledání značek kdekoli v dokumentu. Používá se existující omezená cache parseru.
+- Chromium pokrývá urlset s ext:sitemapindex i index s ext:urlset, včetně escapovaných atributů. Zachování CDATA a měření 15 000 URL zůstávají pokryty.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit falešné značky v atributech XML při pomocné detekci typu dokumentu.
+- Další priorita: prověřit rozlišení textového indexu a urlset u čtečkového titulu Sitemap a stránek končících .xml.

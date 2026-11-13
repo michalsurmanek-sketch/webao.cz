@@ -1081,10 +1081,18 @@ function discoverPageLinks(pages,baseUrl,isExcluded,robots,allowsPath=robotsAllo
  }
  return [...found.values()];
 }
+function sitemapDocumentType(text,source){
+ if(typeof DOMParser!=='undefined'&&/<(?:[A-Za-z_][\w.-]*:)?(?:urlset|sitemapindex)\b/i.test(source)){
+  const doc=parseSitemapXml(text);
+  return doc?doc.documentElement.localName:'';
+ }
+ return /<(?:[A-Za-z_][\w.-]*:)?urlset\b/i.test(source)?'urlset':/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source)?'sitemapindex':'';
+}
 function getSitemapLocations(text,host,protocol='https:'){
  const source=sitemapSourceWithoutComments(sitemapReaderContent(text)).replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)/g,'');
- if(/<(?:[A-Za-z_][\w.-]*:)?urlset\b/i.test(source))return[];
- const sitemapIndex=/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source);
+ const type=sitemapDocumentType(text,source);
+ if(type==='urlset')return[];
+ const sitemapIndex=type==='sitemapindex';
  const declared=[...source.matchAll(/^\s*sitemap\s*:\s*(https?:\/\/[^\s<]+)/gim)].map(match=>match[1]);
  const candidates=sitemapIndex?sitemapUrlCandidates(text):declared.length?declared:sitemapUrlCandidates(text);
  const baseUrl=new URL(protocol+'//'+host+'/'),found=[],seen=new Set();
@@ -1100,7 +1108,7 @@ function getSitemapLocations(text,host,protocol='https:'){
 }
 function getSitemapUrls(text,host,protocol='https:'){
  const source=sitemapSourceWithoutComments(sitemapReaderContent(text)).replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)/g,'');
- if(/<(?:[A-Za-z_][\w.-]*:)?sitemapindex\b/i.test(source))return[];
+ if(sitemapDocumentType(text,source)==='sitemapindex')return[];
  const candidates=sitemapUrlCandidates(text);
  const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(String(text||''));
  if(readerSitemap&&candidates.length&&candidates.every(raw=>{try{return /\.xml(?:$|\?)/i.test(new URL(raw).pathname+new URL(raw).search)}catch{return false}}))return[];

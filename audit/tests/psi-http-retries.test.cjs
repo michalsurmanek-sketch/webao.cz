@@ -24,6 +24,12 @@ async function check(status,expectedCalls){
  vm.runInContext(source,context);
  await assert.rejects(context.queryPageSpeed(new URL('https://example.cz/'),'mobile',2),new RegExp('HTTP '+status));
  assert.equal(calls,expectedCalls,'HTTP '+status+' request count');
+ if(status===429){
+  const quotaSource=html.slice(html.indexOf('function isPageSpeedQuotaError('),html.indexOf('function withPageSpeedProvenance('));
+  const quotaContext={};vm.createContext(quotaContext);vm.runInContext(quotaSource,quotaContext);
+  assert.equal(quotaContext.isPageSpeedQuotaError(new Error('PageSpeed mobile: HTTP 429 — Too Many Requests')),true);
+  assert.match(quotaContext.pageSpeedErrorMessage(new Error('HTTP 429')),/omezil počet požadavků/);
+ }
 }
 (async()=>{
  await check(400,1);

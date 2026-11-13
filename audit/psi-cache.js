@@ -9,7 +9,7 @@
    const raw=global.localStorage.getItem(key(url,strategy));
    if(!raw)return null;
    const value=JSON.parse(raw);
-   if(!value||typeof value.savedAt!=='number'||Date.now()-value.savedAt>TTL){
+   if(!value||!Number.isFinite(value.savedAt)||value.savedAt<=0||value.savedAt>Date.now()||Date.now()-value.savedAt>TTL){
     global.localStorage.removeItem(key(url,strategy));return null;
    }
    if(!value.payload||!value.payload.lighthouseResult)return null;

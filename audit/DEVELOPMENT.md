@@ -18,6 +18,15 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 3. Mobil a exporty: vizuální kontrola aktuálního PDF a výsledků, reprezentativní běh s dostupnými i nedostupnými zdroji.
 4. Správnost inventáře: podporované Markdown odkazy s volitelným titulkem, sitemap namespace/entity a neúplné zdroje; nepřidávat chyby ze zdrojů, které nelze ověřit.
 
+## Etapa AI Ready 2027 — stabilizace zdrojů
+
+- Zadání a návrh architektury jsou v [AI_READY_2027.md](AI_READY_2027.md). AI modul, skóre a placené API zatím nejsou aktivní; nejprve platí kritéria vydání výše.
+- Report a CSV rozlišují uložený PageSpeed výsledek od odpovědi získané v tomto běhu. Zobrazují čas měření od poskytovatele a u cache čas uložení; nedoložený čas se neodhaduje.
+- Cache odmítá budoucí, neplatné a expirované časové údaje. Validní cache zachovává úsporu požadavků při kvótě, s předností robots pravidel.
+- Doplněny regresní testy původu/časů, CSV a cache; prohlížečový scénář s kvótou a cache vytváří desktop/mobil screenshoty a tiskové PDF.
+- Nasazení: až po úspěšné regresi a povinných CI kontrolách vydávaného commitu. Samotná existence testu není potvrzení výsledku.
+- Zbývá: skutečné současné mobilní i desktopové měření při běžné dostupnosti API; vizuální QA PDF a mobilu z aktuálního commitu. Bez toho produkt neoznačovat jako hotový.
+
 ## Poslední změna — 2026-11-13
 
 - Potvrzeno: po kvótové chybě mobilního PageSpeed se desktop přeskočil i s platným výsledkem v cache.

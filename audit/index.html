@@ -396,6 +396,17 @@ function buildLinkGraphHtml(pages){
 function isPriorityFinding(item){
  return (Number.isFinite(item.points)&&item.points<100&&!item.ok)||Number.isFinite(item.priorityPoints)||item.requiresAction===true;
 }
+function pageSpeedProvenanceDetail(results){
+ return results.map((result,index)=>{
+  const device=index===0?'Mobil':'Desktop';
+  if(result.status!=='fulfilled')return device+': měření není dostupné.';
+  const meta=result.value?.webaoMeasurement;
+  const source=meta?.source==='cache'?'uložený výsledek (cache)':meta?.source==='network'?'odpověď PageSpeed v tomto běhu':'původ výsledku není doložen';
+  const measured=meta?.measuredAt?'Čas měření: '+meta.measuredAt+'.':'Čas měření není doložen.';
+  const saved=meta?.source==='cache'&&meta.savedAt?' Uloženo: '+meta.savedAt+'. Nejde o nové měření.':'';
+  return device+': '+source+'. '+measured+saved;
+ }).join(' ');
+}
 function measurementSourceStatuses({pages=[],robotsKnown=false,rootAllowed=true,robotsServerError='',robotsUnavailableStatus='',robotsUnknownError='',robotsSkipLabel='',dnsResults=[],rdapResult={},pageSpeedResults=[],httpVariantResults=[],observatoryResult={}}){
  const loaded=pages.filter(pageTextWasFetched).length,failed=pages.filter(page=>page.loadError&&!String(page.state||'').startsWith('Vynecháno')).length;
  const htmlInspected=pages.filter(page=>pageTextWasFetched(page)&&page.htmlMetadata).length,htmlFailed=pages.filter(page=>pageTextWasFetched(page)&&page.htmlMetadataError).length;
@@ -411,7 +422,7 @@ function measurementSourceStatuses({pages=[],robotsKnown=false,rootAllowed=true,
   {name:'robots.txt',status:robotsKnown?'Odpověď získána':robotsServerError?'Chyba serveru HTTP '+robotsServerError:robotsUnavailableStatus?'Soubor nedostupný HTTP '+robotsUnavailableStatus:'Nelze ověřit',detail:robotsKnown?'Pravidla byla načtena; jejich vyhodnocení je uvedeno v nálezech.':robotsServerError?'Robots.txt při čtení vrátilo HTTP '+robotsServerError+'. Auditní požadavky na stránky a sitemapu byly vynechány podle zásady fail-closed.':robotsUnavailableStatus?'Server vrátil HTTP '+robotsUnavailableStatus+' pro robots.txt. Jde o nedostupný soubor; audit pokračuje bez pravidel, která nebyla vrácena.':robotsUnknownError?'Odpověď robots.txt nebylo možné spolehlivě získat ('+robotsUnknownError+'). Stránky a sitemapu audit nevyžádal, protože bez pravidel přístup nelze bezpečně ověřit.':'Pravidla přístupu nebylo možné potvrdit. Tento stav sám neprokazuje chybu robots.txt.'},
   {name:'Google Public DNS',status:dnsAnswered===dnsResults.length&&dnsResults.length?'Odpovědi získány':dnsAnswered?'Částečně dostupné':'Nelze ověřit',detail:'Jednoznačně odpovědělo '+dnsAnswered+' z '+dnsResults.length+' dotazů. Odpověď bez záznamu je také odpověď; správnost konfigurace hodnotí jednotlivé kontroly.'},
   {name:'RDAP registr domény',status:rdapResult.status==='fulfilled'?'Odpověď získána':'Nelze ověřit',detail:rdapResult.status==='fulfilled'?'Odpověď registru byla získána. Přítomnost a platnost údaje o expiraci hodnotí samostatný nález.':String(rdapResult.reason?.message||'Registr neposkytl dostupnou odpověď.')},
-  {name:'PageSpeed — mobil a desktop',status:!rootAllowed?robotsSkipped:psiDone===2?'Odpovědi získány':psiDone?'Částečně dostupné':psiQuota?'Limit služby':'Nelze ověřit',detail:'Získáno '+psiDone+' ze 2 laboratorních výsledků. '+(firstPsiError?pageSpeedErrorMessage(firstPsiError.reason):'Laboratorní výsledek neznamená, že jsou dostupné i terénní Core Web Vitals.')},
+  {name:'PageSpeed — mobil a desktop',status:!rootAllowed?robotsSkipped:psiDone===2?'Odpovědi získány':psiDone?'Částečně dostupné':psiQuota?'Limit služby':'Nelze ověřit',detail:'Získáno '+psiDone+' ze 2 laboratorních výsledků. '+pageSpeedProvenanceDetail(pageSpeedResults)+' '+(firstPsiError?pageSpeedErrorMessage(firstPsiError.reason):'Laboratorní výsledek neznamená, že jsou dostupné i terénní Core Web Vitals.')},
   {name:'HTTP varianty přes PageSpeed',status:!rootAllowed?robotsSkipped:httpDone===httpVariantResults.length&&httpVariantResults.length?'Odpovědi získány':httpDone?'Částečně dostupné':psiQuota?'Vynecháno — limit PageSpeed':'Nelze ověřit',detail:'Získáno '+httpDone+' z '+httpVariantResults.length+' výsledků HTTP variant. Bez výsledku nelze potvrdit přesměrování.'},
   {name:'MDN HTTP Observatory',status:mdnSkipped?'Neprovedeno':observatoryResult.status==='fulfilled'?'Odpověď získána':'Nelze ověřit',detail:mdnSkipped?'Volitelná kontrola nebyla zvolena. Požadavek nebyl odeslán.':observatoryResult.status==='fulfilled'?'Externí sken odpověděl; jeho souhrn je uveden mezi nálezy.':String(observatoryResult.reason?.message||'Externí sken neposkytl dostupnou odpověď.')}
  ];
@@ -876,10 +887,15 @@ async function queryHttpObservatory(host){
 }
 function isPageSpeedQuotaError(error){return /quota exceeded|quota metric|queries per day|rate limit exceeded|daily limit/i.test(String(error&&error.message||error||''))}
 function pageSpeedErrorMessage(error){if(isPageSpeedQuotaError(error))return 'Google PageSpeed Insights vyčerpal denní limit měření. Rychlost a Lighthouse skóre proto nejsou v tomto běhu ověřené. Zkuste audit znovu později.';return String(error&&error.message||error||'Příčina není známa.');}
+function withPageSpeedProvenance(payload,source,savedAt=null){
+ const iso=value=>{const time=typeof value==='number'?value:typeof value==='string'?Date.parse(value):NaN;return Number.isFinite(time)&&time>0&&time<=Date.now()?new Date(time).toISOString():null};
+ const measuredAt=iso(payload.lighthouseResult?.fetchTime)||iso(payload.analysisUTCTimestamp);
+ return {...payload,webaoMeasurement:{source,measuredAt,savedAt:source==='cache'?iso(savedAt):null,retrievedAt:new Date().toISOString()}};
+}
 function readCachedPageSpeed(pageUrl,strategy){
  try{
   const cache=window.WebaoPsiCache?.read(pageUrl.href,strategy);
-  return cache?assertPageSpeedResult(cache.payload,pageUrl,strategy):null;
+  return cache?withPageSpeedProvenance(assertPageSpeedResult(cache.payload,pageUrl,strategy),'cache',cache.savedAt):null;
  }catch{return null;}
 }
 async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
@@ -896,7 +912,7 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
    const response=await fetchTimed(endpoint.href,{headers:{Accept:'application/json'}},45000);
    let payload={};try{payload=await readTimedResponse(response,'json',45000)}catch(error){throw new Error(error&&error.name==='AbortError'?'Požadavek PageSpeed překročil limit 45 sekund.':'Odpověď PageSpeed se nepodařilo přečíst.');}
    if(!response.ok)throw new Error(payload.error&&payload.error.message?payload.error.message:'Google PageSpeed Insights nevrátil měření ('+response.status+').');
-   const result=assertPageSpeedResult(payload,pageUrl,strategy);
+   const result=withPageSpeedProvenance(assertPageSpeedResult(payload,pageUrl,strategy),'network');
    window.WebaoPsiCache?.write(pageUrl.href,strategy,payload);
    return result;
   }catch(error){lastError=error;if(attempt<maxAttempts&&error.retryable!==false&&!isPageSpeedQuotaError(error))await new Promise(resolve=>setTimeout(resolve,1200));else break;}

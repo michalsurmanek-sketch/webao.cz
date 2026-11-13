@@ -241,12 +241,12 @@
       <article class="card" aria-label="Právní podmínky">
         <section id="identifikace">
           <h2>0. Identifikace poskytovatele</h2>
-          <p class="muted">Doplň si údaje – je to nejčastější věc, kterou někdo kontroluje.</p>
+          <p class="muted">Identifikační údaje poskytovatele služeb WEBAO.cz.</p>
           <ul class="list">
             <li><strong>Poskytovatel:</strong> WEBAO (webové studio AO Group)</li>
-            <li><strong>Provozovatel / OSVČ / s.r.o.:</strong> <em>DOPlň název / jméno</em></li>
-            <li><strong>IČO:</strong> <em>DOPlň</em> • <strong>DIČ:</strong> <em>DOPlň (pokud plátce DPH)</em></li>
-            <li><strong>Sídlo:</strong> <em>DOPlň</em></li>
+            <li><strong>Provozovatel:</strong> Radek Šurmánek, podnikající fyzická osoba</li>
+            <li><strong>IČO:</strong> 21138885</li>
+            <li><strong>Sídlo:</strong> Halenkovice 551, 763 63 Halenkovice</li>
             <li><strong>Kontakt:</strong> <a href="mailto:studio@webao.cz">studio@webao.cz</a></li>
           </ul>
         </section>
@@ -328,7 +328,7 @@
           <p class="muted">Záleží, zda jde o spotřebitele (B2C), nebo podnikatele (B2B).</p>
           <h3>Spotřebitel (B2C)</h3>
           <ul class="list">
-            <li>U digitálních služeb na míru může právo na odstoupení zaniknout zahájením plnění, pokud s tím spotřebitel výslovně souhlasil (typicky potvrzením nabídky se souhlasem zahájit práce).</li>
+            <li>U smluv uzavřených na dálku má spotřebitel zpravidla 14 dnů na odstoupení. Zahájení služby samo o sobě právo neruší. U plně poskytnuté služby může právo zaniknout pouze při splnění zákonných podmínek, včetně předchozího výslovného souhlasu a poučení. Při odstoupení po výslovně vyžádaném zahájení plnění může vzniknout povinnost uhradit poměrnou část služby.</li>
           </ul>
           <h3>Podnikatel (B2B)</h3>
           <ul class="list">
@@ -402,25 +402,8 @@
     </div>
   </footer>
 
-  <script>
-    .header {
-  position: relative;
-  padding: 16px;
-}
-
-.back-arrow {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--ink, #000);
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-
-.back-arrow:hover {
-  color: var(--blue, #007BFF);
-  transform: translateY(-50%) translateX(-4px);
-}
+  <style>.back-arrow{display:inline-flex;align-items:center;color:#fff}.back-arrow:hover{opacity:.8}</style>
+<script>
     const now = new Date();
     const year = document.getElementById('year');
     const upd = document.getElementById('updated');

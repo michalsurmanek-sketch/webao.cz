@@ -22,11 +22,17 @@ const failed = {lighthouseResult: {runtimeError: {code: 'ERRORED_DOCUMENT_REQUES
 
 assert.equal(cache.write(url, strategy, failed), false, 'failed Lighthouse runs must not be cached');
 assert.equal(cache.read(url, strategy), null);
+assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:'bad'}}}}),false);
+assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:1.5}}}}),false);
+assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:null}}}}),true);
+assert.equal(cache.write(url,strategy,{lighthouseResult:{}}),true,'legacy metadata-only results remain compatible');
 assert.equal(cache.write(url, strategy, good), true);
 assert.equal(cache.read(url, strategy).payload.lighthouseResult.categories.performance.score, 0.9);
 values.set(key, JSON.stringify({savedAt: Date.now(), payload: failed}));
 assert.equal(cache.read(url, strategy), null, 'legacy failed cache must be rejected');
 assert.equal(values.has(key), false, 'invalid cache must be removed');
+values.set(key,JSON.stringify({savedAt:Date.now(),payload:{lighthouseResult:{categories:{performance:{score:'invalid'}}}}}));
+assert.equal(cache.read(url,strategy),null,'malformed legacy score must be evicted');
 values.set(key, JSON.stringify({savedAt: Date.now() + 10000, payload: good}));
 assert.equal(cache.read(url, strategy), null, 'future cache timestamp must be rejected');
 values.set(key, JSON.stringify({savedAt: Date.now() - cache.ttlMs - 1000, payload: good}));

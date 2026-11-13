@@ -10,7 +10,9 @@
   // Some supported source fixtures omit categories; do not invalidate those cached results.
   if(result.categories===undefined)return true;
   if(!result.categories||typeof result.categories!=='object'||Array.isArray(result.categories))return false;
-  return Object.values(result.categories).every(category=>
+  const categories=Object.values(result.categories);
+  if(!categories.length)return false;
+  return categories.every(category=>
    category&&typeof category==='object'&&!Array.isArray(category)&&
    (category.score===undefined||category.score===null||
     (typeof category.score==='number'&&Number.isFinite(category.score)&&category.score>=0&&category.score<=1)));

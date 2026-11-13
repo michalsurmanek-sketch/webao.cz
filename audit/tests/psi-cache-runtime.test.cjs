@@ -22,6 +22,7 @@ const failed = {lighthouseResult: {runtimeError: {code: 'ERRORED_DOCUMENT_REQUES
 
 assert.equal(cache.write(url, strategy, failed), false, 'failed Lighthouse runs must not be cached');
 assert.equal(cache.read(url, strategy), null);
+assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{}}}),false,'explicit empty categories are not a measurement');
 assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:'bad'}}}}),false);
 assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:1.5}}}}),false);
 assert.equal(cache.write(url,strategy,{lighthouseResult:{categories:{performance:{score:null}}}}),true);
@@ -33,6 +34,8 @@ assert.equal(cache.read(url, strategy), null, 'legacy failed cache must be rejec
 assert.equal(values.has(key), false, 'invalid cache must be removed');
 values.set(key,JSON.stringify({savedAt:Date.now(),payload:{lighthouseResult:{categories:{performance:{score:'invalid'}}}}}));
 assert.equal(cache.read(url,strategy),null,'malformed legacy score must be evicted');
+values.set(key,JSON.stringify({savedAt:Date.now(),payload:{lighthouseResult:{categories:{}}}}));
+assert.equal(cache.read(url,strategy),null,'legacy empty categories must be evicted');
 values.set(key, JSON.stringify({savedAt: Date.now() + 10000, payload: good}));
 assert.equal(cache.read(url, strategy), null, 'future cache timestamp must be rejected');
 values.set(key, JSON.stringify({savedAt: Date.now() - cache.ttlMs - 1000, payload: good}));
@@ -44,4 +47,8 @@ assert.equal(values.has(key),false,'corrupt JSON is evicted');
 assert.equal(cache.write(url,strategy,good),true,'cache recovers after corruption');
 assert.equal(cache.read(url,strategy).payload.lighthouseResult.categories.performance.score,0.9);
 
-console.log('PASS: PageSpeed cache rejects runtime errors and invalid timestamps');
+const denied={localStorage:{getItem(){throw Error('Storage disabled')},setItem(){throw Error('Storage disabled')},removeItem(){throw Error('Storage disabled')}}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','psi-cache.js'),'utf8'),{window:denied,Date});
+assert.equal(denied.WebaoPsiCache.read(url,strategy),null,'disabled storage never blocks audit');
+assert.equal(denied.WebaoPsiCache.write(url,strategy,good),false,'disabled storage never blocks audit');
+console.log('PASS: PageSpeed cache rejects malformed categories and timestamps, recovers from corruption, and handles disabled storage');

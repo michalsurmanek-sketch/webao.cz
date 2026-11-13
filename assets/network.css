@@ -99,3 +99,5 @@ footer{flex-wrap:wrap}.social-links{display:flex;gap:12px;flex-wrap:wrap;font-si
 .webao-footer .footer-signature{font-size:19px}
 }
 @media(max-width:380px){.webao-footer .footer-main{gap:23px 12px}.webao-footer .footer-column a{font-size:12px}.webao-footer .footer-contact-line{font-size:11px}.webao-footer .footer-signature{font-size:16px}}
+
+@media(max-width:600px){.hero-values{left:50%;right:auto;width:calc(100% - 24px);max-width:360px;transform:translateX(-50%);justify-content:center;gap:10px}.hero-values div{flex:1;min-width:0;padding:0 2px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px}.hero-values em{position:static;left:auto;font-size:24px;line-height:1}}

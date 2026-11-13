@@ -1426,7 +1426,7 @@ form.addEventListener('submit',async event=>{
   const omittedUrls=[...eligibleDiscoveredUrls].filter(candidate=>!selectedUrlSet.has(candidate));
   crawlMeta.omittedByLimit=omittedUrls.length;
   crawlMeta.omitted=crawlMeta.omittedByLimit;
-  crawlMeta.omittedUrlExamples=omittedUrls.slice(0,100).map(candidate=>({url:candidate,source:arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'Interní odkaz z prověřené stránky'}));
+  crawlMeta.omittedUrlExamples=omittedUrls.slice(0,100).map(candidate=>({url:candidate,source:(arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'Interní odkaz z prověřené stránky')+(sitemapSourceByUrl.get(candidate)?' · '+sitemapSourceByUrl.get(candidate):'')}));
   crawlMeta.linkDiscovered=allLinkedUrls.size;
   crawlMeta.note=(crawlMeta.note||'')+' Crawl také sleduje rozpoznané interní odkazy z každé načtené stránky až do nastaveného limitu; výsledek stále není důkazem úplného indexu webu.'; if(crawlMeta.sitemapFailures.length)crawlMeta.note+=' Selhalo načtení '+crawlMeta.sitemapFailures.length+' sitemap souborů; jejich URL nebylo možné zahrnout.';if(crawlMeta.sitemapBudgetOmittedCount)crawlMeta.note+=' Kvůli limitu požadavků nebylo načteno '+crawlMeta.sitemapBudgetOmittedCount+' dalších známých sitemap souborů; jejich URL nebyly zahrnuty do inventáře a nejde o chybu načítání. ';if(crawlMeta.sitemapSkipped.length)crawlMeta.note+=' '+crawlMeta.sitemapSkipped.length+' sitemap souborů bylo vynecháno kvůli robots.txt; nejde o potvrzené selhání souborů.';
   const htmlMetadataPages=pages.filter(pageTextWasFetched);

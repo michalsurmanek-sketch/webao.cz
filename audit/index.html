@@ -1092,7 +1092,7 @@ function getSitemapLocations(text,host,protocol='https:'){
  const source=sitemapSourceWithoutComments(sitemapReaderContent(text)).replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)/g,'');
  const type=sitemapDocumentType(text,source);
  if(type==='urlset')return[];
- const sitemapIndex=type==='sitemapindex';
+ const sitemapIndex=type==='sitemapindex'||!type&&/^Title:\s*Sitemap Index\s*$/im.test(String(text||''));
  const declared=[...source.matchAll(/^\s*sitemap\s*:\s*(https?:\/\/[^\s<]+)/gim)].map(match=>match[1]);
  const candidates=sitemapIndex?sitemapUrlCandidates(text):declared.length?declared:sitemapUrlCandidates(text);
  const baseUrl=new URL(protocol+'//'+host+'/'),found=[],seen=new Set();
@@ -1109,7 +1109,7 @@ function getSitemapLocations(text,host,protocol='https:'){
 function getSitemapUrls(text,host,protocol='https:'){
  const source=sitemapSourceWithoutComments(sitemapReaderContent(text)).replace(/<!\[CDATA\[[\s\S]*?(?:\]\]>|$)/g,'');
  const type=sitemapDocumentType(text,source);
- if(type==='sitemapindex')return[];
+ if(type==='sitemapindex'||!type&&/^Title:\s*Sitemap Index\s*$/im.test(String(text||'')))return[];
  const candidates=sitemapUrlCandidates(text);
  const readerSitemap=/^Title:\s*Sitemap(?:\s+Index)?\s*$/im.test(String(text||''));
  if(!type&&readerSitemap&&candidates.length&&candidates.every(raw=>{try{return /\.xml(?:$|\?)/i.test(new URL(raw).pathname+new URL(raw).search)}catch{return false}}))return[];

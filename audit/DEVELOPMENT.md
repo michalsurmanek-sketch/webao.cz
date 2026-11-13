@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Ověřený typ XML urlset má přednost před heuristikou textového indexu. Čtečkový titulek Sitemap a URL končící .xml již nevyřadí skutečnou položku urlset.
-- Heuristika zůstává pouze pro zdroje bez rozpoznaného XML typu; podporované textové indexy zachovávají dosavadní chování.
-- Chromium ověřuje zachování catalog.xml mezi stránkami, prázdnou frontu podřízených sitemap a zachování textového indexu.
+- Potvrzená chyba: textový výstup s explicitním titulkem Sitemap Index a adresou bez .xml se nesledoval jako index a přidával se mezi stránky. Explicitní index nyní podporuje i adresy bez přípony.
+- Ověřený XML urlset má nadále přednost před titulkem čtečky. Obecná příponová heuristika zůstává beze změny; její plošná změna vyžaduje samostatné vykázání nejistoty v reportu.
+- Chromium kontroluje extensionless index, prázdný seznam stránek indexu a přednost skutečného XML typu.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: zpřesnit nejistotu textových indexů, kde samotná přípona .xml není průkazným typem zdroje.
+- Další priorita: vykázat nejistotu u obecných textových sitemap, jejichž typ se pouze odhaduje z přípony URL.

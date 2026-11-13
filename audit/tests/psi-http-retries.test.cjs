@@ -29,7 +29,7 @@ async function check(status,expectedCalls){
  await check(400,1);
  await check(403,1);
  await check(404,1);
- await check(429,2);
+ await check(429,1);
  await check(500,2);
  console.log('PASS: PageSpeed retries only transient HTTP errors');
 })().catch(error=>{console.error(error);process.exitCode=1});

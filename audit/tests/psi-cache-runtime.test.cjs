@@ -38,4 +38,10 @@ assert.equal(cache.read(url, strategy), null, 'future cache timestamp must be re
 values.set(key, JSON.stringify({savedAt: Date.now() - cache.ttlMs - 1000, payload: good}));
 assert.equal(cache.read(url, strategy), null, 'expired cache must be rejected');
 assert.equal(cache.read(url, 'desktop'), null, 'cache is scoped by strategy');
+values.set(key,'{invalid-json');
+assert.equal(cache.read(url,strategy),null,'corrupt JSON is ignored');
+assert.equal(values.has(key),false,'corrupt JSON is evicted');
+assert.equal(cache.write(url,strategy,good),true,'cache recovers after corruption');
+assert.equal(cache.read(url,strategy).payload.lighthouseResult.categories.performance.score,0.9);
+
 console.log('PASS: PageSpeed cache rejects runtime errors and invalid timestamps');

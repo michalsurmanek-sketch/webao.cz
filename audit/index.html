@@ -1420,6 +1420,12 @@ form.addEventListener('submit',async event=>{
    else if(item.robotsBlocked)allRobotsExcluded.add(item.url);
    else eligibleDiscoveredUrls.add(item.url);
   }
+  // Sources can be discovered after a page was fetched; refresh the final inventory.
+  for(const page of pages){
+   if(page.url===rootUrl)continue;
+   page.source=sourceKindByUrl.get(page.url)||page.source;
+   page.sourceUrl=sitemapSourceByUrl.get(page.url)||page.sourceUrl;
+  }
   crawlMeta.excludedUrlCount=allExcluded.size;
   crawlMeta.excludedUrlExamples=[...allExcluded].slice(0,100).map(candidate=>({url:candidate,source:sitemapSourceByUrl.get(candidate)||'Interní odkaz'}));
   crawlMeta.robotsExcludedUrlCount=allRobotsExcluded.size;

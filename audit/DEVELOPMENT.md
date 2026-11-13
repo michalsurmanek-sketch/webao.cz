@@ -8,8 +8,8 @@
 
 ## Poslední změna — 2026-11-13
 
-- Duplicitní URL zachovávají všechny objevené zdrojové adresy v pořadí, bez opakování. Původní mapa zahazovala další adresy; hlubší procházení mohlo zdroj přepsat.
-- Společný zápis zdrojů používá sitemapové i interní odkazy. Stávající report/CSV obdrží spojený seznam adres.
-- Chromium fixture sdílí stránku mezi více child sitemapami; kontroluje zachování zdrojů a deduplikaci adres i stránky.
+- Po dokončení objevování odkazů se původ již načtených stránek obnovuje z finálních map zdrojů. Dříve report/CSV používaly starý snapshot a později nalezený interní odkaz nebyl vidět.
+- Homepage si zachovává své označení; data stránky a skóre se nemění.
+- Chromium ověřuje stránku načtenou ze sitemap, na kterou následně odkáže jiná načtená stránka; výsledný inventář obsahuje sitemapové i interní zdroje.
 - Ověření: místní regrese, syntaxe a diff kontrola; Chromium a produkční kontroly v CI.
-- Další priorita: prověřit obnovování zdrojů již načtených stránek při následném objevení interním odkazem.
+- Další priorita: prověřit deduplikaci více příchozích zdrojů v discoverPageLinks, kde se zatím zachovává první zdroj v jednom průchodu.

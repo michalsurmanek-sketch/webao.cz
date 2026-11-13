@@ -24,6 +24,7 @@
   try{
    const raw=global.localStorage.getItem(key(url,strategy));
    if(!raw)return null;
+   if(typeof raw!=='string'){global.localStorage.removeItem(key(url,strategy));return null;}
    if(raw.length>MAX_ENTRY_CHARS){global.localStorage.removeItem(key(url,strategy));return null;}
    const value=JSON.parse(raw);
    const now=Date.now();

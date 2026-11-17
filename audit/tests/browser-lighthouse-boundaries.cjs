@@ -66,6 +66,21 @@ const {chromium}=require('playwright');
     assert(!state.text.includes('Kontrolu se nepodařilo dokončit'),'malformed measurement must leave the rest of the report available');
     assert.match(state.text,malformed==='refs'?/neplatný seznam Lighthouse kontrol/:/neplatné detaily Lighthouse kontrol/);
    }
+   const weighted=await page.evaluate(()=>{
+    const findings=Array.from({length:201},(_,i)=>({area:'SEO a obsah',name:'Weighted fixture '+i,points:i===0?100:null,ok:i===0}));
+    renderReport('weighted.cz',findings);
+    return{score:currentAuditData.score,coverage:currentAuditData.coverage,grade:currentAuditData.grade};
+   });
+   assert.equal(weighted.score,100,'rounding a small coverage denominator cannot inflate the score beyond 100');
+   assert.equal(weighted.coverage,0.1);assert.equal(weighted.grade,'Částečný audit');
+   const completeLabel=await page.evaluate(()=>{
+    const areas=['SEO a obsah','Technické SEO','Bezpečnost a HTTPS','Rychlost a Core Web Vitals','Přístupnost','Mobilní použitelnost','DNS a e-mail','Cookies a soukromí'];
+    const findings=areas.slice(1).map(area=>({area,name:area,points:100,ok:true}));
+    findings.push(...Array.from({length:600},(_,i)=>({area:areas[0],name:'Coverage fixture '+i,points:i===599?null:100,ok:i!==599})));
+    renderReport('weighted.cz',findings);
+    return{score:currentAuditData.score,coverage:currentAuditData.coverage,grade:currentAuditData.grade};
+   });
+   assert.deepEqual(completeLabel,{score:100,coverage:99.9,grade:'Částečný audit'},'a missing control must not become full coverage after rounding');
    assert.deepEqual(errors,[]);
    await page.close();
    console.log(`PASS: complete Lighthouse boundary audit, CSV and repeat run at width=${width}`);

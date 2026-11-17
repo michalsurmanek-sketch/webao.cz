@@ -42,6 +42,14 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 - Historie auditů, poznámky k opravám a nahrazovaný výsledek se nemažou. Jiná chyba úložiště, například zakázaný přístup, úklid nespustí. Procházení klíčů má pevný limit.
 - Místní sady včetně nové simulace reálné kapacity úložiště prošly. Obnova cache neslibuje dostupné nové měření při vyčerpané kvótě Google.
 
+## Přesnost váženého skóre — 2026-11-17
+
+- PR #80 prošlo všemi CI úlohami a bylo sloučeno. Obnova místa v cache je oddělená od kvóty poskytovatele.
+- Reprodukována další chyba výpočtu: jediná měřená kontrola se 100 body mezi jedenácti kontrolami SEO dávala v souhrnu 99 bodů, protože se vážený součet dělil zaokrouhleným pokrytím. Při menším pokrytí mohlo skóre dokonce přesáhnout 100 nebo zmizet.
+- Výpočet nyní používá původní váhy a původní průměry oblastí, zaokrouhluje až výsledné skóre. Body a pokrytí se pro zobrazení nadále zaokrouhlují.
+- Neúplné pokrytí se nemůže zaokrouhlením změnit na plné: pokud chybí relevantní kontrola, zobrazí se nejvýše 99,9 % a zůstává označení částečného auditu v reportu i CSV.
+- Verze pravidel zvýšena na `2026-11-17.162`; předchozí metodika se nesrovnává přímo. Nová sada ověřuje nízké i téměř plné pokrytí, prázdné měření, vážený průměr a výstupy; scénáře jsou doplněny také do prohlížečového CI.
+
 ## Etapa AI Ready 2027 — stabilizace zdrojů
 
 - Zadání a návrh architektury jsou v [AI_READY_2027.md](AI_READY_2027.md). AI modul, skóre a placené API zatím nejsou aktivní; nejprve platí kritéria vydání výše.

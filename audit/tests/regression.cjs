@@ -405,7 +405,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const s=
 const checked={area:'SEO a obsah',name:'Title',points:100,ok:true};const recommendation={area:'SEO a obsah',name:'Lighthouse recommendation',points:null,priorityPoints:50,state:'DOPORUČENÍ',coverageExcluded:true};const unverified={area:'SEO a obsah',name:'Meta description',points:null,state:'NELZE OVĚŘIT'};
 const base=c.scoreAuditAreas([checked])[0],withRecommendation=c.scoreAuditAreas([checked,recommendation])[0],withUnverified=c.scoreAuditAreas([checked,unverified])[0];assert.equal(withRecommendation.tests,base.tests);assert.equal(withRecommendation.effectiveWeight,base.effectiveWeight);assert.equal(withRecommendation.score,base.score);assert.equal(withUnverified.coverage,0.5);assert.equal(withUnverified.effectiveWeight,12.5);
 assert.equal(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,recommendation],[{url:'https://example.cz/',raw:'page'}]));assert.notEqual(c.auditComparisonScope([checked],[{url:'https://example.cz/',raw:'page'}]),c.auditComparisonScope([checked,unverified],[{url:'https://example.cz/',raw:'page'}]));
-assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-17\.161'/);
+assert(s.includes("coverageExcluded:true,severity:points<50?'Závažná':'Střední'"));assert.match(s,/const ruleVersion='2026-11-17\.162'/);
 console.log('PASS: unscored Lighthouse recommendations do not distort weighted audit coverage or comparison scope');
 })();
 
@@ -741,7 +741,7 @@ assert.match(script,/findings\.push\(canonicalLighthouseFinding\(audits\.canonic
 assert.match(script,/\['canonical','is-on-https','no-vulnerable-libraries','csp-xss'\]/);
 assert.match(script,/canonical homepage Lighthouse je pouze doplňkový signál/i);
 assert.match(script,/HTML hlavičky pro canonical\/hreflang byly samostatně načteny/i);
-assert.match(script,/const ruleVersion='2026-11-17\.161'/);
+assert.match(script,/const ruleVersion='2026-11-17\.162'/);
 console.log('PASS: canonical Lighthouse signal is scoreless, contextual, and unverified when missing or unscored');
 })();
 

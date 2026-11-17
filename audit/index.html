@@ -448,16 +448,20 @@ function scoreAuditAreas(findings){
   const tests=findings.filter(item=>item.area===name&&!item.name.startsWith('Kontrola oblasti:')&&!item.coverageExcluded);
   const checks=tests.filter(item=>Number.isFinite(item.points));
   const coverage=tests.length?checks.length/tests.length:0;
-  return {name,weight,tests:tests.length,measured:checks.length,coverage,effectiveWeight:weight*coverage,score:checks.length?Math.round(checks.reduce((sum,item)=>sum+item.points,0)/checks.length):null}
+  const rawScore=checks.length?checks.reduce((sum,item)=>sum+item.points,0)/checks.length:null;
+  return {name,weight,tests:tests.length,measured:checks.length,coverage,effectiveWeight:weight*coverage,rawScore,score:rawScore===null?null:Math.round(rawScore)}
  });
 }
 function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],branding={}){
  const areas=scoreAuditAreas(findings);
  const scored=areas.filter(area=>area.score!==null&&area.effectiveWeight>0);
- const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
- const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
+ const measuredWeight=scored.reduce((sum,area)=>sum+area.effectiveWeight,0);
+ const fullCoverage=areas.filter(area=>area.weight>0).every(area=>area.tests>0&&area.measured===area.tests);
+ // Round only for display. Partial coverage must never round up to a claim of completeness.
+ const totalWeight=Math.min(fullCoverage?100:99.9,Math.round(measuredWeight*10)/10);
+ const score=measuredWeight?Math.round(scored.reduce((sum,area)=>sum+area.rawScore*area.effectiveWeight,0)/measuredWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-17.161';
+ const ruleVersion='2026-11-17.162';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;

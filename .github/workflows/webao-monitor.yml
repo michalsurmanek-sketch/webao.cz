@@ -44,6 +44,7 @@ jobs:
           node audit/tests/psi-http-retries.test.cjs
           node audit/tests/psi-live-validation.test.cjs
           node audit/tests/lighthouse-boundaries.test.cjs
+          node audit/tests/weighted-score.test.cjs
 
   production-health:
     name: Production availability and audit smoke checks

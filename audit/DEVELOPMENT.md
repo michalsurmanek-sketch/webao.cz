@@ -33,6 +33,15 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 - Validace nyní odmítá neplatné seznamy a detaily před jejich použitím i před zápisem do cache. Vadná odpověď se neopakuje; je neověřeným zdrojem, zbývající kontroly mohou dokončit report.
 - Doplněno místní ověření struktur a prohlížečový průchod se dvěma typy poškozené odpovědi na desktopu a mobilu. Před sloučením je třeba vyčkat na CI tohoto commitu.
 
+## Obnova cache při plném úložišti — 2026-11-17
+
+- PR #79 prošlo všemi třemi CI úlohami a bylo sloučeno; následné sestavení a nasazení GitHub Pages také uspělo.
+- Živý požadavek na PageSpeed pro `https://webao.cz/` po ověření robots pravidel vrátil HTTP 429 a vyčerpanou denní kvótu poskytovatele. Desktop byl správně vynechán bez dalšího síťového požadavku. Reálné současné měření obou zařízení tak stále není doloženo.
+- Ověřeny vybrané screenshoty desktopu a mobilu a vybrané stránky tiskových PDF; text všech 27 stran hraničního reportu byl uvnitř hranic stránky. Nejde o vizuální kontrolu všech stran ani o živé Lighthouse měření.
+- Nová oprava řeší případ, kdy staré výsledky jiných domén zaplnily localStorage a zabránily ukládání dalších úspěšných měření. Při skutečné chybě kvóty se uvolní pouze cache PageSpeed: přednostně poškozené či expirované položky, pak nejstarší platné výsledky. Po prvním úspěšném zápisu se mazání zastaví.
+- Historie auditů, poznámky k opravám a nahrazovaný výsledek se nemažou. Jiná chyba úložiště, například zakázaný přístup, úklid nespustí. Procházení klíčů má pevný limit.
+- Místní sady včetně nové simulace reálné kapacity úložiště prošly. Obnova cache neslibuje dostupné nové měření při vyčerpané kvótě Google.
+
 ## Etapa AI Ready 2027 — stabilizace zdrojů
 
 - Zadání a návrh architektury jsou v [AI_READY_2027.md](AI_READY_2027.md). AI modul, skóre a placené API zatím nejsou aktivní; nejprve platí kritéria vydání výše.

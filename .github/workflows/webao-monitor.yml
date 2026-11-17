@@ -42,6 +42,7 @@ jobs:
           node audit/tests/psi-cache-runtime.test.cjs
           node audit/tests/psi-http-retries.test.cjs
           node audit/tests/psi-live-validation.test.cjs
+          node audit/tests/lighthouse-boundaries.test.cjs
 
   production-health:
     name: Production availability and audit smoke checks
@@ -93,6 +94,8 @@ jobs:
         run: node audit/tests/browser-sitemaps.cjs
       - name: Check cached measurement provenance on desktop, mobile and print
         run: node audit/tests/browser-provenance.cjs
+      - name: Check Lighthouse boundaries in full audits and CSV on desktop and mobile
+        run: node audit/tests/browser-lighthouse-boundaries.cjs
       - name: Store browser screenshots and log
         if: always()
         uses: actions/upload-artifact@v4

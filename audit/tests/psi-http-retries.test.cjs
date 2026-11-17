@@ -63,5 +63,23 @@ async function check(status,expectedCalls,unreadable=false,nullPayload=false){
  const transient=await strategyContext.queryPageSpeedStrategies(new URL('https://example.cz/'),true);
  assert.equal(networkCalls,2,'Non-quota errors must not suppress the other device');
  assert.equal(transient.length,2);
+ // A successful response stays successful even when the optional cache adapter throws.
+ for(const storageFailure of ['quota','disabled','missing']){
+  let requests=0,writes=0;
+  const payload={lighthouseResult:{configSettings:{emulatedFormFactor:'mobile'},audits:{}}};
+  const context={URL,Error,Promise,readCachedPageSpeed:()=>null,
+   fetchTimed:async()=>{requests++;return{ok:true,status:200}},
+   readTimedResponse:async()=>payload,
+   assertPageSpeedResult:value=>value,
+   withPageSpeedProvenance:(value,source)=>({...value,webaoMeasurement:{source}}),
+   isPageSpeedQuotaError:()=>false,setTimeout:fn=>{fn();return 1},
+   window:storageFailure==='missing'?{}:{WebaoPsiCache:{write(){writes++;throw Error(storageFailure)}}}};
+  vm.createContext(context);vm.runInContext(source,context);
+  const result=await context.queryPageSpeed(new URL('https://example.cz/'),'mobile');
+  assert.equal(result.lighthouseResult,payload.lighthouseResult);
+  assert.equal(result.webaoMeasurement.source,'network');
+  assert.equal(requests,1,'cache failure must not consume another API request');
+  assert.equal(writes,storageFailure==='missing'?0:1);
+ }
  console.log('PASS: PageSpeed HTTP errors, rate limit classification and device skip');
 })().catch(error=>{console.error(error);process.exitCode=1});

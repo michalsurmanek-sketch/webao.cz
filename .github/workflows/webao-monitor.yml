@@ -40,6 +40,7 @@ jobs:
         run: |
           node audit/tests/regression.cjs
           node audit/tests/psi-cache-runtime.test.cjs
+          node audit/tests/psi-cache-quota.test.cjs
           node audit/tests/psi-http-retries.test.cjs
           node audit/tests/psi-live-validation.test.cjs
           node audit/tests/lighthouse-boundaries.test.cjs

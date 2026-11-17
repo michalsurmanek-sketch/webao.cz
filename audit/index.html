@@ -457,7 +457,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  const totalWeight=Math.round(scored.reduce((sum,area)=>sum+area.effectiveWeight,0)*10)/10;
  const score=totalWeight?Math.round(scored.reduce((sum,area)=>sum+area.score*area.effectiveWeight,0)/totalWeight):null;
  const checkedAt=new Date().toLocaleString('cs-CZ');
- const ruleVersion='2026-11-11.160';
+ const ruleVersion='2026-11-17.161';
  const comparisonScope=auditComparisonScope(findings,pages);
  const history=saveLocalAuditHistory(host,{checkedAt,ruleVersion,comparisonScope,coverage:totalWeight,score,grade:score===null?'—':totalWeight<100?'Částečný audit':score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F',areas:Object.fromEntries(areas.map(area=>[area.name,area.score])),measured:findings.filter(item=>Number.isFinite(item.points)).length});
  const previous=history[1]||null;
@@ -940,7 +940,8 @@ async function queryPageSpeed(pageUrl,strategy,maxAttempts=2){
     throw failure;
    }
    const result=withPageSpeedProvenance(assertPageSpeedResult(payload,pageUrl,strategy),'network');
-   window.WebaoPsiCache?.write(pageUrl.href,strategy,payload);
+   // Persisting a result is optional; a storage failure must never retry a successful API call.
+   try{window.WebaoPsiCache?.write(pageUrl.href,strategy,payload);}catch{}
    return result;
   }catch(error){lastError=error;if(attempt<maxAttempts&&error.retryable!==false&&!isPageSpeedQuotaError(error))await new Promise(resolve=>setTimeout(resolve,1200));else break;}
  }
@@ -1792,7 +1793,7 @@ form.addEventListener('submit',async event=>{
      const details=audit.details||{};
      const items=Array.isArray(details.items)?details.items:[];
      const evidence=items.slice(0,6).map(item=>Object.entries(item).filter(([key,value])=>value!==null&&value!==undefined&&typeof value!=='object').map(([key,value])=>key+': '+value).join(', ')).filter(Boolean);
-     const passed=measured&&points>=90;
+     const passed=measured&&audit.score>=0.9;
      findings.push({area:'Cookies a soukromí',name:'Lighthouse — cookies třetích stran ('+device+')',url:payload.id||url.origin+'/',ok:passed,points,state:measured?undefined:'NELZE OVĚŘIT',severity:measured?(passed?'Nízká':'K prověření'):'Informační',detail:(audit.title||'Kontrola cookies třetích stran')+'. '+([audit.displayValue,audit.explanation,...evidence].filter(Boolean).join(' ')||'Lighthouse audit neposkytl další detail.')+' Tento signál zjišťuje chování cookies třetích stran; nekontroluje právní souhlas ani správnost lišty cookies.',evidence:'PageSpeed Insights / Lighthouse audit '+auditId+(evidence.length?' · '+arrayJoin(evidence,' | '):''),confidence:measured?'Vysoká pro zachycený laboratorní signál; neověřuje kompletní provoz webu ani souhlas uživatele.':'Lighthouse neposkytl skórovaný výsledek této kontroly.'});
     }
    }
@@ -1801,7 +1802,7 @@ form.addEventListener('submit',async event=>{
      const audit=audits[auditId];
      if(!lighthouseAuditScored(audit)){findings.push(missingLighthouseFinding('Mobilní použitelnost','Lighthouse mobil — '+auditId+' — bez skórovaného auditu',auditId,payload.id||url.origin+'/'));continue;}
      const points=Math.round(audit.score*100);
-     findings.push({area:'Mobilní použitelnost',name:'Lighthouse mobil — '+audit.title,url:url.origin+'/',ok:points>=90,points,severity:points<50?'Závažná':points<90?'Střední':'Nízká',detail:(audit.displayValue?audit.displayValue+'. ':'')+'Mobilní Lighthouse kontrola: '+points+'/100. Jde o emulaci, ne test na skutečném telefonu.',evidence:'PageSpeed Insights audit '+auditId+(audit.displayValue?' · '+audit.displayValue:''),confidence:'Vysoká pro mobilní emulaci; chování na reálných zařízeních může být jiné.'});
+     findings.push({area:'Mobilní použitelnost',name:'Lighthouse mobil — '+audit.title,url:url.origin+'/',ok:audit.score>=0.9,points,severity:audit.score<0.5?'Závažná':audit.score<0.9?'Střední':'Nízká',detail:(audit.displayValue?audit.displayValue+'. ':'')+'Mobilní Lighthouse kontrola: '+points+'/100. Body jsou zaokrouhlené; stav vychází z původního skóre. Jde o emulaci, ne test na skutečném telefonu.',evidence:'PageSpeed Insights audit '+auditId+(audit.displayValue?' · '+audit.displayValue:''),confidence:'Vysoká pro mobilní emulaci; chování na reálných zařízeních může být jiné.'});
     }
    }
    for(const [category,area,label] of pageSpeedCategoryMap){
@@ -1822,7 +1823,7 @@ form.addEventListener('submit',async event=>{
     const rawScore=categories[category]&&categories[category].score;
     const points=lighthouseScorePoints(rawScore);
     const speedDetails=area==='Rychlost a Core Web Vitals'?(metricDetails.length?arrayJoin(metricDetails,'; ')+'. ':'')+'Lab měření je simulace; terénní data se mohou vztahovat k originu místo konkrétní stránky.':'Automatický Lighthouse signál; ruční posouzení nenahrazuje.';
-    findings.push({area,name:'PageSpeed Insights — '+label+' ('+device+')',ok:points!==null&&points>=90,points,state:points===null?'NELZE OVĚŘIT':undefined,severity:points===null?'Informační':points<50?'Kritická':points<75?'Závažná':points<90?'Střední':'Nízká',detail:points===null?'Lighthouse neposkytl skóre této kategorie.':label+' skóre '+points+'/100 pro '+device+'. '+speedDetails,evidence:'Google PageSpeed Insights / Lighthouse · '+(payload.id||url.origin+'/')+(metricDetails.length?' · '+arrayJoin(metricDetails,' · '):''),confidence:'Vysoká pro tento běh Lighthouse; výsledek se může mezi běhy měnit.'});
+    findings.push({area,name:'PageSpeed Insights — '+label+' ('+device+')',ok:points!==null&&rawScore>=0.9,points,state:points===null?'NELZE OVĚŘIT':undefined,severity:points===null?'Informační':rawScore<0.5?'Kritická':rawScore<0.75?'Závažná':rawScore<0.9?'Střední':'Nízká',detail:points===null?'Lighthouse neposkytl skóre této kategorie.':label+' skóre '+points+'/100 pro '+device+'. Body jsou zaokrouhlené; stav a závažnost vycházejí z původního skóre. '+speedDetails,evidence:'Google PageSpeed Insights / Lighthouse · '+(payload.id||url.origin+'/')+(metricDetails.length?' · '+arrayJoin(metricDetails,' · '):''),confidence:'Vysoká pro tento běh Lighthouse; výsledek se může mezi běhy měnit.'});
    }
   });
   findings.push(...pageSpeedRecommendations);

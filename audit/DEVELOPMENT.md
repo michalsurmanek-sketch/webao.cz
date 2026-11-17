@@ -18,6 +18,14 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 3. Mobil a exporty: vizuální kontrola aktuálního PDF a výsledků, reprezentativní běh s dostupnými i nedostupnými zdroji.
 4. Správnost inventáře: podporované Markdown odkazy s volitelným titulkem, sitemap namespace/entity a neúplné zdroje; nepřidávat chyby ze zdrojů, které nelze ověřit.
 
+## Etapa hranic Lighthouse — 2026-11-17
+
+- Opraveny další tři cesty hodnocení: mobilní použitelnost, cookies třetích stran a souhrnné kategorie PageSpeed obou zařízení. Výsledek 0,895–0,8999 se už zaokrouhlením na 90 bodů nestane vyhovujícím. Závažnost kategorií se také určuje před zaokrouhlením na hranicích 50 a 75 bodů.
+- Verze pravidel zvýšena na `2026-11-17.161`; historie tím neporovnává přímo běhy s odlišnou interpretací hranic. Vzhled reportu zůstává zachován, text vysvětluje zaokrouhlené body.
+- Selhání volitelného zápisu PageSpeed cache už nezmění úspěšnou síťovou odpověď na chybu ani nevyvolá další API požadavek.
+- Místní ověření: všechny dosavadní regresní sady a nová sada hranic. Nová sada spouští skutečný blok tvorby nálezů, report a CSV pro 15 vstupů včetně chybějícího měření; ověřuje také zařazení nevyhovujících kontrol do plánu oprav.
+- Prohlížečový scénář doplněn do CI: celé spuštění auditu, CSV a druhá doména bez reloadu pro desktop/mobil; vytváří screenshoty a PDF. Výsledky CI je nutné ověřit před sloučením. Simulované měření nenahrazuje dosud chybějící doložený živý PageSpeed běh obou zařízení.
+
 ## Etapa AI Ready 2027 — stabilizace zdrojů
 
 - Zadání a návrh architektury jsou v [AI_READY_2027.md](AI_READY_2027.md). AI modul, skóre a placené API zatím nejsou aktivní; nejprve platí kritéria vydání výše.

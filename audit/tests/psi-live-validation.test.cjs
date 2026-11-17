@@ -18,4 +18,11 @@ for(const categories of [{},[],null,'invalid',{performance:{score:NaN}},{seo:{sc
 }
 assert.throws(()=>context.assertPageSpeedResult(payload({performance:{score:0.8}}),url,'desktop'),/jiné zařízení/);
 assert.throws(()=>context.assertPageSpeedResult({lighthouseResult:{...base,finalUrl:'https://other.cz/',categories:{seo:{score:0.9}}}},url,'mobile'),/jinou doménu/);
+for(const auditRefs of [null,{},'invalid',[null],[[]],[{id:'viewport',weight:'1'}],[{id:'viewport',weight:-1}],[{id:''}]]){
+ assert.throws(()=>context.assertPageSpeedResult(payload({performance:{score:0.8,auditRefs}}),url,'mobile'),error=>/neplatný seznam/.test(error.message)&&error.retryable===false,'malformed references cannot abort report generation');
+}
+for(const audits of [null,[],[{}],{viewport:null},{viewport:[]},{viewport:{details:{items:{}}}},{viewport:{details:{items:[null]}}}]){
+ assert.throws(()=>context.assertPageSpeedResult({lighthouseResult:{...base,audits}},url,'mobile'),error=>/neplatné detaily/.test(error.message)&&error.retryable===false,'malformed details must become an unavailable measurement');
+}
+assert.doesNotThrow(()=>context.assertPageSpeedResult({lighthouseResult:{...base,categories:{performance:{score:0.8,auditRefs:[{id:'viewport',weight:1}]}},audits:{viewport:{score:1},'third-party-cookies':{score:null,details:{items:[{url:'https://example.cz/'}]}}}}},url,'mobile'));
 console.log('PASS: live Lighthouse categories, device and origin validation');

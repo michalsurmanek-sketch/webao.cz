@@ -26,6 +26,13 @@ Hotové vydání se posuzuje podle ověřitelných scénářů, nikoli podle po�
 - Místní ověření: všechny dosavadní regresní sady a nová sada hranic. Nová sada spouští skutečný blok tvorby nálezů, report a CSV pro 15 vstupů včetně chybějícího měření; ověřuje také zařazení nevyhovujících kontrol do plánu oprav.
 - Prohlížečový scénář doplněn do CI: celé spuštění auditu, CSV a druhá doména bez reloadu pro desktop/mobil; vytváří screenshoty a PDF. Výsledky CI je nutné ověřit před sloučením. Simulované měření nenahrazuje dosud chybějící doložený živý PageSpeed běh obou zařízení.
 
+## Izolace poškozených měření — 2026-11-17
+
+- PR #78 prošlo regresním, produkčním i celým prohlížečovým CI a bylo sloučeno do main. Prohlížeč potvrdil hraniční skóre, CSV, mobil a opakovaný běh; vznikly screenshoty a PDF. Samotná existence PDF není vizuální kontrola jeho všech stran.
+- Potvrzena další chyba: `auditRefs` v neplatném formátu nebo `null` mezi detaily kontrol dříve prošly validací odpovědi, ale následně mohly ukončit celý audit při sestavování nálezů.
+- Validace nyní odmítá neplatné seznamy a detaily před jejich použitím i před zápisem do cache. Vadná odpověď se neopakuje; je neověřeným zdrojem, zbývající kontroly mohou dokončit report.
+- Doplněno místní ověření struktur a prohlížečový průchod se dvěma typy poškozené odpovědi na desktopu a mobilu. Před sloučením je třeba vyčkat na CI tohoto commitu.
+
 ## Etapa AI Ready 2027 — stabilizace zdrojů
 
 - Zadání a návrh architektury jsou v [AI_READY_2027.md](AI_READY_2027.md). AI modul, skóre a placené API zatím nejsou aktivní; nejprve platí kritéria vydání výše.

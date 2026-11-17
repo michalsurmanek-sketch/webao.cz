@@ -21,8 +21,8 @@ const {chromium}=require('playwright');
      if(address.hostname==='www.googleapis.com'){
       const target=address.searchParams.get('url'),strategy=address.searchParams.get('strategy'),score=window.fixtureScore;
       return new Response(JSON.stringify({id:target,lighthouseResult:{requestedUrl:target,finalUrl:target,fetchTime:new Date().toISOString(),
-       configSettings:{emulatedFormFactor:strategy},categories:Object.fromEntries(['performance','accessibility','seo','best-practices'].map(id=>[id,{score}])),
-       audits:{viewport:{title:'Viewport',score,scoreDisplayMode:'numeric'},'third-party-cookies':{title:'Third-party cookies',score,scoreDisplayMode:'numeric'}}}}),{headers:{'Content-Type':'application/json'}});
+       configSettings:{emulatedFormFactor:strategy},categories:Object.fromEntries(['performance','accessibility','seo','best-practices'].map(id=>[id,{score,...(window.fixtureMalformed==='refs'?{auditRefs:[null]}:{})}])),
+       audits:{viewport:{title:'Viewport',score,scoreDisplayMode:'numeric'},'third-party-cookies':window.fixtureMalformed==='details'?null:{title:'Third-party cookies',score,scoreDisplayMode:'numeric'}}}}),{headers:{'Content-Type':'application/json'}});
      }
      if(address.hostname==='r.jina.ai'){
       const target=new URL(String(input).slice('https://r.jina.ai/'.length));
@@ -53,6 +53,18 @@ const {chromium}=require('playwright');
     assert(rows.every(row=>row.includes('"'+(score>=0.9?'V POŘÁDKU':'OPRAVIT')+'"')));
     await page.screenshot({path:`browser-results/boundaries-${width}-${score}.png`,fullPage:true});
     if(width===1365&&score===0.895)await page.pdf({path:'browser-results/boundaries-report.pdf',format:'A4',printBackground:true});
+   }
+   for(const malformed of ['refs','details']){
+    const domain='malformed-'+malformed+'.cz';
+    await page.evaluate(value=>{window.fixtureMalformed=value},malformed);
+    await page.locator('#domain').fill(domain);
+    await page.locator('#audit-form button[type="submit"]').click();
+    await page.waitForFunction(host=>window.currentAuditData?.host===host&&!document.querySelector('#audit-form button[type="submit"]').disabled,domain,{timeout:20000});
+    const state=await page.evaluate(()=>({text:document.querySelector('#result').textContent,psi:currentAuditData.findings.filter(item=>item.name.startsWith('PageSpeed Insights — '))}));
+    assert.equal(state.psi.length,2);
+    assert(state.psi.every(item=>item.points===null&&item.state==='NELZE OVĚŘIT'),'malformed source cannot invent measured scores');
+    assert(!state.text.includes('Kontrolu se nepodařilo dokončit'),'malformed measurement must leave the rest of the report available');
+    assert.match(state.text,malformed==='refs'?/neplatný seznam Lighthouse kontrol/:/neplatné detaily Lighthouse kontrol/);
    }
    assert.deepEqual(errors,[]);
    await page.close();

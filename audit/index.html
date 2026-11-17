@@ -612,6 +612,21 @@ function assertPageSpeedResult(payload,expectedUrl,expectedStrategy){
   const categories=lighthouse.categories;
   const valid=categories&&typeof categories==='object'&&!Array.isArray(categories)&&Object.keys(categories).length>0&&Object.values(categories).every(category=>category&&typeof category==='object'&&!Array.isArray(category)&&(category.score===undefined||category.score===null||(typeof category.score==='number'&&Number.isFinite(category.score)&&category.score>=0&&category.score<=1)));
   if(!valid){const failure=new Error('PageSpeed vrátil neplatné Lighthouse kategorie; výsledek nebyl použit pro audit.');failure.retryable=false;throw failure;}
+  for(const category of Object.values(categories)){
+   if(category.auditRefs===undefined)continue;
+   if(!Array.isArray(category.auditRefs)||!category.auditRefs.every(ref=>ref&&typeof ref==='object'&&!Array.isArray(ref)&&typeof ref.id==='string'&&ref.id.trim()&&(ref.weight===undefined||Number.isFinite(ref.weight)&&ref.weight>=0))){
+    const failure=new Error('PageSpeed vrátil neplatný seznam Lighthouse kontrol; výsledek nebyl použit pro audit.');failure.retryable=false;throw failure;
+   }
+  }
+ }
+ if(lighthouse.audits!==undefined){
+  const audits=lighthouse.audits;
+  const valid=audits&&typeof audits==='object'&&!Array.isArray(audits)&&Object.values(audits).every(audit=>{
+   if(!audit||typeof audit!=='object'||Array.isArray(audit))return false;
+   const items=audit.details?.items;
+   return items===undefined||Array.isArray(items)&&items.every(item=>item&&typeof item==='object'&&!Array.isArray(item));
+  });
+  if(!valid){const failure=new Error('PageSpeed vrátil neplatné detaily Lighthouse kontrol; výsledek nebyl použit pro audit.');failure.retryable=false;throw failure;}
  }
  if(expectedStrategy&&(!lighthouse.configSettings||lighthouse.configSettings.emulatedFormFactor!==expectedStrategy)){const failure=new Error('PageSpeed vrátil jiné zařízení ('+(lighthouse.configSettings?.emulatedFormFactor||'neuvedeno')+'); očekával se audit '+expectedStrategy+'.');failure.retryable=false;throw failure;}
  const error=lighthouse.runtimeError;

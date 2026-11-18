@@ -17,6 +17,34 @@ const {chromium}=require('playwright');
     return route.abort();
    });
    await page.goto('https://fixture.test/audit/');
+   const recovery=await page.evaluate(()=>{
+    localStorage.clear();
+    const prefix='webao:psi:v1:mobile:',old=prefix+'https://old.cz/',recent=prefix+'https://recent.cz/';
+    const payload=size=>({lighthouseResult:{categories:{performance:{score:0.9}},padding:'x'.repeat(size)}});
+    const entry=time=>JSON.stringify({savedAt:time,payload:payload(16384)});
+    const originals=[[old,entry(Date.now()-2000)],[recent,entry(Date.now()-1000)],['webao-audit-history:example.cz','history'],['webao-finding-work:example.cz','notes']];
+    for(const [key,value] of originals)localStorage.setItem(key,value);
+    let quotaName=null,index=0;
+    for(const size of [262144,1024,64]){
+     for(let count=0;count<8192;count++){
+      try{localStorage.setItem('fixture-fill-'+index++,'x'.repeat(size));}
+      catch(error){quotaName=error.name;break;}
+     }
+    }
+    const failed=WebaoPsiCache.write('https://new.cz/','mobile',payload(262144));
+    const restored=originals.every(([key,value])=>localStorage.getItem(key)===value);
+    const success=WebaoPsiCache.write('https://new.cz/','mobile',payload(8192));
+    const oldestEvicted=localStorage.getItem(old)===null;
+    const recentPreserved=localStorage.getItem(recent)===originals[1][1];
+    const userDataPreserved=originals.slice(2).every(([key,value])=>localStorage.getItem(key)===value);
+    const readable=!!WebaoPsiCache.read('https://new.cz/','mobile');
+    localStorage.clear();
+    return{quotaName,failed,restored,success,oldestEvicted,recentPreserved,userDataPreserved,readable};
+   });
+   assert.equal(recovery.quotaName,'QuotaExceededError','native Chromium quota was reached');
+   assert.equal(recovery.failed,false);assert.equal(recovery.restored,true,'unsuccessful recovery restores real browser storage');
+   for(const key of ['success','oldestEvicted','recentPreserved','userDataPreserved','readable'])assert.equal(recovery[key],true,key);
+   console.log(`PASS native Chromium storage recovery: width=${width}`);
    const state=await page.evaluate(async()=>{
     const measuredAt=new Date(Date.now()-120000).toISOString();
     const payload={lighthouseResult:{configSettings:{emulatedFormFactor:'desktop'},requestedUrl:'https://example.cz/',finalUrl:'https://example.cz/',fetchTime:measuredAt,audits:{}}};

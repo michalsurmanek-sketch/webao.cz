@@ -47,3 +47,22 @@ const replacing=fixture([[fresh,serialized(now-1000)],history,notes],0);
 assert.equal(replacing.cache.write('https://new.cz/','mobile',payload),false);
 assert.equal(replacing.values.get(fresh),serialized(now-1000),'failed replacement preserves the existing entry for this measurement');
 console.log('PASS: quota recovery reuses storage without touching audit history, repair notes or newer cache entries');
+
+// A provider result can exceed the available capacity even after every cache eviction.
+const rollbackInitial=[[old,serialized(now-2000)],[recent,serialized(now-1000)],history,notes];
+const rollbackSize=rollbackInitial.reduce((sum,[k,v])=>sum+k.length+v.length,0);
+const rollback=fixture(rollbackInitial,rollbackSize);
+const oversizedPayload={lighthouseResult:{categories:{performance:{score:0.9}},extra:'x'.repeat(rollbackSize*2)}};
+assert.equal(rollback.cache.write('https://new.cz/','mobile',oversizedPayload),false);
+for(const [key,value] of rollbackInitial)assert.equal(rollback.values.get(key),value,'failed recovery restores the original cache');
+assert.equal(rollback.values.has(fresh),false);
+const changedFailure=fixture(rollbackInitial,rollbackSize);
+const originalSet=changedFailure.storage.setItem;
+let newWrites=0;
+changedFailure.storage.setItem=(key,value)=>{
+ if(key===fresh&&++newWrites>1){const error=Error('Storage blocked');error.name='SecurityError';throw error;}
+ return originalSet(key,value);
+};
+assert.equal(changedFailure.cache.write('https://new.cz/','mobile',payload),false);
+for(const [key,value] of rollbackInitial)assert.equal(changedFailure.values.get(key),value,'non-quota failure restores evicted entries');
+console.log('PASS: unsuccessful quota recovery restores previous measurements');

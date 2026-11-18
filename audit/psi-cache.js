@@ -41,11 +41,19 @@
    candidates.push({key:candidateKey,savedAt,expired});
   }
   candidates.sort((a,b)=>Number(b.expired)-Number(a.expired)||a.savedAt-b.savedAt);
-  for(const candidate of candidates){
-   storage.removeItem(candidate.key);
-   try{storage.setItem(entryKey,serialized);return true;}
-   catch(error){if(!quotaError(error))return false;}
+  const removed=[];
+  function restore(){
+   // A failed optional write must not discard usable measurements.
+   for(const entry of removed.reverse()){try{storage.setItem(entry.key,entry.raw);}catch{}}
   }
+  for(const candidate of candidates){
+   let raw;
+   try{raw=storage.getItem(candidate.key);storage.removeItem(candidate.key);}catch{restore();return false;}
+   if(typeof raw==='string')removed.push({key:candidate.key,raw});
+   try{storage.setItem(entryKey,serialized);return true;}
+   catch(error){if(!quotaError(error)){restore();return false;}}
+  }
+  restore();
   return false;
  }
  function read(url,strategy){

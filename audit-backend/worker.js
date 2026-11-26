@@ -43,6 +43,16 @@ export default {async fetch(request,env){
  if(!result.meta.changes)return json({error:'Duplicate or project limit'},409);
  return json({id,url:target.href,name},201);
  }
+ const detail=url.pathname.match(/^\/api\/projects\/([a-f0-9-]{36})\/audits\/([a-f0-9-]{36})$/);
+ if(detail&&request.method==='GET'){
+ const audit=await env.DB.prepare('SELECT a.id,a.score,a.created_at,a.report_json FROM audits a JOIN projects p ON p.id=a.project_id WHERE p.user_id=? AND p.id=? AND a.id=?').bind(user.id,detail[1],detail[2]).first();
+ if(!audit)return json({error:'Not found'},404);
+ const {report_json,...metadata}=audit;return json({audit:{...metadata,report:JSON.parse(report_json)}});
+ }
+ if(detail&&request.method==='DELETE'){
+ const result=await env.DB.prepare('DELETE FROM audits WHERE id=? AND project_id IN (SELECT id FROM projects WHERE id=? AND user_id=?)').bind(detail[2],detail[1],user.id).run();
+ return result.meta.changes?json({deleted:true}):json({error:'Not found'},404);
+ }
  const match=url.pathname.match(/^\/api\/projects\/([a-f0-9-]{36})(\/audits)?$/);
  if(match){
  const project=await env.DB.prepare('SELECT id FROM projects WHERE id=? AND user_id=?').bind(match[1],user.id).first();if(!project)return json({error:'Not found'},404);

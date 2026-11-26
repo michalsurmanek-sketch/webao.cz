@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY NOT NULL, identity_issuer TEXT NOT NULL, identity_subject TEXT NOT NULL, email TEXT, created_at INTEGER NOT NULL DEFAULT (unixepoch()), UNIQUE(identity_issuer,identity_subject));
+CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, url TEXT NOT NULL CHECK(length(url)<=2048), name TEXT NOT NULL CHECK(length(name)<=200), created_at INTEGER NOT NULL DEFAULT (unixepoch()), UNIQUE(user_id,url));
+CREATE TABLE IF NOT EXISTS audits (id TEXT PRIMARY KEY NOT NULL, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, score INTEGER CHECK(score BETWEEN 0 AND 100), report_json TEXT NOT NULL CHECK(json_valid(report_json) AND length(report_json)<=500000), created_at INTEGER NOT NULL DEFAULT (unixepoch()));
+CREATE INDEX IF NOT EXISTS audits_project_time ON audits(project_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS monitoring (project_id TEXT PRIMARY KEY NOT NULL REFERENCES projects(id) ON DELETE CASCADE, enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)), interval_minutes INTEGER NOT NULL DEFAULT 1440 CHECK(interval_minutes>=60), next_check_at INTEGER);
+CREATE INDEX IF NOT EXISTS monitoring_due ON monitoring(enabled,next_check_at);

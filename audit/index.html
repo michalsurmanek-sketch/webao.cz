@@ -284,16 +284,16 @@ function saveLocalFindingWork(host,key,field,value){
 function renderRepairTemplate(item){
  const name=String(item.name||'').toLowerCase();
  let snippet='',note='';
- if(name.includes('open graph')){
+ if(name.includes('open graph')&&String(item.detail||'').includes('nebyly rozpoznány všechny')){
   snippet='<meta property="og:title" content="NÁZEV STRÁNKY">\n<meta property="og:description" content="POPIS STRÁNKY">\n<meta property="og:image" content="https://example.com/obrazek.jpg">';
   note='Doplňte skutečné hodnoty do existující HTML hlavičky. Nevytvářejte duplicitní značky.';
- }else if(name.includes('favicon')){
+ }else if(name.includes('favicon')&&String(item.detail||'').includes('nebyl rozpoznán odkaz')){
   snippet='<link rel="icon" href="/favicon.ico">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">';
   note='Použijte pouze existující soubory ikon a upravte jejich cesty.';
- }else if(name.includes('strukturovaná data')&&name.includes('json-ld')){
+ }else if(name.includes('strukturovaná data')&&name.includes('json-ld')&&item.state==='HYPOTÉZA'){
   snippet=JSON.stringify({'@context':'https://schema.org','@type':'Organization',name:'NÁZEV ORGANIZACE',url:'https://example.com/'},null,2);
   note='Příklad samotného JSON pro organizaci, nikoli univerzální oprava. Vložte do existujícího bloku application/ld+json pouze pokud odpovídá obsahu webu.';
- }else if(name.includes('viewport')&&item.ok===false){
+ }else if(name.includes('viewport')&&Number.isFinite(item.points)&&item.points<90){
   snippet='<meta name="viewport" content="width=device-width, initial-scale=1">';
   note='Upravte existující viewport v HTML hlavičce; nepřidávejte druhý.';
  }
@@ -548,6 +548,7 @@ function renderReport(host,findings,pages=[],crawlMeta={},competitors=[],brandin
  out.innerHTML='<div class="print-only">WEBAO AUDIT · '+esc(host)+' · '+esc(reportDate)+' · Pravidla '+esc(ruleVersion)+' · Prověřeno '+pages.filter(pageTextWasFetched).length+' URL · Vážené pokrytí '+totalWeight+' %</div><h2>Výsledek auditu: '+esc(host)+'</h2>'+brandHtml+'<div class="score-head"><div class="score-big">'+(score===null?'—':(totalWeight<100?totalWeight:score)+'<small>%</small>')+'</div><div class="score-explain"><strong>'+(totalWeight<100?'VÁŽENÉ POKRYTÍ · ČÁSTEČNÝ AUDIT':'Známka '+grade)+'</strong><br>'+(totalWeight<100?'Tento běh pokryl '+totalWeight+' % váhy auditu. Průměr změřených kontrol je '+(score===null?'—':score+' %')+'. Nejde o skóre celého webu.':'Vážený průměr změřených oblastí; skóre platí pouze pro provedené kontroly.')+'<br><small>Změřeno '+measured+' kontrol; pokryto '+scored.length+' z '+areaDefs.length+' oblastí; váhové pokrytí '+totalWeight+' %.</small><br><small>'+(totalWeight<100?'Zbývající oblasti jsou nezměřené a do skóre nevstupují.':'Skóre stále není zárukou bezpečnosti, právního souladu ani obchodního výsledku.')+'</small><br><small>Nálezy: '+criticalCount+' kritických · '+severeCount+' závažných · '+mediumCount+' středních · '+unverifiedCount+' neověřitelných kontrol · '+skippedCount+' neprovedených kontrol.</small></div></div><div class="report-actions"><button type="button" onclick="printAuditReport()">Uložit report jako PDF</button><button type="button" onclick="downloadAuditCsv()">Exportovat CSV</button><small class="pdf-export-note">V tiskovém okně zvolte „Uložit jako PDF“. Report obsahuje celý tento běh včetně všech nálezů a prověřených URL.</small></div>'+buildSourceAvailabilityHtml(crawlMeta)+'<h3>Skóre oblastí</h3>'+areaHtml+buildCoverageHtml(areas,findings)+priorityHtml+historyHtml+competitorHtml+pagesHtml+buildSkippedUrlsHtml(crawlMeta)+buildLinkGraphHtml(pages)+screenshotHtml+'<h3 style="margin-top:28px">Detailní nálezy a doporučení</h3><div class="finding-filters" id="finding-filters"><label>Oblast<select name="finding-area"><option value="all">Všechny oblasti</option>'+areaDefs.map(([name])=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('')+'</select></label><label>Závažnost<select name="finding-severity"><option value="all">Všechny úrovně</option>'+[...new Set(findings.map(item=>item.severity||(!Number.isFinite(item.points)?'Informační':item.points<50?'Závažná':item.points<80?'Střední':'Nízká')))].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Stav nápravy<select name="finding-status"><option value="all">Všechny stavy</option>'+['Nový','V řešení','Opraveno','Ignorováno','Znovu ověřit'].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Typ zjištění<select name="finding-kind"><option value="all">Všechny typy</option>'+[...new Set(findings.map(findingKind))].map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('')+'</select></label><label>Hledat v nálezech<input name="finding-query" type="search" placeholder="URL nebo text nálezu"></label><span class="finding-filter-summary" aria-live="polite"></span></div><div class="finding-list">'+findingHtml+'</div>'+(function(){try{return buildDetektiv(pages)}catch(detektivError){console.error('WEBAO detektiv render failed',detektivError);return '<section class="detektiv"><h3>Webový detektiv</h3><p class="detektiv-intro">Doplňkovou obchodní analýzu se nepodařilo sestavit. Ostatní výsledky auditu jsou dostupné.</p></section>'}})()+'<p class="audit-disclaimer">Procento je vážená úspěšnost automatických kontrol, které se podařilo změřit. Nejde o garanci bezpečnosti, souladu s právem ani pozic ve vyhledávání. Nezměřené oblasti se do skóre nezapočítávají. Doména a URL se předávají externím službám Jina Reader pro čtení veřejného webu, Google Public DNS pro DNS dotazy, Google PageSpeed Insights pro výkonové testy a RDAP registru pro registrační údaje. Audit nepřihlašuje do administrace a neodesílá formuláře.</p>';
  initFindingWorkControls(host);
  initFindingFilters();
+ initRepairTemplates();
 }
 async function getReportBranding(){
  const company=document.querySelector('#reportCompany').value.trim();
@@ -1995,7 +1996,6 @@ form.addEventListener('submit',async event=>{
   crawlMeta.sourceStatuses=measurementSourceStatuses({pages,robotsKnown,rootAllowed,robotsServerError,robotsUnavailableStatus,robotsUnknownError,robotsSkipLabel,dnsResults,rdapResult,pageSpeedResults,httpVariantResults,observatoryResult});
   const branding=await getReportBranding();
   renderReport(url.hostname,findings,pages,crawlMeta,competitors,branding);
-  initRepairTemplates();
   const scenarioData=window.currentAuditScenarios||[];
   out.querySelectorAll('[data-scenario]').forEach(button=>button.addEventListener('click',()=>{
    out.querySelectorAll('[data-scenario]').forEach(item=>item.setAttribute('aria-pressed','false'));

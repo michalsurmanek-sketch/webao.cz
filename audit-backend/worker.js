@@ -11,6 +11,10 @@ async function verify(token,audience){
  if(!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,decode(s),new TextEncoder().encode(h+'.'+p)))throw Error('signature');
  return claims;
 }
+async function readBody(request,max){
+ const reader=request.body?.getReader();if(!reader)throw Error('body');let size=0;const decoder=new TextDecoder('utf-8',{fatal:true});let text='';
+ try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>max){await reader.cancel();throw Error('size')}text+=decoder.decode(value,{stream:true})}return JSON.parse(text+decoder.decode())}finally{reader.releaseLock()}
+}
 export default {async fetch(request,env){
  const url=new URL(request.url);
  if(request.method==='GET'&&url.pathname==='/health'){
@@ -21,12 +25,39 @@ export default {async fetch(request,env){
  const token=request.headers.get('Authorization')?.match(/^Bearer ([A-Za-z0-9_.-]+)$/)?.[1];
  if(!token||token.length>8192)return json({error:'Unauthorized'},401);
  let claims;try{claims=await verify(token,env.GOOGLE_CLIENT_ID)}catch{return json({error:'Unauthorized'},401)}
- if(url.pathname==='/api/me'&&request.method==='GET'){
- try{const issuer='https://accounts.google.com',email=claims.email_verified===true&&typeof claims.email==='string'?claims.email:null;
- await env.DB.prepare('INSERT INTO users(id,identity_issuer,identity_subject,email) VALUES(?,?,?,?) ON CONFLICT(identity_issuer,identity_subject) DO UPDATE SET email=excluded.email').bind(crypto.randomUUID(),issuer,claims.sub,email).run();
- const user=await env.DB.prepare('SELECT id,email,created_at FROM users WHERE identity_issuer=? AND identity_subject=?').bind(issuer,claims.sub).first();return json({user});
- }catch{return json({error:'Service unavailable'},503)}
+ try{
+ const issuer='https://accounts.google.com',email=claims.email_verified===true&&typeof claims.email==='string'?claims.email:null;
+ await env.DB.prepare('INSERT INTO users(id,identity_issuer,identity_subject,email) VALUES(?,?,?,?) ON CONFLICT(identity_issuer,identity_subject) DO NOTHING').bind(crypto.randomUUID(),issuer,claims.sub,email).run();
+ const user=await env.DB.prepare('SELECT id,email,created_at FROM users WHERE identity_issuer=? AND identity_subject=?').bind(issuer,claims.sub).first();
+ if(url.pathname==='/api/me'&&request.method==='GET')return json({user});
+ if(url.pathname==='/api/projects'&&request.method==='GET'){
+ const {results}=await env.DB.prepare('SELECT id,url,name,created_at FROM projects WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(user.id).all();return json({projects:results});
  }
+ if(url.pathname==='/api/projects'&&request.method==='POST'){
+ let body;try{body=await readBody(request,8192)}catch{return json({error:'Invalid body'},400)}
+ let target;try{target=new URL(body.url);if(!['https:','http:'].includes(target.protocol)||target.username||target.password)throw Error();target.hash=''}catch{return json({error:'Invalid URL'},400)}
+ const name=typeof body.name==='string'?body.name.trim():target.hostname;
+ if(!name||name.length>200||target.href.length>2048)return json({error:'Invalid project'},400);
+ const id=crypto.randomUUID();
+ const result=await env.DB.prepare('INSERT INTO projects(id,user_id,url,name) SELECT ?,?,?,? WHERE (SELECT COUNT(*) FROM projects WHERE user_id=?)<100 ON CONFLICT(user_id,url) DO NOTHING').bind(id,user.id,target.href,name,user.id).run();
+ if(!result.meta.changes)return json({error:'Duplicate or project limit'},409);
+ return json({id,url:target.href,name},201);
+ }
+ const match=url.pathname.match(/^\/api\/projects\/([a-f0-9-]{36})(\/audits)?$/);
+ if(match){
+ const project=await env.DB.prepare('SELECT id FROM projects WHERE id=? AND user_id=?').bind(match[1],user.id).first();if(!project)return json({error:'Not found'},404);
+ if(!match[2]&&request.method==='DELETE'){await env.DB.prepare('DELETE FROM projects WHERE id=? AND user_id=?').bind(project.id,user.id).run();return json({deleted:true})}
+ if(match[2]&&request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,score,created_at FROM audits WHERE project_id=? ORDER BY created_at DESC LIMIT 100').bind(project.id).all();return json({audits:results})}
+ if(match[2]&&request.method==='POST'){
+ let body;try{body=await readBody(request,500000)}catch{return json({error:'Invalid body'},400)}
+ if(!body.report||typeof body.report!=='object'||!Number.isInteger(body.score)||body.score<0||body.score>100)return json({error:'Invalid audit'},400);
+ const id=crypto.randomUUID(),report=JSON.stringify(body.report);
+ const result=await env.DB.prepare('INSERT INTO audits(id,project_id,score,report_json) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM projects WHERE id=? AND user_id=?) AND (SELECT COUNT(*) FROM audits WHERE project_id=?)<100').bind(id,project.id,body.score,report,project.id,user.id,project.id).run();
+ if(!result.meta.changes)return json({error:'Audit limit or project unavailable'},409);
+ return json({id},201);
+ }
+ }
+ }catch{return json({error:'Service unavailable'},503)}
  }
  return json({error:'Not found'},404);
 }};

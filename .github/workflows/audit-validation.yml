@@ -63,7 +63,9 @@ jobs:
           for (const name of names) {
             const start = html.indexOf('function ' + name + '(');
             assert.ok(start >= 0, name);
-            const next = html.indexOf('\nfunction ', start + 1);
+            const boundary = /\n(?:async )?function /g;
+            boundary.lastIndex = start + 1;
+            const next = boundary.exec(html)?.index ?? html.length;
             const source = html.slice(start, next);
             vm.runInContext(source, context);
           }

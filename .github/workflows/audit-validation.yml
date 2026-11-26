@@ -50,3 +50,32 @@ jobs:
                   subprocess.run(['node', '--check', str(path)], check=True)
           print('Validated', len(parser.scripts), 'inline scripts')
           PY
+
+      - name: Test audit helper behavior
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const assert = require('node:assert/strict');
+          const html = fs.readFileSync('audit/index.html', 'utf8');
+          const names = ['esc','normalizeFindingSearch','targetRobotsHttpStatus','pageTextWasFetched','renderRepairTemplate'];
+          const context = vm.createContext({});
+          for (const name of names) {
+            const start = html.indexOf('function ' + name + '(');
+            assert.ok(start >= 0, name);
+            const next = html.indexOf('\nfunction ', start + 1);
+            const source = html.slice(start, next);
+            vm.runInContext(source, context);
+          }
+          assert.equal(context.normalizeFindingSearch('PŘÍSTUPNOST'), 'pristupnost');
+          assert.equal(context.targetRobotsHttpStatus({message:'cílového zdroje (429)'}), '429');
+          assert.equal(context.targetRobotsHttpStatus({message:'timeout'}), '');
+          assert.equal(context.pageTextWasFetched({raw:null}), false);
+          assert.equal(context.pageTextWasFetched({raw:''}), true);
+          assert.equal(context.esc('<script>'), '&lt;script&gt;');
+          assert.equal(context.renderRepairTemplate({name:'Open Graph',detail:'Vše v pořádku'}), '');
+          assert.match(context.renderRepairTemplate({name:'Open Graph',detail:'nebyly rozpoznány všechny'}), /data-copy-repair/);
+          assert.equal(context.renderRepairTemplate({name:'viewport',points:null}), '');
+          assert.match(context.renderRepairTemplate({name:'viewport',points:0}), /data-copy-repair/);
+          console.log('10 assertions passed');
+          JS

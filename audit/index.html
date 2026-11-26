@@ -730,7 +730,28 @@ function extractHeadMetadata(document){
   if(['og:title','og:description','og:image','og:url','twitter:card'].includes(key)&&!social[key])social[key]=(meta.getAttribute('content')||'').trim().slice(0,500);
  }
  const icons=links.filter(link=>(link.getAttribute('rel')||'').toLowerCase().split(/\s+/).some(rel=>['icon','apple-touch-icon','mask-icon'].includes(rel))).map(link=>(link.getAttribute('href')||'').trim()).filter(Boolean);
- return{social,icons,canonical,hreflang,baseHref:baseElement?baseElement.getAttribute('href'):null,truncated:allLinks.length>links.length};
+ const jsonLdNodes=Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+ const jsonLd={total:jsonLdNodes.length,checked:0,invalid:0,skipped:0,types:[]};
+ const types=new Set();
+ for(const node of jsonLdNodes.slice(0,50)){
+  const raw=node.textContent||'';
+  if(raw.length>200000){jsonLd.skipped++;continue;}
+  jsonLd.checked++;
+  try{
+   const data=JSON.parse(raw);
+   const queue=[data];let visited=0;
+   while(queue.length&&visited++<1000){
+    const item=queue.pop();
+    if(!item||typeof item!=='object')continue;
+    if(Array.isArray(item)){for(const child of item.slice(0,100))queue.push(child);continue;}
+    for(const type of (Array.isArray(item['@type'])?item['@type']:[item['@type']]))if(typeof type==='string'&&types.size<50)types.add(type.slice(0,120));
+    if(item['@graph'])queue.push(item['@graph']);
+   }
+  }catch{jsonLd.invalid++;}
+ }
+ jsonLd.skipped+=Math.max(0,jsonLdNodes.length-50);
+ jsonLd.types=[...types];
+ return{jsonLd,social,icons,canonical,hreflang,baseHref:baseElement?baseElement.getAttribute('href'):null,truncated:allLinks.length>links.length};
 }
 function htmlMetadataFindings(pages){
  const evidenceText=items=>{
@@ -750,6 +771,8 @@ function htmlMetadataFindings(pages){
  const findings=[{area:'Technické SEO',name:'Canonical a hreflang — signály z HTML vzorku',url:'',points:null,state:inspected.length?'SIGNÁL':'NELZE OVĚŘIT',severity:'Informační',coverageExcluded:true,detail:inspected.length?'HTML hlavička byla rozpoznána u '+inspected.length+' z '+readable.length+' načtených stránek. Canonical byl deklarován na '+canonicalPages.length+' stránkách a hreflang na '+hreflangPages.length+'. '+(failed.length?'U '+failed.length+' stránek se HTML nepodařilo ověřit. ':'')+'Jde pouze o výskyt veřejných deklarací: absence canonical není automaticky chyba, správnost canonical cíle ani jazykových variant se neposuzuje.':'HTML hlavičku nebylo možné získat u žádné z '+readable.length+' načtených stránek. Canonical a hreflang proto nelze ověřit; chybějící výstup není důkazem chybějících značek.',evidence:evidenceText(examples)||'Ve zkoumaném HTML vzorku nebyly rozpoznány žádné canonical ani hreflang deklarace.'+(failed.length?' · Selhalo HTML načtení '+failed.length+' z '+readable.length+' stránek.':''),confidence:inspected.length?'Vysoká pouze pro rozpoznané značky v načtených HTML hlavičkách; nejde o ověření SEO správnosti.':'Nelze určit bez načteného HTML.'}];
  const targetIdentity=(href,base)=>{try{return new URL(href).href;}catch{try{return base?new URL(href,base).href:null;}catch{return null;}}};
  for(const page of inspected){
+  const ld=page.htmlMetadata.jsonLd;
+  if(ld)findings.push({area:'Technické SEO',name:'Strukturovaná data — JSON-LD',url:page.url,points:null,state:ld.invalid?'HYPOTÉZA':'SIGNÁL',severity:ld.invalid?'K prověření':'Informační',coverageExcluded:true,detail:ld.total?'V získaném HTML bylo nalezeno '+ld.total+' bloků JSON-LD; syntakticky prověřeno '+ld.checked+', neplatný JSON '+ld.invalid+', vynecháno '+ld.skipped+'.':'V získaném HTML nebyl rozpoznán JSON-LD. Strukturovaná data mohou být dostupná jiným způsobem nebo po vykonání JavaScriptu.',evidence:'Rozpoznané typy: '+(ld.types.join(', ')||'žádné')+' · Neplatný JSON: '+ld.invalid,action:ld.invalid?'Ověřte původní JSON-LD a opravte syntaktické chyby.':'Ověřte relevantní typy a povinné vlastnosti pomocí validátoru Schema.org a testu rozšířených výsledků Google.',confidence:'Kontrola syntaxe JSON a vybraných typů v získaném HTML; neověřuje správnost Schema.org ani nárok na rozšířené výsledky.'});
   const social=page.htmlMetadata.social||{};
   const keys=['og:title','og:description','og:image'];
   const missing=keys.filter(key=>!social[key]);

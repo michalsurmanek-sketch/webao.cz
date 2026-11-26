@@ -786,7 +786,7 @@ function htmlMetadataFindings(pages){
   const text=shown.map(value=>value.length>160?value.slice(0,160)+'…':value).join(' · ');
   return text+(items.length>shown.length||shortened?' · Ukázka zkrácena: '+shown.length+' z '+items.length+' položek, nejvýše 160 znaků na položku.':'');
  };
- const readable=pages.filter(pageTextWasFetched),inspected=readable.filter(page=>page.htmlMetadata),failed=readable.filter(page=>!page.htmlMetadata);
+ const readable=pages.filter(pageTextWasFetched),inspected=readable.filter(page=>page.htmlMetadata),failed=readable.filter(page=>page.htmlMetadataError);
  const canonicalPages=inspected.filter(page=>page.htmlMetadata.canonical.length);
  const hreflangPages=inspected.filter(page=>page.htmlMetadata.hreflang.length);
  const examples=inspected.map(page=>{
@@ -1635,7 +1635,9 @@ form.addEventListener('submit',async event=>{
   crawlMeta.omittedUrlExamples=omittedUrls.slice(0,100).map(candidate=>({url:candidate,source:(arrayJoin(sourceKindByUrl.get(candidate), ' + ')||'Interní odkaz z prověřené stránky')+(sitemapSourceByUrl.get(candidate)?' · '+sitemapSourceByUrl.get(candidate):'')}));
   crawlMeta.linkDiscovered=allLinkedUrls.size;
   crawlMeta.note=(crawlMeta.note||'')+' Crawl také sleduje rozpoznané interní odkazy z každé načtené stránky až do nastaveného limitu; výsledek stále není důkazem úplného indexu webu.'; if(crawlMeta.sitemapFailures.length)crawlMeta.note+=' Selhalo načtení '+crawlMeta.sitemapFailures.length+' sitemap souborů; jejich URL nebylo možné zahrnout.';if(crawlMeta.sitemapBudgetOmittedCount)crawlMeta.note+=' Kvůli limitu požadavků nebylo načteno '+crawlMeta.sitemapBudgetOmittedCount+' dalších známých sitemap souborů; jejich URL nebyly zahrnuty do inventáře a nejde o chybu načítání. ';if(crawlMeta.sitemapSkipped.length)crawlMeta.note+=' '+crawlMeta.sitemapSkipped.length+' sitemap souborů bylo vynecháno kvůli robots.txt; nejde o potvrzené selhání souborů.';
-  const htmlMetadataPages=pages.filter(pageTextWasFetched);
+  const readableMetadataPages=pages.filter(pageTextWasFetched);
+  const htmlMetadataPages=quickMode?readableMetadataPages.slice(0,1):readableMetadataPages;
+  if(quickMode&&readableMetadataPages.length>htmlMetadataPages.length) crawlMeta.note+=' Rychlý režim: samostatná HTML kontrola byla omezena na první načtenou stránku; ostatní HTML metadata nebyla měřena.';
   if(htmlMetadataPages.length){
    out.querySelector('.result-summary').textContent='Ověřuji HTML hlavičky u '+htmlMetadataPages.length+' načtených stránek…';
    const htmlMetadataResults=await mapLimit(htmlMetadataPages,4,page=>fetchPageHtmlMetadata(new URL(page.url)),(completed,total)=>{

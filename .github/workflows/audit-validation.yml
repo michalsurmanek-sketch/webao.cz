@@ -1,0 +1,52 @@
+name: Audit validation
+on:
+  push:
+    paths:
+      - 'audit/**'
+      - '.github/workflows/audit-validation.yml'
+  pull_request:
+    paths:
+      - 'audit/**'
+      - '.github/workflows/audit-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate inline JavaScript
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import subprocess, tempfile
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.active = False
+                  self.scripts = []
+              def handle_starttag(self, tag, attrs):
+                  if tag == 'script':
+                      attrs = dict(attrs)
+                      self.active = 'src' not in attrs and attrs.get('type', '').lower() in ('', 'text/javascript', 'application/javascript', 'module')
+                      if self.active:
+                          self.scripts.append([attrs.get('type') == 'module', ''])
+              def handle_data(self, data):
+                  if self.active:
+                      self.scripts[-1][1] += data
+              def handle_endtag(self, tag):
+                  if tag == 'script':
+                      self.active = False
+          parser = Scripts()
+          parser.feed(Path('audit/index.html').read_text(encoding='utf-8'))
+          assert parser.scripts, 'No inline scripts found'
+          with tempfile.TemporaryDirectory() as folder:
+              for index, (module, source) in enumerate(parser.scripts):
+                  path = Path(folder) / (str(index) + ('.mjs' if module else '.js'))
+                  path.write_text(source, encoding='utf-8')
+                  subprocess.run(['node', '--check', str(path)], check=True)
+          print('Validated', len(parser.scripts), 'inline scripts')
+          PY

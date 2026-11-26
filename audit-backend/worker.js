@@ -15,7 +15,7 @@ async function readBody(request,max){
  const reader=request.body?.getReader();if(!reader)throw Error('body');let size=0;const decoder=new TextDecoder('utf-8',{fatal:true});let text='';
  try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>max){await reader.cancel();throw Error('size')}text+=decoder.decode(value,{stream:true})}return JSON.parse(text+decoder.decode())}finally{reader.releaseLock()}
 }
-export default {async fetch(request,env){
+async function handle(request,env){
  const url=new URL(request.url);
  if(request.method==='GET'&&url.pathname==='/health'){
  try{const row=await env.DB.prepare('SELECT 1 AS ok').first();return json({status:row?.ok===1?'ok':'unavailable'},row?.ok===1?200:503)}catch{return json({status:'unavailable'},503)}
@@ -70,4 +70,19 @@ export default {async fetch(request,env){
  }catch{return json({error:'Service unavailable'},503)}
  }
  return json({error:'Not found'},404);
+}
+export default {async fetch(request,env){
+ const origin=request.headers.get('Origin');
+ const allowed=origin==='https://webao.cz';
+ if(origin&&!allowed)return json({error:'Origin not allowed'},403);
+ const cors={'Access-Control-Allow-Origin':'https://webao.cz','Vary':'Origin'};
+ if(request.method==='OPTIONS'){
+ if(!allowed)return json({error:'Origin not allowed'},403);
+ return new Response(null,{status:204,headers:{...cors,'Access-Control-Allow-Methods':'GET, POST, DELETE, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Max-Age':'600'}});
+ }
+ const url=new URL(request.url);
+ const response=url.pathname==='/auth/config'&&request.method==='GET'?json({googleClientId:env.GOOGLE_CLIENT_ID||null}):await handle(request,env);
+ if(!allowed)return response;
+ const headers=new Headers(response.headers);for(const [k,v] of Object.entries(cors))headers.set(k,v);
+ return new Response(response.body,{status:response.status,headers});
 }};

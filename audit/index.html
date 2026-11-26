@@ -724,7 +724,13 @@ function extractHeadMetadata(document){
   return rel.includes('alternate')&&!!(link.getAttribute('hreflang')||'').trim();
  }).map(link=>({lang:(link.getAttribute('hreflang')||'').trim(),href:(link.getAttribute('href')||'').trim()}));
  const baseElement=typeof document.head.querySelector==='function'?document.head.querySelector('base[href]'):null;
- return{canonical,hreflang,baseHref:baseElement?baseElement.getAttribute('href'):null,truncated:allLinks.length>links.length};
+ const social={};
+ for(const meta of Array.from(document.head.querySelectorAll('meta[property],meta[name]')).slice(0,500)){
+  const key=(meta.getAttribute('property')||meta.getAttribute('name')||'').trim().toLowerCase();
+  if(['og:title','og:description','og:image','og:url','twitter:card'].includes(key)&&!social[key])social[key]=(meta.getAttribute('content')||'').trim().slice(0,500);
+ }
+ const icons=links.filter(link=>(link.getAttribute('rel')||'').toLowerCase().split(/\s+/).some(rel=>['icon','apple-touch-icon','mask-icon'].includes(rel))).map(link=>(link.getAttribute('href')||'').trim()).filter(Boolean);
+ return{social,icons,canonical,hreflang,baseHref:baseElement?baseElement.getAttribute('href'):null,truncated:allLinks.length>links.length};
 }
 function htmlMetadataFindings(pages){
  const evidenceText=items=>{
@@ -744,6 +750,11 @@ function htmlMetadataFindings(pages){
  const findings=[{area:'Technické SEO',name:'Canonical a hreflang — signály z HTML vzorku',url:'',points:null,state:inspected.length?'SIGNÁL':'NELZE OVĚŘIT',severity:'Informační',coverageExcluded:true,detail:inspected.length?'HTML hlavička byla rozpoznána u '+inspected.length+' z '+readable.length+' načtených stránek. Canonical byl deklarován na '+canonicalPages.length+' stránkách a hreflang na '+hreflangPages.length+'. '+(failed.length?'U '+failed.length+' stránek se HTML nepodařilo ověřit. ':'')+'Jde pouze o výskyt veřejných deklarací: absence canonical není automaticky chyba, správnost canonical cíle ani jazykových variant se neposuzuje.':'HTML hlavičku nebylo možné získat u žádné z '+readable.length+' načtených stránek. Canonical a hreflang proto nelze ověřit; chybějící výstup není důkazem chybějících značek.',evidence:evidenceText(examples)||'Ve zkoumaném HTML vzorku nebyly rozpoznány žádné canonical ani hreflang deklarace.'+(failed.length?' · Selhalo HTML načtení '+failed.length+' z '+readable.length+' stránek.':''),confidence:inspected.length?'Vysoká pouze pro rozpoznané značky v načtených HTML hlavičkách; nejde o ověření SEO správnosti.':'Nelze určit bez načteného HTML.'}];
  const targetIdentity=(href,base)=>{try{return new URL(href).href;}catch{try{return base?new URL(href,base).href:null;}catch{return null;}}};
  for(const page of inspected){
+  const social=page.htmlMetadata.social||{};
+  const keys=['og:title','og:description','og:image'];
+  const missing=keys.filter(key=>!social[key]);
+  findings.push({area:'SEO a obsah',name:'Sociální náhled — Open Graph',url:page.url,points:null,state:'SIGNÁL',severity:'Informační',coverageExcluded:true,detail:missing.length?'V získané HTML hlavičce nebyly rozpoznány všechny základní Open Graph deklarace.':'V získané HTML hlavičce jsou deklarovány titulek, popis a obrázek.',evidence:keys.map(key=>key+': '+(social[key]||'nerozpoznáno')).join(' · '),action:'Ověřte skutečný náhled při sdílení; doplňte relevantní titulek, popis a veřejně dostupný obrázek.',confidence:'Pouze deklarace v získaném HTML; dostupnost obrázku ani výsledný náhled nebyly ověřeny.'});
+  if(page.type==='Úvodní stránka')findings.push({area:'SEO a obsah',name:'Favicon — deklarace v HTML',url:page.url,points:null,state:'SIGNÁL',severity:'Informační',coverageExcluded:true,detail:page.htmlMetadata.icons?.length?'V HTML byly rozpoznány odkazy na ikony.':'V získaném HTML nebyl rozpoznán odkaz na ikonu; prohlížeč může přesto použít /favicon.ico.',evidence:evidenceText(page.htmlMetadata.icons||[])||'Žádná rozpoznaná deklarace.',action:'Ověřte zobrazení favicon v prohlížeči a dostupnost souboru ikony.',confidence:'Pouze deklarace v HTML; soubory ikon nebyly načteny.'});
   let metadataBase=null;
   if(page.htmlMetadata.baseHref!==null&&page.htmlMetadata.baseHref!==undefined){try{metadataBase=new URL(page.htmlMetadata.baseHref).href;}catch{}}
   const canonicalTargets=new Set(page.htmlMetadata.canonical.map(href=>targetIdentity(href,metadataBase)).filter(Boolean));

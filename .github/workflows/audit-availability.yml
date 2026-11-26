@@ -1,0 +1,33 @@
+name: WEBAO availability
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: webao-availability
+  cancel-in-progress: false
+jobs:
+  availability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check public endpoints
+        shell: bash
+        run: |
+          failed=0
+          printf '| URL | HTTP | Seconds | Result |\n|---|---|---|---|\n' >> "$GITHUB_STEP_SUMMARY"
+          for url in https://webao.cz/ https://webao.cz/audit/; do
+            result=$(curl --silent --show-error --output /dev/null --location --max-redirs 5 --proto '=https' --proto-redir '=https' --connect-timeout 8 --max-time 20 --retry 1 --retry-delay 2 --write-out '%{http_code} %{time_total}' "$url") && rc=0 || rc=$?
+            read -r status duration <<< "$result"
+            if [[ "$rc" == 0 && "$status" =~ ^2[0-9][0-9]$ ]]; then
+              label=OK
+            else
+              label=FAILED
+              failed=1
+              echo "::error::Availability check failed for $url (HTTP $status, curl $rc)"
+            fi
+            printf '| %s | %s | %s | %s |\n' "$url" "$status" "$duration" "$label" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit "$failed"

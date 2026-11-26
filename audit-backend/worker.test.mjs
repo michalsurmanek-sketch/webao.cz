@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const source=await readFile(new URL('./worker.js',import.meta.url),'utf8');
+const {default:worker}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const call=(path,env={},options={})=>worker.fetch(new Request('https://example.test'+path,options),env);
+test('health success and failure',async()=>{assert.equal((await call('/health',{DB:{prepare:()=>({first:async()=>({ok:1})})}})).status,200);assert.equal((await call('/health')).status,503)});
+test('configuration and fail closed',async()=>{assert.deepEqual(await (await call('/auth/config')).json(),{googleClientId:null});assert.equal((await call('/api/projects')).status,503);assert.equal((await call('/api/projects',{GOOGLE_CLIENT_ID:'test'})).status,401);assert.equal((await call('/api/projects',{GOOGLE_CLIENT_ID:'test'},{headers:{Authorization:'Bearer invalid.token.value'}})).status,401)});
+test('CORS restrictions',async()=>{const r=await call('/api/projects',{}, {method:'OPTIONS',headers:{Origin:'https://webao.cz'}});assert.equal(r.status,204);assert.equal(r.headers.get('Access-Control-Allow-Origin'),'https://webao.cz');assert.equal((await call('/auth/config',{}, {headers:{Origin:'https://evil.example'}})).status,403)});
+test('unknown route',async()=>assert.equal((await call('/unknown')).status,404));

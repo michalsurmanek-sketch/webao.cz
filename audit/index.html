@@ -1927,6 +1927,28 @@ form.addEventListener('submit',async event=>{
    const urls=group.map(item=>item.url);
    for(const item of group)findings.push({area:'SEO a obsah',name:'Stejný text na kontrolovaných URL — hypotéza',url:item.url,ok:false,points:null,state:'HYPOTÉZA',severity:'K prověření',detail:'Veřejný textový výstup je po normalizaci shodný na '+group.length+' kontrolovaných URL. Může jít o duplicitní obsah, ale také o omezení textové čtečky.',evidence:arrayJoin(urls,' | '),impact:'Pokud jsou stránky skutečně obsahově stejné, návštěvník i vyhledávač mohou mít problém rozlišit jejich účel.',confidence:'Nízká — porovnává se textová extrakce, nikoli celé HTML',effort:'Střední'});
   }
+  // Reuse existing crawl results; no extra requests or cross-origin probes.
+  const linkSources=new Map();
+  for(const source of pages.filter(pageTextWasFetched)){
+   for(const href of source.links||[]){
+    const key=normalizeCrawlUrl(href,url);
+    if(!key)continue;
+    if(!linkSources.has(key))linkSources.set(key,new Set());
+    linkSources.get(key).add(source.url);
+   }
+  }
+  let linkedChecked=0,linkedMissing=0;
+  for(const target of pages){
+   const key=normalizeCrawlUrl(target.url,url);
+   const sources=[...(linkSources.get(key)||[])].filter(source=>normalizeCrawlUrl(source,url)!==key);
+   if(!sources.length)continue;
+   const status=String(target.loadError||'').match(/cílového zdroje \((404|410)\)/)?.[1];
+   if(pageTextWasFetched(target)||status)linkedChecked++;
+   if(!status)continue;
+   linkedMissing++;
+   findings.push({area:'Technické SEO',name:'Interní odkaz — hlášené HTTP '+status,url:target.url,points:null,state:'HYPOTÉZA',severity:'K prověření',coverageExcluded:true,detail:'Veřejná čtečka oznámila HTTP '+status+' u cíle interního odkazu. Přímý HTTP stav nebyl nezávisle ověřen.',evidence:'Cíl: '+target.url+' · Odkazující stránky: '+sources.slice(0,10).join(' · '),action:'Ověřte cílovou adresu v prohlížeči nebo serverovým HTTP požadavkem. Pokud chyba trvá, opravte odkaz nebo nastavte vhodné přesměrování.',confidence:'Střední — stav cíle hlášený externí čtečkou, nikoli přímé měření.'});
+  }
+  findings.push({area:'Technické SEO',name:'Interní odkazy — rozsah kontroly dostupnosti',points:null,state:linkedChecked?'SIGNÁL':'NELZE OVĚŘIT',severity:'Informační',coverageExcluded:true,detail:'Rozpoznáno '+linkSources.size+' unikátních interních cílů; '+linkedChecked+' mělo použitelný výsledek ve vzorku, z toho '+linkedMissing+' s hlášeným HTTP 404 nebo 410. Ostatní cíle nebyly nezávisle ověřeny.',evidence:'Existující výsledky veřejné čtečky; bez dalších požadavků.',confidence:'Omezený vzorek, nikoli úplná kontrola všech odkazů.'});
   const inbound=buildInboundLinks(pages);
   for(const item of pages)item.inboundLinks=pageTextWasFetched(item)?(inbound.get(auditLinkKey(item.url))??0):null;
   for(const item of pages.filter(page=>pageTextWasFetched(page)&&page.type!=='Úvodní stránka')){
